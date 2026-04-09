@@ -23,7 +23,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\PlateIQ.WebAPI\PlateIQ.WebAPI.csproj" />
-    <ProjectReference Include="..\..\src\PlateIQ.Infrastructure\PlateIQ.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

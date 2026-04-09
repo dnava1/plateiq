@@ -1,4 +1,7 @@
+using Microsoft.EntityFrameworkCore;
 using PlateIQ.Infrastructure;
+using PlateIQ.Infrastructure.Persistence;
+using PlateIQ.Infrastructure.Persistence.Seeders;
 using PlateIQ.WebAPI.Extensions;
 using Scalar.AspNetCore;
 using Serilog;
@@ -37,6 +40,11 @@ try
     {
         app.MapOpenApi();
         app.MapScalarApiReference();
+
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PlateIqDbContext>();
+        await db.Database.MigrateAsync();
+        await ExerciseSeeder.SeedAsync(db);
     }
 
     app.Run();
