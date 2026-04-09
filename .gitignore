@@ -1,0 +1,66 @@
+# ─── OS ───────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Editors ──────────────────────────────────────────────
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# ─── .NET / ASP.NET Core ──────────────────────────────────
+bin/
+obj/
+*.user
+.vs/
+launchSettings.json
+*.nupkg
+*.snupkg
+TestResults/
+coverage/
+*.trx
+*.cobertura.xml
+
+# ─── EF Core Migrations (keep migration files, ignore snapshots from local runs)
+# Migrations/ folder is intentionally tracked
+
+# ─── Next.js / Node ───────────────────────────────────────
+node_modules/
+.next/
+out/
+dist/
+build/
+.turbo/
+.pnpm-store/
+
+# ─── Environment & Secrets ────────────────────────────────
+.env
+.env.*
+*.local
+!.env.example
+!.env.local.example
+
+# ─── Azure / Publish ──────────────────────────────────────
+publish/
+*.PublishSettings
+.azure/
+
+# ─── Logs ─────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# ─── Misc ─────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.orig
+README.md
+docs/architecture-review.md
+docs/architecture.md
+docs/implementation-plan.md
