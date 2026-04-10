@@ -14,7 +14,7 @@ import type { Tables } from '@/types/database'
 type Exercise = Tables<'exercises'>
 
 const MAIN_LIFTS = ['squat', 'bench', 'ohp', 'deadlift'] as const
-const MAIN_LIFT_NAMES: Record<string, string> = {
+const MAIN_LIFT_EXACT_NAMES: Record<string, string> = {
   squat: 'Squat',
   bench: 'Bench Press',
   ohp: 'Overhead Press',
@@ -37,12 +37,13 @@ export default function ExercisesPage() {
     tmDateMap.set(tm.exercise_id, tm.effective_date)
   }
 
-  // Find main lift exercise IDs from seed data
-  const mainLiftExercises = exercises.filter((e) =>
-    e.is_main_lift && MAIN_LIFTS.some((key) =>
-      e.name.toLowerCase().includes(key === 'ohp' ? 'overhead press' : key)
-    )
-  )
+  // Build lookup: key → exercise (exact name match)
+  const mainLiftMap = new Map<string, Exercise>()
+  for (const key of MAIN_LIFTS) {
+    const exactName = MAIN_LIFT_EXACT_NAMES[key]
+    const match = exercises.find((e) => e.name === exactName)
+    if (match) mainLiftMap.set(key, match)
+  }
 
   const filteredExercises =
     category === 'all'
@@ -71,13 +72,11 @@ export default function ExercisesPage() {
         <h2 className="font-semibold">Training Maxes</h2>
         <div className="space-y-2">
           {MAIN_LIFTS.map((key) => {
-            const exercise = mainLiftExercises.find((e) =>
-              e.name.toLowerCase().includes(key === 'ohp' ? 'overhead press' : key)
-            )
+            const exercise = mainLiftMap.get(key)
             return (
               <div key={key} className="flex items-center justify-between">
                 <CurrentTmDisplay
-                  exerciseName={MAIN_LIFT_NAMES[key]}
+                  exerciseName={MAIN_LIFT_EXACT_NAMES[key]}
                   weightLbs={exercise ? tmMap.get(exercise.id) : undefined}
                   effectiveDate={exercise ? tmDateMap.get(exercise.id) : undefined}
                 />

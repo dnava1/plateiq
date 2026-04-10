@@ -3,6 +3,9 @@
 Thumbs.db
 desktop.ini
 
+# ─── Playwright MCP artifacts ─────────────────────────────
+.playwright-mcp/
+
 # ─── Editors ──────────────────────────────────────────────
 .vscode/settings.json
 .vscode/launch.json
