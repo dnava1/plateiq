@@ -219,14 +219,7 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="start_date">Start Date (optional)</Label>
-                <Input
-                  id="start_date"
-                  type="date"
-                  {...register('start_date')}
-                />
-              </div>
+
             </div>
           )}
 

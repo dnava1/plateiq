@@ -67,7 +67,7 @@ export function useCreateProgram() {
           template_key: input.template_key,
           config,
           is_active: true,
-          start_date: input.start_date ?? new Date().toISOString().split('T')[0],
+          start_date: new Date().toISOString().split('T')[0],
         })
         .select()
         .single()

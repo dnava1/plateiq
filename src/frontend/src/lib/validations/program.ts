@@ -6,7 +6,6 @@ export const createProgramSchema = z.object({
   supplement_key: z.string().optional(),
   rounding: z.number().min(1).max(10),
   tm_percentage: z.number().min(0.7).max(1.0),
-  start_date: z.string().optional(),
 })
 
 export type CreateProgramInput = z.infer<typeof createProgramSchema>

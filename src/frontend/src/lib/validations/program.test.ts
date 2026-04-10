@@ -87,18 +87,4 @@ describe('createProgramSchema', () => {
     })
     expect(result.success).toBe(false)
   })
-
-  it('accepts optional start_date', () => {
-    const result = createProgramSchema.safeParse({
-      template_key: 'wendler_531',
-      name: 'My Program',
-      rounding: 5,
-      tm_percentage: 0.9,
-      start_date: '2026-04-10',
-    })
-    expect(result.success).toBe(true)
-    if (result.success) {
-      expect(result.data.start_date).toBe('2026-04-10')
-    }
-  })
 })
