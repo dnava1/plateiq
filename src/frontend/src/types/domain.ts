@@ -1,30 +1,7 @@
-export type LiftType = "Squat" | "Bench" | "OHP" | "Deadlift";
-
-export type SetType =
-  | "Warmup"
-  | "Main"
-  | "AMRAP"
-  | "Joker"
-  | "FSL"
-  | "BBB"
-  | "Accessory";
-
-export type MovementPattern =
-  | "Push"
-  | "Pull"
-  | "Hinge"
-  | "SingleLeg"
-  | "Core"
-  | "Other";
-
-export type ExerciseCategory = "Main" | "Accessory";
-
-export type RecordType = "EstimatedOneRM" | "RepRecord";
-
-export type InsightType =
-  | "WeeklyRecap"
-  | "PrNote"
-  | "ProgramRecommendation"
-  | "DeloadAlert";
-
-export type InsightStatus = "Pending" | "Completed" | "Failed";
+export type SetType = 'warmup' | 'main' | 'amrap' | 'supplement' | 'accessory'
+export type ExerciseCategory = 'main' | 'accessory'
+export type MovementPattern = 'push' | 'pull' | 'hinge' | 'squat' | 'single_leg' | 'core' | 'other'
+export type IntensityType = 'percentage_tm' | 'percentage_1rm' | 'rpe' | 'fixed_weight' | 'bodyweight' | 'percentage_work_set'
+export type ProgressionStyle = 'linear_per_session' | 'linear_per_week' | 'linear_per_cycle' | 'percentage_cycle' | 'wave' | 'autoregulated' | 'custom'
+export type PreferredUnit = 'lbs' | 'kg'
+export type ProgramLevel = 'beginner' | 'intermediate' | 'advanced'

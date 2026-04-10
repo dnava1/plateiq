@@ -1,0 +1,206 @@
+import type { ProgramTemplate } from '@/types/template'
+
+// nSuns LP — based on 5/3/1 but with many more sets and varying percentages.
+// Representative sets shown per main lift per day. Uses training max.
+
+export const nsunsLp: ProgramTemplate = {
+  key: 'nsuns_lp',
+  name: 'nSuns LP',
+  level: 'intermediate',
+  description:
+    'Reddit user nSuns\' linear progression variant based on 5/3/1. 5 days per week with very high volume. Each main lift day includes 9 working sets ranging from 65–95% TM with an AMRAP top set, plus a secondary lift. Progression is driven by AMRAP performance.',
+  days_per_week: 5,
+  cycle_length_weeks: 1,
+  uses_training_max: true,
+  default_tm_percentage: 0.9,
+  required_exercises: ['squat', 'bench', 'ohp', 'deadlift', 'sumo_deadlift', 'incline_bench', 'front_squat', 'close_grip_bench'],
+  days: [
+    {
+      label: 'Day 1 — Bench + OHP',
+      exercise_blocks: [
+        {
+          role: 'primary',
+          exercise_key: 'bench',
+          sets: [
+            { sets: 1, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.85, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: '1+', intensity: 0.95, intensity_type: 'percentage_tm', is_amrap: true },
+            { sets: 1, reps: 3, intensity: 0.9, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.85, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.8, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 5, intensity: 0.7, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: '8+', intensity: 0.65, intensity_type: 'percentage_tm', is_amrap: true },
+          ],
+          notes: '9 working sets — AMRAP on set 3 and last set',
+        },
+        {
+          role: 'supplement',
+          exercise_key: 'ohp',
+          sets: [
+            { sets: 1, reps: 6, intensity: 0.6, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.7, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.6, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.55, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 5, intensity: 0.5, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: '8+', intensity: 0.45, intensity_type: 'percentage_tm', is_amrap: true },
+          ],
+          notes: 'OHP secondary — 8 sets',
+        },
+      ],
+    },
+    {
+      label: 'Day 2 — Squat + Sumo DL',
+      exercise_blocks: [
+        {
+          role: 'primary',
+          exercise_key: 'squat',
+          sets: [
+            { sets: 1, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.85, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: '1+', intensity: 0.95, intensity_type: 'percentage_tm', is_amrap: true },
+            { sets: 1, reps: 3, intensity: 0.9, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.85, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.8, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 5, intensity: 0.7, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: '8+', intensity: 0.65, intensity_type: 'percentage_tm', is_amrap: true },
+          ],
+          notes: 'Squat 9 working sets',
+        },
+        {
+          role: 'supplement',
+          exercise_key: 'sumo_deadlift',
+          sets: [
+            { sets: 1, reps: 5, intensity: 0.6, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 4, intensity: 0.65, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.7, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 4, intensity: 0.65, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.6, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 2, intensity: 0.55, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 4, intensity: 0.5, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: '6+', intensity: 0.45, intensity_type: 'percentage_tm', is_amrap: true },
+          ],
+          notes: 'Sumo deadlift secondary — 8 sets',
+        },
+      ],
+    },
+    {
+      label: 'Day 3 — OHP + Incline Bench',
+      exercise_blocks: [
+        {
+          role: 'primary',
+          exercise_key: 'ohp',
+          sets: [
+            { sets: 1, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.85, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: '1+', intensity: 0.95, intensity_type: 'percentage_tm', is_amrap: true },
+            { sets: 1, reps: 3, intensity: 0.9, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.85, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.8, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 5, intensity: 0.7, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: '8+', intensity: 0.65, intensity_type: 'percentage_tm', is_amrap: true },
+          ],
+          notes: 'OHP 9 working sets',
+        },
+        {
+          role: 'supplement',
+          exercise_key: 'incline_bench',
+          sets: [
+            { sets: 1, reps: 6, intensity: 0.6, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.7, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.6, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.55, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 5, intensity: 0.5, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: '8+', intensity: 0.45, intensity_type: 'percentage_tm', is_amrap: true },
+          ],
+          notes: 'Incline bench secondary',
+        },
+      ],
+    },
+    {
+      label: 'Day 4 — Deadlift + Front Squat',
+      exercise_blocks: [
+        {
+          role: 'primary',
+          exercise_key: 'deadlift',
+          sets: [
+            { sets: 1, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.85, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: '1+', intensity: 0.95, intensity_type: 'percentage_tm', is_amrap: true },
+            { sets: 1, reps: 3, intensity: 0.9, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.85, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.8, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 5, intensity: 0.7, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: '8+', intensity: 0.65, intensity_type: 'percentage_tm', is_amrap: true },
+          ],
+          notes: 'Deadlift 9 working sets',
+        },
+        {
+          role: 'supplement',
+          exercise_key: 'front_squat',
+          sets: [
+            { sets: 1, reps: 5, intensity: 0.5, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 4, intensity: 0.55, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.6, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 4, intensity: 0.55, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.5, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 2, intensity: 0.45, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 4, intensity: 0.4, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: '6+', intensity: 0.35, intensity_type: 'percentage_tm', is_amrap: true },
+          ],
+          notes: 'Front squat secondary (use squat TM × 0.7 as starting point)',
+        },
+      ],
+    },
+    {
+      label: 'Day 5 — Bench + Close-Grip Bench',
+      exercise_blocks: [
+        {
+          role: 'primary',
+          exercise_key: 'bench',
+          sets: [
+            { sets: 1, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.75, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: '1+', intensity: 0.85, intensity_type: 'percentage_tm', is_amrap: true },
+            { sets: 1, reps: 3, intensity: 0.8, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.75, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.7, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 5, intensity: 0.6, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: '8+', intensity: 0.55, intensity_type: 'percentage_tm', is_amrap: true },
+          ],
+          notes: 'Bench Day 5 — slightly lighter than Day 1 (3s week pattern)',
+        },
+        {
+          role: 'supplement',
+          exercise_key: 'close_grip_bench',
+          sets: [
+            { sets: 1, reps: 6, intensity: 0.55, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 5, intensity: 0.6, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.65, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 5, intensity: 0.6, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.55, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 3, intensity: 0.5, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: 5, intensity: 0.45, intensity_type: 'percentage_tm' },
+            { sets: 1, reps: '8+', intensity: 0.4, intensity_type: 'percentage_tm', is_amrap: true },
+          ],
+          notes: 'Close-grip bench secondary',
+        },
+      ],
+    },
+  ],
+  progression: {
+    style: 'linear_per_week',
+    increment_lbs: { upper: 5, lower: 10 },
+    deload_trigger: 'AMRAP set falls below minimum prescribed reps',
+    deload_strategy: 'Reduce TM by 10% and restart',
+  },
+  source_url: 'https://old.reddit.com/r/LifterProblems/wiki/index',
+}
