@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Dumbbell, ListChecks, Settings } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { LayoutDashboard, Dumbbell, Clipboard, Settings } from 'lucide-react'
 
 const TABS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/workouts', label: 'Workouts', icon: Dumbbell },
-  { href: '/exercises', label: 'Exercises', icon: ListChecks },
+  { href: '/programs', label: 'Programs', icon: Clipboard },
+  { href: '/exercises', label: 'Exercises', icon: Dumbbell },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
@@ -15,21 +16,29 @@ export function MobileNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background md:hidden">
-      <div className="flex h-16 items-stretch">
+    <nav aria-label="App tabs" className="fixed inset-x-0 bottom-0 z-50 px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] md:hidden">
+      <div className="mx-auto grid max-w-md grid-cols-4 gap-1.5 rounded-[28px] border border-border/70 bg-background/78 p-2 shadow-[0_24px_70px_-34px_rgba(0,0,0,0.92)] backdrop-blur-xl">
         {TABS.map(({ href, label, icon: Icon }) => {
           const isActive = pathname.startsWith(href)
           return (
             <Link
               key={href}
               href={href}
-              className={`flex flex-1 flex-col items-center justify-center gap-0.5 text-xs transition-colors ${
+              className={cn(
+                'flex flex-col items-center gap-1 rounded-2xl px-2 py-2.5 text-[0.72rem] font-medium transition-all',
                 isActive
-                  ? 'text-primary'
+                  ? 'bg-card text-foreground ring-1 ring-border/70 shadow-sm'
                   : 'text-muted-foreground'
-              }`}
+              )}
             >
-              <Icon className="h-5 w-5" />
+              <span
+                className={cn(
+                  'flex size-8 items-center justify-center rounded-xl transition-colors',
+                  isActive ? 'bg-primary/12 text-primary' : 'text-muted-foreground'
+                )}
+              >
+                <Icon className="h-4 w-4" />
+              </span>
               <span>{label}</span>
             </Link>
           )

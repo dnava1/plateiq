@@ -2,9 +2,9 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSupabase } from './useSupabase'
-import type { CreateProgramInput } from '@/lib/validations/program'
+import type { CreateProgramInput, CreateCustomProgramInput } from '@/lib/validations/program'
 import { getTemplate } from '@/lib/constants/templates'
-import type { Tables } from '@/types/database'
+import type { Tables, Json } from '@/types/database'
 
 export type TrainingProgram = Tables<'training_programs'>
 export type Cycle = Tables<'cycles'>
@@ -121,6 +121,52 @@ export function useSetActiveProgram() {
         .single()
       if (error) throw error
       return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['programs'] })
+    },
+  })
+}
+
+export function useCreateCustomProgram() {
+  const supabase = useSupabase()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: CreateCustomProgramInput) => {
+      const { data: { user } } = await supabase.auth.getUser()
+      await supabase
+        .from('training_programs')
+        .update({ is_active: false })
+        .eq('is_active', true)
+        .eq('user_id', user!.id)
+
+      const { data: program, error: progError } = await supabase
+        .from('training_programs')
+        .insert({
+          user_id: user!.id,
+          name: input.name,
+          template_key: 'custom',
+          config: input.definition as unknown as Json,
+          is_active: true,
+          start_date: new Date().toISOString().split('T')[0],
+        })
+        .select()
+        .single()
+      if (progError) throw progError
+
+      const { data: cycle, error: cycleError } = await supabase
+        .from('cycles')
+        .insert({
+          user_id: user!.id,
+          program_id: program.id,
+          cycle_number: 1,
+          start_date: program.start_date,
+        })
+        .select()
+        .single()
+      if (cycleError) throw cycleError
+
+      return { program, cycle }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['programs'] })

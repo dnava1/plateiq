@@ -65,3 +65,23 @@ export interface GeneratedSet {
   rpe?: number
   notes?: string
 }
+
+export interface CustomProgramConfig {
+  type: 'custom'
+  level?: ProgramLevel
+  days_per_week: number
+  cycle_length_weeks: number
+  uses_training_max: boolean
+  tm_percentage?: number
+  rounding?: number
+  days: DayTemplate[]
+  progression: ProgressionRule
+}
+
+export function isCustomProgramConfig(config: unknown): config is CustomProgramConfig {
+  return (
+    typeof config === 'object' &&
+    config !== null &&
+    (config as Record<string, unknown>).type === 'custom'
+  )
+}

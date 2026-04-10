@@ -9,15 +9,16 @@ import { getTemplate } from '@/lib/constants/templates'
 import { TemplatePicker } from './TemplatePicker'
 import { SupplementSelector } from './SupplementSelector'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet'
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { toast } from 'sonner'
 
 type Step = 'pick' | 'supplement' | 'configure'
@@ -115,20 +116,29 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
   const currentStep = step === 'pick' ? 1 : step === 'supplement' ? 2 : totalSteps
 
   return (
-    <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent className="overflow-y-auto sm:max-w-lg">
-        <SheetHeader>
-          <SheetTitle>New Program</SheetTitle>
-          <SheetDescription>
-            Step {currentStep} of {totalSteps} — {stepLabel}
-          </SheetDescription>
-        </SheetHeader>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent>
+        <DialogHeader className="gap-4">
+          <div className="flex flex-col gap-1.5 pr-8">
+            <DialogTitle>New Program</DialogTitle>
+            <DialogDescription>
+              Step {currentStep} of {totalSteps} — {stepLabel}
+            </DialogDescription>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-300"
+              style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+            />
+          </div>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
           {step === 'pick' && (
             <TemplatePicker
               selectedKey={templateKey || null}
               onSelect={handleTemplateSelect}
+              onOpenChange={handleOpenChange}
             />
           )}
 
@@ -147,15 +157,17 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
           )}
 
           {step === 'configure' && template && (
-            <div className="space-y-4">
-              <div className="rounded-lg border bg-muted/30 p-3 text-sm">
-                <p className="font-medium">{template.name}</p>
-                <p className="text-muted-foreground text-xs mt-0.5">
-                  {template.days_per_week} days/week · {template.cycle_length_weeks}-week cycle
-                </p>
-              </div>
+            <div className="flex flex-col gap-4">
+              <Card className="border-border/70 bg-card/70">
+                <CardContent className="flex flex-col gap-2 pt-4 text-sm">
+                  <p className="font-medium text-foreground">{template.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {template.days_per_week} days/week · {template.cycle_length_weeks}-week cycle
+                  </p>
+                </CardContent>
+              </Card>
 
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor="name">Program Name</Label>
                 <Input
                   id="name"
@@ -168,10 +180,10 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
               </div>
 
               {template.uses_training_max && (
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                   <Label htmlFor="tm_percentage">
                     TM Percentage{' '}
-                    <span className="text-muted-foreground font-normal">
+                    <span className="font-normal text-muted-foreground">
                       (default {Math.round((template.default_tm_percentage ?? 0.9) * 100)}%)
                     </span>
                   </Label>
@@ -181,7 +193,9 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
                     render={({ field }) => (
                       <select
                         id="tm_percentage"
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        className="flex h-9 w-full rounded-md border border-input bg-popover px-3 py-1 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        aria-invalid={!!errors.tm_percentage}
+                        aria-describedby={errors.tm_percentage ? 'tm-percentage-error' : undefined}
                         value={field.value}
                         onChange={(e) => field.onChange(Number(e.target.value))}
                       >
@@ -194,20 +208,22 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
                     )}
                   />
                   {errors.tm_percentage && (
-                    <p className="text-sm text-destructive">{errors.tm_percentage.message}</p>
+                    <p id="tm-percentage-error" className="text-sm text-destructive">{errors.tm_percentage.message}</p>
                   )}
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label htmlFor="rounding">Weight Rounding (lbs)</Label>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="rounding">Weight Rounding</Label>
                 <Controller
                   name="rounding"
                   control={control}
                   render={({ field }) => (
                     <select
                       id="rounding"
-                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      className="flex h-9 w-full rounded-md border border-input bg-popover px-3 py-1 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      aria-invalid={!!errors.rounding}
+                      aria-describedby={errors.rounding ? 'rounding-error' : undefined}
                       value={field.value}
                       onChange={(e) => field.onChange(Number(e.target.value))}
                     >
@@ -217,13 +233,13 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
                     </select>
                   )}
                 />
+                {errors.rounding && (
+                  <p id="rounding-error" className="text-sm text-destructive">{errors.rounding.message}</p>
+                )}
               </div>
-
-
             </div>
           )}
 
-          {/* Navigation buttons */}
           <div className="flex gap-2 pt-2">
             {step !== 'pick' && (
               <Button type="button" variant="outline" onClick={handleBack} className="flex-1">
@@ -250,7 +266,7 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
             )}
           </div>
         </form>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   )
 }

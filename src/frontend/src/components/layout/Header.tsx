@@ -1,11 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter, usePathname } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useUser } from '@/hooks/useUser'
-import { useSupabase } from '@/hooks/useSupabase'
-import { Button } from '@/components/ui/button'
-import { LogOut, Dumbbell } from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { cn } from '@/lib/utils'
+import { Dumbbell } from 'lucide-react'
+import { ThemeToggle } from '@/components/layout/ThemeToggle'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard' },
@@ -14,61 +15,85 @@ const NAV_ITEMS = [
   { href: '/settings', label: 'Settings' },
 ]
 
-export function Header() {
-  const router = useRouter()
-  const pathname = usePathname()
-  const supabase = useSupabase()
-  const { data: user } = useUser()
+function getDisplayName(user: ReturnType<typeof useUser>['data']) {
+  return user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.email ?? 'Athlete'
+}
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
+function getInitials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || 'PI'
+}
+
+export function Header() {
+  const pathname = usePathname()
+  const { data: user } = useUser()
+  const displayName = getDisplayName(user)
+  const initials = getInitials(displayName)
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center gap-4">
-        {/* Logo */}
-        <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-          <Dumbbell className="h-5 w-5" />
-          <span>PlateIQ</span>
+    <header className="sticky top-0 z-50 px-4 pt-4 md:px-6">
+      <div className="mx-auto flex w-full max-w-6xl items-center gap-2 rounded-[28px] border border-border/70 bg-background/72 px-3 py-3 shadow-[0_20px_60px_-38px_rgba(0,0,0,0.8)] backdrop-blur-xl sm:gap-3 sm:px-4">
+        <Link href="/dashboard" className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <span className="flex size-9 items-center justify-center rounded-2xl bg-primary/12 ring-1 ring-primary/25 sm:size-10">
+            <Dumbbell className="text-primary" />
+          </span>
+          <span className="min-w-0">
+            <span className="block whitespace-nowrap text-[0.58rem] uppercase tracking-[0.18em] text-muted-foreground sm:text-[0.68rem] sm:tracking-[0.24em]">
+              Strength OS
+            </span>
+            <span className="block truncate text-base font-semibold tracking-[-0.06em] text-foreground sm:text-lg">
+              PlateIQ
+            </span>
+          </span>
         </Link>
 
-        {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-1 ml-4">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                pathname === item.href
-                  ? 'bg-accent text-accent-foreground'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
+        <nav aria-label="Primary" className="ml-2 hidden items-center gap-1 rounded-full border border-border/70 bg-muted/40 p-1 md:flex">
+          {NAV_ITEMS.map((item) => {
+            const isActive = pathname === item.href
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'rounded-full px-3 py-2 text-sm font-medium transition-all',
+                  isActive
+                    ? 'bg-background text-foreground shadow-sm ring-1 ring-border/70'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {item.label}
+              </Link>
+            )
+          })}
         </nav>
 
-        {/* Spacer */}
-        <div className="flex-1" />
+        <div className="ml-auto flex items-center gap-3">
+          <ThemeToggle compact />
 
-        {/* User info + Logout */}
-        <div className="flex items-center gap-3">
-          {user?.user_metadata?.avatar_url && (
-            <img
-              src={user.user_metadata.avatar_url as string}
-              alt=""
-              className="h-7 w-7 rounded-full"
-            />
-          )}
-          <span className="hidden sm:block text-sm text-muted-foreground truncate max-w-32">
-            {user?.user_metadata?.full_name ?? user?.email ?? ''}
-          </span>
-          <Button variant="ghost" size="icon" onClick={handleLogout} title="Sign out">
-            <LogOut className="h-4 w-4" />
-          </Button>
+          <Link
+            href="/settings"
+            className="group flex items-center gap-2 rounded-full px-1 py-1 transition-colors hover:bg-muted/40"
+            aria-label="Open settings"
+            title="Open settings"
+          >
+            <div className="hidden lg:flex flex-col items-end">
+              <span className="max-w-32 truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">
+                {displayName}
+              </span>
+              <span className="text-xs text-muted-foreground">Signed in</span>
+            </div>
+
+            <Avatar size="lg" className="ring-2 ring-primary/15 transition-all group-hover:ring-primary/35">
+              {typeof user?.user_metadata?.avatar_url === 'string' && (
+                <AvatarImage src={user.user_metadata.avatar_url} alt={displayName} />
+              )}
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
+          </Link>
         </div>
       </div>
     </header>

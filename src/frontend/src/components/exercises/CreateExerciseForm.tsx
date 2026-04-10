@@ -8,12 +8,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet'
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { toast } from 'sonner'
 
 interface CreateExerciseFormProps {
@@ -61,16 +61,16 @@ export function CreateExerciseForm({ open, onOpenChange }: CreateExerciseFormPro
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle>Add Custom Exercise</SheetTitle>
-          <SheetDescription>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add Custom Exercise</DialogTitle>
+          <DialogDescription>
             Create a new exercise to use in your programs.
-          </SheetDescription>
-        </SheetHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-6">
-          <div className="space-y-2">
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-6 flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
             <Label htmlFor="name">Exercise Name</Label>
             <Input
               id="name"
@@ -82,26 +82,30 @@ export function CreateExerciseForm({ open, onOpenChange }: CreateExerciseFormPro
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <Label htmlFor="category">Category</Label>
             <select
               id="category"
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="flex h-9 w-full rounded-md border border-input bg-popover px-3 py-1 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              aria-invalid={!!errors.category}
+              aria-describedby={errors.category ? 'exercise-category-error' : undefined}
               {...register('category')}
             >
               <option value="main">Main Lift</option>
               <option value="accessory">Accessory</option>
             </select>
             {errors.category && (
-              <p className="text-sm text-destructive">{errors.category.message}</p>
+              <p id="exercise-category-error" className="text-sm text-destructive">{errors.category.message}</p>
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <Label htmlFor="movement_pattern">Movement Pattern</Label>
             <select
               id="movement_pattern"
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="flex h-9 w-full rounded-md border border-input bg-popover px-3 py-1 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              aria-invalid={!!errors.movement_pattern}
+              aria-describedby={errors.movement_pattern ? 'exercise-pattern-error' : undefined}
               {...register('movement_pattern')}
             >
               {MOVEMENT_PATTERNS.map((mp) => (
@@ -111,7 +115,7 @@ export function CreateExerciseForm({ open, onOpenChange }: CreateExerciseFormPro
               ))}
             </select>
             {errors.movement_pattern && (
-              <p className="text-sm text-destructive">{errors.movement_pattern.message}</p>
+              <p id="exercise-pattern-error" className="text-sm text-destructive">{errors.movement_pattern.message}</p>
             )}
           </div>
 
@@ -123,7 +127,7 @@ export function CreateExerciseForm({ open, onOpenChange }: CreateExerciseFormPro
             {createExercise.isPending ? 'Creating...' : 'Create Exercise'}
           </Button>
         </form>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   )
 }

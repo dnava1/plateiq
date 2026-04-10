@@ -4,6 +4,15 @@ import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty'
+import { Search, SearchX } from 'lucide-react'
 import type { Tables } from '@/types/database'
 
 type Exercise = Tables<'exercises'>
@@ -22,57 +31,69 @@ export function ExerciseList({ exercises, trainingMaxes, onSetTm }: ExerciseList
   )
 
   return (
-    <div className="space-y-4">
-      <Input
-        placeholder="Search exercises..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="max-w-sm"
-      />
-      <div className="space-y-2">
+    <div className="flex flex-col gap-4">
+      <div className="relative max-w-md">
+        <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Search exercises..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+      <div className="grid gap-3">
         {filtered.length === 0 && (
-          <p className="text-sm text-muted-foreground py-8 text-center">
-            No exercises found.
-          </p>
+          <Empty className="border-border/70 bg-card/60 py-8">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <SearchX />
+              </EmptyMedia>
+              <EmptyTitle>No exercises found</EmptyTitle>
+              <EmptyDescription>
+                Try a different search or add a new exercise to your library.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         )}
         {filtered.map((exercise) => (
-          <div
+          <Card
             key={exercise.id}
-            className="flex items-center justify-between rounded-lg border bg-card p-4"
+            size="sm"
+            className="border-border/70 bg-card/78"
           >
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{exercise.name}</span>
-                <Badge variant={exercise.is_main_lift ? 'default' : 'secondary'}>
-                  {exercise.is_main_lift ? 'Main' : 'Accessory'}
-                </Badge>
-                {exercise.created_by_user_id ? (
-                  <Badge variant="outline">Custom</Badge>
-                ) : (
-                  <Badge variant="outline" className="text-muted-foreground">System</Badge>
+            <CardContent className="flex items-center justify-between gap-4 pt-3">
+              <div className="flex min-w-0 flex-col gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium text-foreground">{exercise.name}</span>
+                  <Badge variant={exercise.is_main_lift ? 'default' : 'secondary'}>
+                    {exercise.is_main_lift ? 'Main' : 'Accessory'}
+                  </Badge>
+                  <Badge variant="outline" className="capitalize">
+                    {exercise.movement_pattern.replace('_', ' ')}
+                  </Badge>
+                  {exercise.created_by_user_id ? (
+                    <Badge variant="outline">Custom</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-muted-foreground">System</Badge>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                {exercise.is_main_lift && trainingMaxes?.has(exercise.id) && (
+                  <Badge variant="secondary">TM {trainingMaxes.get(exercise.id)} lbs</Badge>
+                )}
+                {exercise.is_main_lift && onSetTm && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onSetTm(exercise)}
+                  >
+                    {trainingMaxes?.has(exercise.id) ? 'Update TM' : 'Set TM'}
+                  </Button>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground capitalize">
-                {exercise.movement_pattern.replace('_', ' ')}
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              {exercise.is_main_lift && trainingMaxes?.has(exercise.id) && (
-                <span className="text-sm font-mono">
-                  TM: {trainingMaxes.get(exercise.id)} lbs
-                </span>
-              )}
-              {exercise.is_main_lift && onSetTm && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onSetTm(exercise)}
-                >
-                  {trainingMaxes?.has(exercise.id) ? 'Update TM' : 'Set TM'}
-                </Button>
-              )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
     </div>

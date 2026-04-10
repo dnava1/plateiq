@@ -1,11 +1,22 @@
 'use client'
 
 import { getTemplate } from '@/lib/constants/templates'
+import { isCustomProgramConfig } from '@/types/template'
 import type { TrainingProgram } from '@/hooks/usePrograms'
 import { useSetActiveProgram } from '@/hooks/usePrograms'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { Dumbbell, Hammer } from 'lucide-react'
 import type { Json } from '@/types/database'
 
 interface ProgramConfig {
@@ -24,12 +35,31 @@ interface ProgramCardProps {
 }
 
 export function ProgramCard({ program }: ProgramCardProps) {
-  const template = getTemplate(program.template_key)
-  const config = parseConfig(program.config)
+  const rawConfig = program.config ?? null
+  const isCustom = rawConfig && isCustomProgramConfig(rawConfig)
+  const template = !isCustom ? getTemplate(program.template_key) : null
+  const config = parseConfig(rawConfig)
   const setActive = useSetActiveProgram()
+
   const supplementName = config.supplement_key && template?.supplement_options
     ? template.supplement_options.find((s) => s.key === config.supplement_key)?.name
     : null
+
+  const daysPerWeek = isCustom
+    ? (rawConfig as { days_per_week?: number }).days_per_week
+    : template?.days_per_week
+
+  const cycleWeeks = isCustom
+    ? (rawConfig as { cycle_length_weeks?: number }).cycle_length_weeks
+    : template?.cycle_length_weeks
+
+  const descriptionParts = [
+    typeof daysPerWeek === 'number' ? `${daysPerWeek}d/wk` : null,
+    typeof cycleWeeks === 'number' ? `${cycleWeeks}-week cycle` : null,
+    supplementName,
+  ].filter(Boolean)
+
+  const hasBadges = (!isCustom && template?.level) || (template?.uses_training_max && config.tm_percentage)
 
   const handleSetActive = () => {
     setActive.mutate(program.id, {
@@ -39,41 +69,66 @@ export function ProgramCard({ program }: ProgramCardProps) {
   }
 
   return (
-    <div className="rounded-lg border bg-card p-4">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-semibold">{program.name}</h3>
-            {program.is_active && (
-              <Badge variant="default" className="text-xs">Active</Badge>
+    <Card
+      className={cn(
+        'border-border/70 bg-card/88 shadow-sm',
+        program.is_active
+          ? 'ring-1 ring-primary/25'
+          : 'card-hover'
+      )}
+    >
+      <CardHeader>
+        <div className="flex items-start gap-4">
+          <div
+            className={cn(
+              'flex size-11 items-center justify-center rounded-2xl',
+              program.is_active ? 'bg-primary/12 text-primary' : 'bg-muted text-muted-foreground'
+            )}
+          >
+            {isCustom ? <Hammer /> : <Dumbbell />}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <CardTitle className="text-lg">{program.name}</CardTitle>
+              {program.is_active && <Badge>Active</Badge>}
+              {isCustom && <Badge variant="outline">Custom</Badge>}
+            </div>
+            {descriptionParts.length > 0 && (
+              <CardDescription>
+                {descriptionParts.join(' · ')}
+              </CardDescription>
             )}
           </div>
-          {template && (
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              {template.days_per_week}d/wk · {template.cycle_length_weeks}-week cycle
-              {supplementName ? ` · ${supplementName}` : ''}
-            </p>
-          )}
         </div>
-        <div className="flex items-start gap-3">
-          {!program.is_active && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSetActive}
-              disabled={setActive.isPending}
-            >
-              {setActive.isPending ? 'Setting…' : 'Set Active'}
-            </Button>
-          )}
-          <div className="text-right text-xs text-muted-foreground">
-            <div>Started {new Date(program.start_date).toLocaleDateString()}</div>
+      </CardHeader>
+
+      {hasBadges && (
+        <CardContent className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-2">
+            {!isCustom && template?.level && (
+              <Badge variant="outline" className="capitalize">
+                {template.level}
+              </Badge>
+            )}
             {template?.uses_training_max && config.tm_percentage && (
-              <div>TM: {Math.round(config.tm_percentage * 100)}%</div>
+              <Badge variant="outline">TM {Math.round(config.tm_percentage * 100)}%</Badge>
             )}
           </div>
-        </div>
-      </div>
-    </div>
+        </CardContent>
+      )}
+
+      {!program.is_active && (
+        <CardFooter>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSetActive}
+            disabled={setActive.isPending}
+          >
+            {setActive.isPending ? 'Setting…' : 'Set Active'}
+          </Button>
+        </CardFooter>
+      )}
+    </Card>
   )
 }

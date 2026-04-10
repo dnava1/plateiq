@@ -5,6 +5,8 @@ desktop.ini
 
 # ─── Playwright MCP artifacts ─────────────────────────────
 .playwright-mcp/
+/*.png
+/skills-lock.json
 
 # ─── Editors ──────────────────────────────────────────────
 .vscode/settings.json

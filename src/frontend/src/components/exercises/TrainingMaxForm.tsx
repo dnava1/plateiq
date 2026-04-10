@@ -6,15 +6,17 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { setTrainingMaxSchema, type SetTrainingMaxInput } from '@/lib/validations/trainingMax'
 import { useSetTrainingMax } from '@/hooks/useTrainingMaxes'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet'
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { roundToNearest } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -76,44 +78,45 @@ export function TrainingMaxForm({
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle>Set Training Max — {exerciseName}</SheetTitle>
-          <SheetDescription>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Set Training Max — {exerciseName}</DialogTitle>
+          <DialogDescription>
             {currentTm
               ? `Current TM: ${currentTm} lbs`
               : 'No training max set yet'}
-          </SheetDescription>
-        </SheetHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-6">
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-6 flex flex-col gap-4">
           <input type="hidden" {...register('exerciseId', { valueAsNumber: true })} />
 
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <Label>Input Type</Label>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant={inputType === 'tm' ? 'default' : 'outline'}
-                size="sm"
-                className="flex-1"
-                onClick={() => setInputType('tm')}
-              >
+            <ToggleGroup
+              value={[inputType]}
+              role="radiogroup"
+              aria-label="Training max input type"
+              onValueChange={(value) => {
+                const nextValue = value[0]
+                if (nextValue === 'tm' || nextValue === '1rm') {
+                  setInputType(nextValue)
+                }
+              }}
+              variant="outline"
+              spacing={2}
+              className="w-full"
+            >
+              <ToggleGroupItem value="tm" role="radio" aria-checked={inputType === 'tm'} className="flex-1 justify-center">
                 Training Max
-              </Button>
-              <Button
-                type="button"
-                variant={inputType === '1rm' ? 'default' : 'outline'}
-                size="sm"
-                className="flex-1"
-                onClick={() => setInputType('1rm')}
-              >
+              </ToggleGroupItem>
+              <ToggleGroupItem value="1rm" role="radio" aria-checked={inputType === '1rm'} className="flex-1 justify-center">
                 Estimated 1RM
-              </Button>
-            </div>
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
 
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <Label htmlFor="weight">
               {inputType === 'tm' ? 'Training Max (lbs)' : 'Estimated 1RM (lbs)'}
             </Label>
@@ -122,16 +125,18 @@ export function TrainingMaxForm({
               type="number"
               step="2.5"
               placeholder="e.g., 225"
+              aria-invalid={!!errors.weightLbs}
+              aria-describedby={errors.weightLbs ? 'training-max-weight-error' : undefined}
               {...register('weightLbs', { valueAsNumber: true })}
             />
             {errors.weightLbs && (
-              <p className="text-sm text-destructive">{errors.weightLbs.message}</p>
+              <p id="training-max-weight-error" className="text-sm text-destructive">{errors.weightLbs.message}</p>
             )}
           </div>
 
           {inputType === '1rm' && (
             <>
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor="tmPercentage">TM Percentage</Label>
                 <div className="flex items-center gap-2">
                   <Input
@@ -149,15 +154,17 @@ export function TrainingMaxForm({
                 </div>
               </div>
               {weight > 0 && (
-                <div className="rounded-md bg-muted p-3">
-                  <p className="text-sm">
-                    <span className="text-muted-foreground">Calculated TM:</span>{' '}
-                    <span className="font-bold">{calculatedTm} lbs</span>
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {weight} × {Math.round((tmPercentage ?? 0.9) * 100)}% = {calculatedTm} lbs (rounded to nearest 5)
-                  </p>
-                </div>
+                <Card className="border-border/70 bg-card/70">
+                  <CardContent className="flex flex-col gap-1.5 pt-4">
+                    <p className="text-sm">
+                      <span className="text-muted-foreground">Calculated TM:</span>{' '}
+                      <span className="font-bold text-foreground">{calculatedTm} lbs</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {weight} × {Math.round((tmPercentage ?? 0.9) * 100)}% = {calculatedTm} lbs (rounded to nearest 5)
+                    </p>
+                  </CardContent>
+                </Card>
               )}
             </>
           )}
@@ -170,7 +177,7 @@ export function TrainingMaxForm({
             {setTrainingMax.isPending ? 'Saving...' : 'Save Training Max'}
           </Button>
         </form>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   )
 }

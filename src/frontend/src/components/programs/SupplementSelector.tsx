@@ -19,21 +19,21 @@ export function SupplementSelector({ options, selectedKey, onSelect }: Supplemen
   }
 
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col gap-3">
       {/* None option */}
       <button
         type="button"
         onClick={() => onSelect(null)}
         className={cn(
-          'w-full rounded-lg border p-3 text-left transition-colors hover:bg-muted/50',
-          selectedKey === null && 'border-foreground bg-muted'
+          'w-full rounded-[22px] border border-border/70 bg-card/70 p-4 text-left transition-all hover:-translate-y-0.5 hover:bg-muted/50',
+          selectedKey === null && 'border-primary bg-primary/5 ring-1 ring-primary/30'
         )}
       >
         <div className="flex items-center justify-between">
-          <span className="font-medium text-sm">Base program only</span>
-          {selectedKey === null && <div className="h-3 w-3 rounded-full bg-foreground" />}
+          <span className="text-sm font-medium text-foreground">Base program only</span>
+          {selectedKey === null && <div className="size-3 rounded-full bg-primary" />}
         </div>
-        <p className="text-xs text-muted-foreground mt-0.5">No supplement work added</p>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">No supplement work added</p>
       </button>
 
       {options.map((option) => (
@@ -42,15 +42,15 @@ export function SupplementSelector({ options, selectedKey, onSelect }: Supplemen
           type="button"
           onClick={() => onSelect(option.key)}
           className={cn(
-            'w-full rounded-lg border p-3 text-left transition-colors hover:bg-muted/50',
-            selectedKey === option.key && 'border-foreground bg-muted'
+            'w-full rounded-[22px] border border-border/70 bg-card/70 p-4 text-left transition-all hover:-translate-y-0.5 hover:bg-muted/50',
+            selectedKey === option.key && 'border-primary bg-primary/5 ring-1 ring-primary/30'
           )}
         >
           <div className="flex items-center justify-between">
-            <span className="font-medium text-sm">{option.name}</span>
-            {selectedKey === option.key && <div className="h-3 w-3 rounded-full bg-foreground" />}
+            <span className="text-sm font-medium text-foreground">{option.name}</span>
+            {selectedKey === option.key && <div className="size-3 rounded-full bg-primary" />}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">{option.description}</p>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">{option.description}</p>
         </button>
       ))}
     </div>
