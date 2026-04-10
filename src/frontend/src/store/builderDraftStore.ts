@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { DayTemplate, ProgressionRule, CustomProgramConfig } from '@/types/template'
-import type { ProgramLevel } from '@/types/domain'
+import type { ProgramLevel, ProgressionStyle } from '@/types/domain'
 
 export type BuilderStep = 'basics' | 'days' | 'exercises' | 'progression' | 'review'
 
@@ -16,6 +16,12 @@ export interface BuilderDraft {
   progression: ProgressionRule
 }
 
+export const DEFAULT_LINEAR_INCREMENT_LBS = { upper: 5, lower: 10 } as const
+
+export function usesLinearProgression(style: ProgressionStyle) {
+  return ['linear_per_session', 'linear_per_week', 'linear_per_cycle'].includes(style)
+}
+
 const INITIAL_DRAFT: BuilderDraft = {
   name: '',
   days_per_week: 3,
@@ -24,7 +30,7 @@ const INITIAL_DRAFT: BuilderDraft = {
   tm_percentage: 0.9,
   rounding: 5,
   days: [],
-  progression: { style: 'linear_per_cycle' },
+  progression: { style: 'linear_per_cycle', increment_lbs: { ...DEFAULT_LINEAR_INCREMENT_LBS } },
 }
 
 interface BuilderDraftStore {
@@ -55,6 +61,16 @@ export const useBuilderDraftStore = create<BuilderDraftStore>((set, get) => ({
   resetDraft: () => set({ step: 'basics', currentDayIndex: 0, draft: { ...INITIAL_DRAFT, days: [] } }),
   toConfig: () => {
     const d = get().draft
+    const progression = usesLinearProgression(d.progression.style)
+      ? {
+          ...d.progression,
+          increment_lbs: d.progression.increment_lbs ?? { ...DEFAULT_LINEAR_INCREMENT_LBS },
+        }
+      : {
+          ...d.progression,
+          increment_lbs: undefined,
+        }
+
     return {
       type: 'custom' as const,
       level: d.level,
@@ -64,7 +80,7 @@ export const useBuilderDraftStore = create<BuilderDraftStore>((set, get) => ({
       tm_percentage: d.uses_training_max ? d.tm_percentage : undefined,
       rounding: d.uses_training_max ? d.rounding : undefined,
       days: d.days,
-      progression: d.progression,
+      progression,
     }
   },
 }))

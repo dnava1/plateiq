@@ -1,12 +1,13 @@
 'use client'
 
-import { useForm } from 'react-hook-form'
+import { useForm, type FieldErrors } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createExerciseSchema, type CreateExerciseInput } from '@/lib/validations/exercise'
 import { useCreateExercise } from '@/hooks/useExercises'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { NativeSelect } from '@/components/ui/native-select'
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,7 @@ export function CreateExerciseForm({ open, onOpenChange }: CreateExerciseFormPro
     register,
     handleSubmit,
     reset,
+    setFocus,
     formState: { errors },
   } = useForm<CreateExerciseInput>({
     resolver: zodResolver(createExerciseSchema),
@@ -60,6 +62,13 @@ export function CreateExerciseForm({ open, onOpenChange }: CreateExerciseFormPro
     })
   }
 
+  const handleInvalidSubmit = (formErrors: FieldErrors<CreateExerciseInput>) => {
+    const firstField = (['name', 'category', 'movement_pattern'] as const).find((field) => formErrors[field])
+    if (firstField) {
+      setFocus(firstField)
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -69,31 +78,33 @@ export function CreateExerciseForm({ open, onOpenChange }: CreateExerciseFormPro
             Create a new exercise to use in your programs.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="mt-6 flex flex-col gap-4">
+        <form onSubmit={handleSubmit(onSubmit, handleInvalidSubmit)} className="mt-6 flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="name">Exercise Name</Label>
             <Input
               id="name"
               placeholder="e.g., Barbell Row"
+              aria-invalid={!!errors.name}
+              aria-describedby={errors.name ? 'exercise-name-error' : undefined}
               {...register('name')}
             />
             {errors.name && (
-              <p className="text-sm text-destructive">{errors.name.message}</p>
+              <p id="exercise-name-error" className="text-sm text-destructive">{errors.name.message}</p>
             )}
           </div>
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="category">Category</Label>
-            <select
+            <NativeSelect
               id="category"
-              className="flex h-9 w-full rounded-md border border-input bg-popover px-3 py-1 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="h-9"
               aria-invalid={!!errors.category}
               aria-describedby={errors.category ? 'exercise-category-error' : undefined}
               {...register('category')}
             >
               <option value="main">Main Lift</option>
               <option value="accessory">Accessory</option>
-            </select>
+            </NativeSelect>
             {errors.category && (
               <p id="exercise-category-error" className="text-sm text-destructive">{errors.category.message}</p>
             )}
@@ -101,9 +112,9 @@ export function CreateExerciseForm({ open, onOpenChange }: CreateExerciseFormPro
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="movement_pattern">Movement Pattern</Label>
-            <select
+            <NativeSelect
               id="movement_pattern"
-              className="flex h-9 w-full rounded-md border border-input bg-popover px-3 py-1 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="h-9"
               aria-invalid={!!errors.movement_pattern}
               aria-describedby={errors.movement_pattern ? 'exercise-pattern-error' : undefined}
               {...register('movement_pattern')}
@@ -113,7 +124,7 @@ export function CreateExerciseForm({ open, onOpenChange }: CreateExerciseFormPro
                   {mp.label}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
             {errors.movement_pattern && (
               <p id="exercise-pattern-error" className="text-sm text-destructive">{errors.movement_pattern.message}</p>
             )}

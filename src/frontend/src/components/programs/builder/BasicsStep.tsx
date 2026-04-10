@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { NativeSelect } from '@/components/ui/native-select'
+import { Toggle } from '@/components/ui/toggle'
 
 export function BasicsStep() {
   const { draft, patchDraft, setStep } = useBuilderDraftStore()
@@ -36,8 +37,8 @@ export function BasicsStep() {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="space-y-2">
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="name">Program Name</Label>
         <Input
           id="name"
@@ -54,7 +55,7 @@ export function BasicsStep() {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="dpw">Days per Week</Label>
           <NativeSelect
             id="dpw"
@@ -71,7 +72,7 @@ export function BasicsStep() {
           </NativeSelect>
         </div>
 
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="clw">Cycle Length (weeks)</Label>
           <NativeSelect
             id="clw"
@@ -89,25 +90,30 @@ export function BasicsStep() {
         </div>
       </div>
 
-      <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            role="switch"
-            aria-checked={draft.uses_training_max}
-            onClick={() => patchDraft({ uses_training_max: !draft.uses_training_max })}
-            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${draft.uses_training_max ? 'bg-primary' : 'bg-muted'}`}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3 rounded-[20px] border border-border/70 bg-card/70 p-3">
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="uses-training-max">Use Training Maxes</Label>
+            <p className="text-sm text-muted-foreground">
+              Prescribe main lift loads from percentages and rounding rules.
+            </p>
+          </div>
+          <Toggle
+            id="uses-training-max"
+            aria-label="Use training maxes"
+            variant="outline"
+            size="sm"
+            pressed={draft.uses_training_max}
+            onPressedChange={(pressed) => patchDraft({ uses_training_max: pressed })}
+            className="min-w-16 justify-center rounded-full px-3 text-[0.7rem] uppercase tracking-[0.18em] data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
           >
-            <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${draft.uses_training_max ? 'translate-x-5' : 'translate-x-0'}`} />
-          </button>
-          <Label className="cursor-pointer" onClick={() => patchDraft({ uses_training_max: !draft.uses_training_max })}>
-            Use Training Maxes
-          </Label>
+            {draft.uses_training_max ? 'On' : 'Off'}
+          </Toggle>
         </div>
 
         {draft.uses_training_max && (
-          <div className="grid grid-cols-2 gap-4 animate-slide-up">
-            <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-4 animate-slide-up motion-reduce:animate-none">
+            <div className="flex flex-col gap-2">
               <Label htmlFor="tmp">TM Percentage</Label>
               <NativeSelect
                 id="tmp"
@@ -125,7 +131,7 @@ export function BasicsStep() {
                 <option value={0.95}>95%</option>
               </NativeSelect>
             </div>
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               <Label htmlFor="rnd">Rounding ({formatUnit(preferredUnit)})</Label>
               <NativeSelect
                 id="rnd"
@@ -146,7 +152,7 @@ export function BasicsStep() {
       </div>
 
       {error && (
-        <p id="builder-basics-error" className="text-sm text-destructive">
+        <p id="builder-basics-error" role="alert" className="text-sm text-destructive">
           {error}
         </p>
       )}

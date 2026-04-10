@@ -30,20 +30,20 @@ export function DaysStep() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col gap-5">
       <div>
         <p className="text-sm text-muted-foreground">
           Name each training day so the rest of the build stays easy to scan.
         </p>
       </div>
 
-      <div className="space-y-3">
+      <div className="flex flex-col gap-3">
         {draft.days.map((day, i) => (
-          <div key={i} className="flex items-center gap-3 animate-slide-up" style={{ animationDelay: `${i * 50}ms` }}>
+          <div key={i} className="flex items-center gap-3 animate-slide-up motion-reduce:animate-none" style={{ animationDelay: `${i * 50}ms` }}>
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-semibold text-primary">
               {i + 1}
             </span>
-            <div className="flex-1 space-y-1">
+            <div className="flex flex-1 flex-col gap-1">
               <Label htmlFor={`day-${i}`} className="sr-only">Day {i + 1} label</Label>
               <Input
                 id={`day-${i}`}
@@ -57,7 +57,7 @@ export function DaysStep() {
       </div>
 
       {error && (
-        <p className="text-sm text-destructive">{error}</p>
+        <p role="alert" className="text-sm text-destructive">{error}</p>
       )}
 
       <div className="flex gap-2">

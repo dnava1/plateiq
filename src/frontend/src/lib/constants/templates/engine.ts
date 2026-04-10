@@ -4,7 +4,6 @@ import type {
   GeneratedSet,
   ExerciseBlock,
 } from '@/types/template'
-import type { IntensityType } from '@/types/domain'
 import { roundToNearest } from '@/lib/utils'
 
 export function resolveWeight(
@@ -93,8 +92,7 @@ export function generateWorkoutPlan(
   dayIndex: number,
   weekNumber: number,
   trainingMaxes: Map<string, number>,
-  selectedSupplements: string[] = [],
-  config?: Record<string, unknown>
+  selectedSupplements: string[] = []
 ): GeneratedSet[] {
   const day = template.days[dayIndex]
   if (!day) return []

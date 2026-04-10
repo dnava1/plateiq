@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { ArrowRight, BarChart3, Dumbbell, Sparkles } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 
 export default function HomePage() {
@@ -28,16 +28,15 @@ export default function HomePage() {
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Link href="/login">
-              <Button size="lg" className="w-full sm:w-auto">
-                <ArrowRight data-icon="inline-start" />
-                Open Training Log
-              </Button>
+            <Link href="/login" className={buttonVariants({ size: 'lg', className: 'w-full sm:w-auto' })}>
+              <ArrowRight data-icon="inline-start" />
+              Open Training Log
             </Link>
-            <Link href="/programs">
-              <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                Browse Programs
-              </Button>
+            <Link
+              href="/programs"
+              className={buttonVariants({ variant: 'outline', size: 'lg', className: 'w-full sm:w-auto' })}
+            >
+              Browse Programs
             </Link>
           </div>
         </div>

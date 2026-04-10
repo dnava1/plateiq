@@ -3,14 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Dumbbell, Clipboard, Settings } from 'lucide-react'
-
-const TABS = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/programs', label: 'Programs', icon: Clipboard },
-  { href: '/exercises', label: 'Exercises', icon: Dumbbell },
-  { href: '/settings', label: 'Settings', icon: Settings },
-]
+import { APP_NAV_ITEMS, isActiveNavPath } from '@/components/layout/navigation'
 
 export function MobileNav() {
   const pathname = usePathname()
@@ -18,12 +11,13 @@ export function MobileNav() {
   return (
     <nav aria-label="App tabs" className="fixed inset-x-0 bottom-0 z-50 px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] md:hidden">
       <div className="mx-auto grid max-w-md grid-cols-4 gap-1.5 rounded-[28px] border border-border/70 bg-background/78 p-2 shadow-[0_24px_70px_-34px_rgba(0,0,0,0.92)] backdrop-blur-xl">
-        {TABS.map(({ href, label, icon: Icon }) => {
-          const isActive = pathname.startsWith(href)
+        {APP_NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+          const isActive = isActiveNavPath(pathname, href)
           return (
             <Link
               key={href}
               href={href}
+              aria-current={isActive ? 'page' : undefined}
               className={cn(
                 'flex flex-col items-center gap-1 rounded-2xl px-2 py-2.5 text-[0.72rem] font-medium transition-all',
                 isActive

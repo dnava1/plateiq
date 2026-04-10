@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useForm, Controller } from 'react-hook-form'
+import { useForm, Controller, type FieldErrors, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createProgramSchema, type CreateProgramInput } from '@/lib/validations/program'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
@@ -33,15 +33,16 @@ interface ProgramConfigFormProps {
 
 export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps) {
   const [step, setStep] = useState<Step>('pick')
+  const [stepError, setStepError] = useState<string | null>(null)
   const preferredUnit = usePreferredUnit()
   const createProgram = useCreateProgram()
 
   const {
     register,
     handleSubmit,
-    watch,
     control,
     reset,
+    setFocus,
     setValue,
     formState: { errors },
   } = useForm<CreateProgramInput>({
@@ -55,7 +56,7 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
     },
   })
 
-  const templateKey = watch('template_key')
+  const templateKey = useWatch({ control, name: 'template_key' })
   const template = templateKey ? getTemplate(templateKey) : null
   const hasSupplements = (template?.supplement_options?.length ?? 0) > 0
 
@@ -71,9 +72,10 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
 
   const handleNext = () => {
     if (!templateKey) {
-      toast.error('Choose a template to continue.')
+      setStepError('Choose a template to continue.')
       return
     }
+    setStepError(null)
     if (step === 'pick') {
       if (hasSupplements) {
         setStep('supplement')
@@ -86,6 +88,7 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
   }
 
   const handleBack = () => {
+    setStepError(null)
     if (step === 'configure') {
       setStep(hasSupplements ? 'supplement' : 'pick')
     } else if (step === 'supplement') {
@@ -99,6 +102,7 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
         toast.success(`Program "${data.name}" created!`)
         reset()
         setStep('pick')
+        setStepError(null)
         onOpenChange(false)
       },
       onError: (error) => {
@@ -107,10 +111,18 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
     })
   }
 
+  const handleInvalidSubmit = (formErrors: FieldErrors<CreateProgramInput>) => {
+    const firstField = (['name', 'tm_percentage', 'rounding'] as const).find((field) => formErrors[field])
+    if (firstField) {
+      setFocus(firstField)
+    }
+  }
+
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       reset()
       setStep('pick')
+      setStepError(null)
     }
     onOpenChange(open)
   }
@@ -132,19 +144,27 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
             <div
-              className="h-full rounded-full bg-primary transition-all duration-300"
+              className="h-full rounded-full bg-primary transition-all duration-300 motion-reduce:transition-none"
               style={{ width: `${(currentStep / totalSteps) * 100}%` }}
             />
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
+        <form onSubmit={handleSubmit(onSubmit, handleInvalidSubmit)} className="flex flex-col gap-6">
           {step === 'pick' && (
-            <TemplatePicker
-              selectedKey={templateKey || null}
-              onSelect={handleTemplateSelect}
-              onOpenChange={handleOpenChange}
-            />
+            <>
+              <TemplatePicker
+                selectedKey={templateKey || null}
+                onSelect={(key) => {
+                  handleTemplateSelect(key)
+                  setStepError(null)
+                }}
+                onOpenChange={handleOpenChange}
+              />
+              {stepError && (
+                <p role="alert" className="text-sm text-destructive">{stepError}</p>
+              )}
+            </>
           )}
 
           {step === 'supplement' && template?.supplement_options && (
@@ -177,10 +197,12 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
                 <Input
                   id="name"
                   placeholder={template.name}
+                  aria-invalid={!!errors.name}
+                  aria-describedby={errors.name ? 'program-name-error' : undefined}
                   {...register('name')}
                 />
                 {errors.name && (
-                  <p className="text-sm text-destructive">{errors.name.message}</p>
+                  <p id="program-name-error" className="text-sm text-destructive">{errors.name.message}</p>
                 )}
               </div>
 

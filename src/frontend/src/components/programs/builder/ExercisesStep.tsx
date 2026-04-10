@@ -76,11 +76,11 @@ export function ExercisesStep() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       {/* Day navigation header */}
       <div className="flex items-center justify-between rounded-xl bg-secondary p-3">
         <Button variant="ghost" size="sm" onClick={handlePrevDay}>
-          <ChevronLeft className="h-4 w-4 mr-1" />
+          <ChevronLeft className="size-4" data-icon="inline-start" />
           {isFirstDay ? 'Back' : 'Prev'}
         </Button>
         <div className="text-center">
@@ -89,12 +89,12 @@ export function ExercisesStep() {
         </div>
         <Button variant="ghost" size="sm" onClick={handleNextDay}>
           {isLastDay ? 'Next Step' : 'Next'}
-          <ChevronRight className="h-4 w-4 ml-1" />
+          <ChevronRight className="size-4" data-icon="inline-end" />
         </Button>
       </div>
 
       {/* Exercise blocks */}
-      <div className="space-y-3">
+      <div className="flex flex-col gap-3">
         {day.exercise_blocks.map((block, i) => (
           <ExerciseBlockEditor
             key={i}
@@ -108,12 +108,12 @@ export function ExercisesStep() {
       </div>
 
       {error && (
-        <p className="text-sm text-destructive">{error}</p>
+        <p role="alert" className="text-sm text-destructive">{error}</p>
       )}
 
       {/* Add exercise */}
       <Button variant="outline" onClick={addExercise} className="w-full border-dashed">
-        <PlusIcon className="h-4 w-4 mr-1" />
+        <PlusIcon className="size-4" data-icon="inline-start" />
         Add Exercise
       </Button>
 

@@ -4,6 +4,7 @@ import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { formatWeight } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import { useBuilderDraftStore } from '@/store/builderDraftStore'
+import { DEFAULT_LINEAR_INCREMENT_LBS, usesLinearProgression } from '@/store/builderDraftStore'
 import { useCreateCustomProgram } from '@/hooks/usePrograms'
 import {
   createCustomProgramSchema,
@@ -35,6 +36,9 @@ export function ReviewStep() {
   const { draft, toConfig, resetDraft, setStep } = useBuilderDraftStore()
   const preferredUnit = usePreferredUnit()
   const createCustom = useCreateCustomProgram()
+  const progressionIncrements = usesLinearProgression(draft.progression.style)
+    ? draft.progression.increment_lbs ?? DEFAULT_LINEAR_INCREMENT_LBS
+    : null
 
   const handleSubmit = () => {
     const config = toConfig()
@@ -110,13 +114,15 @@ export function ReviewStep() {
       </div>
 
       {/* Progression */}
-      {draft.progression.increment_lbs && (
-        <div className="rounded-xl border bg-card p-4 text-xs text-muted-foreground">
-          <p className="font-medium text-foreground text-sm mb-1">Progression</p>
-          <p>Upper: +{formatWeight(draft.progression.increment_lbs.upper, preferredUnit)} · Lower: +{formatWeight(draft.progression.increment_lbs.lower, preferredUnit)}</p>
-          {draft.progression.deload_trigger && <p>Deload: {draft.progression.deload_trigger}</p>}
-        </div>
-      )}
+      <div className="rounded-xl border bg-card p-4 text-xs text-muted-foreground">
+        <p className="mb-1 text-sm font-medium text-foreground">Progression</p>
+        <p>Style: {STYLE_LABELS[draft.progression.style]}</p>
+        {progressionIncrements && (
+          <p>Upper: +{formatWeight(progressionIncrements.upper, preferredUnit)} · Lower: +{formatWeight(progressionIncrements.lower, preferredUnit)}</p>
+        )}
+        {draft.progression.deload_trigger && <p>Deload trigger: {draft.progression.deload_trigger}</p>}
+        {draft.progression.deload_strategy && <p>Deload strategy: {draft.progression.deload_strategy}</p>}
+      </div>
 
       <div className="flex gap-2">
         <Button variant="outline" onClick={() => setStep('progression')} className="flex-1">

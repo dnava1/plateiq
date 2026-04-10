@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useActiveProgram } from '@/hooks/usePrograms'
 import { getTemplate } from '@/lib/constants/templates'
 import { isCustomProgramConfig } from '@/types/template'
-import { Button } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Card,
@@ -105,11 +105,9 @@ export default function DashboardPage() {
                 </EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
-                <Link href="/programs">
-                  <Button>
-                    <PlusIcon data-icon="inline-start" />
-                    Start a Program
-                  </Button>
+                <Link href="/programs" className={buttonVariants({ variant: 'default' })}>
+                  <PlusIcon data-icon="inline-start" />
+                  Start a Program
                 </Link>
               </EmptyContent>
             </Empty>
@@ -153,8 +151,8 @@ export default function DashboardPage() {
                 </div>
               </div>
               <CardAction>
-                <Link href="/programs">
-                  <Button variant="outline">Manage</Button>
+                <Link href="/programs" className={buttonVariants({ variant: 'outline' })}>
+                  Manage
                 </Link>
               </CardAction>
             </CardHeader>

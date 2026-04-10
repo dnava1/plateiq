@@ -9,7 +9,7 @@ import { DaysStep } from '@/components/programs/builder/DaysStep'
 import { ExercisesStep } from '@/components/programs/builder/ExercisesStep'
 import { ProgressionStep } from '@/components/programs/builder/ProgressionStep'
 import { ReviewStep } from '@/components/programs/builder/ReviewStep'
-import { Button } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, WandSparkles } from 'lucide-react'
 
@@ -35,11 +35,9 @@ export default function BuilderPage() {
           </div>
         </div>
 
-        <Link href="/programs">
-          <Button variant="outline" size="lg">
-            <ArrowLeft data-icon="inline-start" />
-            Back to Programs
-          </Button>
+        <Link href="/programs" className={buttonVariants({ variant: 'outline', size: 'lg' })}>
+          <ArrowLeft data-icon="inline-start" />
+          Back to Programs
         </Link>
       </section>
 

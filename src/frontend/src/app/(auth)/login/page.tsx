@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -10,58 +10,104 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { ArrowRight, BarChart3, Dumbbell, ShieldCheck, Sparkles } from 'lucide-react'
 
+type AuthAction = 'email' | 'google' | null
+type FeedbackState = {
+  tone: 'error' | 'status'
+  message: string
+}
+
+function getDescribedBy(...ids: Array<string | null | undefined>) {
+  const describedBy = ids.filter(Boolean).join(' ')
+  return describedBy || undefined
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [authAction, setAuthAction] = useState<AuthAction>(null)
+  const [feedback, setFeedback] = useState<FeedbackState | null>(null)
+  const feedbackRef = useRef<HTMLParagraphElement>(null)
+  const isPending = authAction !== null
+
+  useEffect(() => {
+    if (feedback) {
+      feedbackRef.current?.focus()
+    }
+  }, [feedback])
 
   const handleGoogleLogin = async () => {
-    const supabase = createClient()
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
-  }
+    setAuthAction('google')
+    setFeedback(null)
 
-  const handleEmailAuth = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-    setMessage(null)
-
-    const supabase = createClient()
-
-    if (isSignUp) {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       })
+
       if (error) {
-        setError(error.message)
-      } else {
-        setMessage('Check your email for a confirmation link.')
+        setFeedback({ tone: 'error', message: error.message })
+        setAuthAction(null)
+        return
       }
-    } else {
+
+      setFeedback({ tone: 'status', message: 'Redirecting to Google…' })
+    } catch {
+      setFeedback({ tone: 'error', message: 'Unable to start Google sign-in right now.' })
+      setAuthAction(null)
+    }
+  }
+
+  const handleEmailAuth = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+
+    const trimmedEmail = email.trim()
+
+    setEmail(trimmedEmail)
+    setAuthAction('email')
+    setFeedback(null)
+
+    try {
+      const supabase = createClient()
+
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({
+          email: trimmedEmail,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          },
+        })
+
+        if (error) {
+          setFeedback({ tone: 'error', message: error.message })
+          return
+        }
+
+        setFeedback({ tone: 'status', message: 'Check your email for a confirmation link.' })
+        return
+      }
+
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: trimmedEmail,
         password,
       })
-      if (error) {
-        setError(error.message)
-      } else {
-        window.location.href = '/dashboard'
-      }
-    }
 
-    setLoading(false)
+      if (error) {
+        setFeedback({ tone: 'error', message: error.message })
+        return
+      }
+
+      window.location.assign('/dashboard')
+    } catch {
+      setFeedback({ tone: 'error', message: 'Unable to complete sign-in right now.' })
+    } finally {
+      setAuthAction(null)
+    }
   }
 
   return (
@@ -158,8 +204,10 @@ export default function LoginPage() {
           </div>
 
           <Button
+            type="button"
             onClick={handleGoogleLogin}
             size="lg"
+            disabled={isPending}
             className="w-full justify-between rounded-2xl border border-border/70 bg-card/70 px-4 text-foreground hover:bg-muted/60"
           >
             <span className="flex items-center gap-3">
@@ -181,7 +229,7 @@ export default function LoginPage() {
                   fill="#EA4335"
                 />
               </svg>
-              <span>Continue with Google</span>
+              <span>{authAction === 'google' ? 'Redirecting to Google…' : 'Continue with Google'}</span>
             </span>
             <ArrowRight />
           </Button>
@@ -192,17 +240,23 @@ export default function LoginPage() {
             <Separator className="flex-1" />
           </div>
 
-          <form onSubmit={handleEmailAuth} className="flex flex-col gap-4">
+          <form onSubmit={handleEmailAuth} className="flex flex-col gap-4" aria-busy={isPending}>
             <div className="flex flex-col gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="you@example.com"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={isPending}
                 required
+                aria-describedby={getDescribedBy('login-email-help', feedback?.tone === 'error' ? 'login-feedback' : undefined)}
               />
+              <p id="login-email-help" className="text-xs text-muted-foreground">
+                Use the email address tied to your training account.
+              </p>
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="password">Password</Label>
@@ -210,38 +264,60 @@ export default function LoginPage() {
                 id="password"
                 type="password"
                 placeholder="••••••••"
+                autoComplete={isSignUp ? 'new-password' : 'current-password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={isPending}
                 required
                 minLength={6}
+                aria-describedby={getDescribedBy('login-password-help', feedback?.tone === 'error' ? 'login-feedback' : undefined)}
               />
+              <p id="login-password-help" className="text-xs text-muted-foreground">
+                {isSignUp ? 'Use at least 6 characters.' : 'Enter the password for this account.'}
+              </p>
             </div>
 
-            {error && (
-              <p className="text-sm text-destructive">{error}</p>
-            )}
-            {message && (
-              <p className="text-sm text-green-500">{message}</p>
+            {feedback && (
+              <p
+                id="login-feedback"
+                ref={feedbackRef}
+                tabIndex={-1}
+                role={feedback.tone === 'error' ? 'alert' : 'status'}
+                aria-live={feedback.tone === 'error' ? 'assertive' : 'polite'}
+                className={feedback.tone === 'error'
+                  ? 'rounded-2xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive'
+                  : 'rounded-2xl border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-foreground'}
+              >
+                {feedback.message}
+              </p>
             )}
 
-            <Button type="submit" size="lg" className="w-full" disabled={loading}>
-              {loading ? 'Please wait…' : isSignUp ? 'Create Account' : 'Sign In'}
+            <Button type="submit" size="lg" className="w-full" disabled={isPending}>
+              {authAction === 'email'
+                ? isSignUp
+                  ? 'Creating account…'
+                  : 'Signing in…'
+                : isSignUp
+                  ? 'Create Account'
+                  : 'Sign In'}
             </Button>
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
             {isSignUp ? 'Already lifting with PlateIQ?' : 'Need an account?'}{' '}
-            <button
+            <Button
               type="button"
+              variant="link"
+              size="sm"
               onClick={() => {
                 setIsSignUp(!isSignUp)
-                setError(null)
-                setMessage(null)
+                setFeedback(null)
               }}
-              className="text-primary underline-offset-4 hover:underline"
+              disabled={isPending}
+              className="h-auto px-0 text-sm font-medium"
             >
               {isSignUp ? 'Sign in' : 'Create one'}
-            </button>
+            </Button>
           </p>
         </section>
       </div>

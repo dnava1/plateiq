@@ -22,7 +22,7 @@ export function BuilderStepper({ currentStep, totalDays, currentDayIndex }: Buil
   const stepNumber = currentIdx + 1
 
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col gap-2">
       {/* Mobile: compact */}
       <div className="flex items-center justify-between md:hidden">
         <p className="text-sm font-medium">
@@ -33,16 +33,16 @@ export function BuilderStepper({ currentStep, totalDays, currentDayIndex }: Buil
       </div>
 
       {/* Desktop: full stepper */}
-      <div className="hidden md:flex items-center gap-1">
+      <div className="hidden items-center gap-1 md:flex">
         {STEPS.map((step, i) => {
           const isActive = i === currentIdx
           const isCompleted = i < currentIdx
           return (
-            <div key={step.key} className="flex items-center gap-1 flex-1">
-              <div className="flex items-center gap-2 flex-1">
+            <div key={step.key} className="flex flex-1 items-center gap-1">
+              <div className="flex flex-1 items-center gap-2">
                 <div
                   className={cn(
-                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors',
+                    'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors motion-reduce:transition-none',
                     isActive && 'bg-primary text-primary-foreground',
                     isCompleted && 'bg-primary/20 text-primary',
                     !isActive && !isCompleted && 'bg-muted text-muted-foreground'

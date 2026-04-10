@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { setTrainingMaxSchema, type SetTrainingMaxInput } from '@/lib/validations/trainingMax'
 import { useSetTrainingMax } from '@/hooks/useTrainingMaxes'
@@ -43,11 +43,11 @@ export function TrainingMaxForm({
 
   const {
     clearErrors,
+    control,
     register,
     handleSubmit,
     reset,
     setError,
-    watch,
     formState: { errors },
   } = useForm<SetTrainingMaxInput>({
     resolver: zodResolver(setTrainingMaxSchema),
@@ -64,11 +64,10 @@ export function TrainingMaxForm({
       weightLbs: lbsToDisplay(currentTm ?? 0, unit),
       tmPercentage: 0.90,
     })
-    setInputType('tm')
   }, [currentTm, exerciseId, reset, unit])
 
-  const weight = watch('weightLbs')
-  const tmPercentage = watch('tmPercentage')
+  const weight = useWatch({ control, name: 'weightLbs' })
+  const tmPercentage = useWatch({ control, name: 'tmPercentage' })
   const enteredWeightLbs = displayToLbs(weight || 0, unit)
   const initialDisplayWeight = lbsToDisplay(currentTm ?? 0, unit)
   const calculatedTmLbs = inputType === '1rm' && weight
