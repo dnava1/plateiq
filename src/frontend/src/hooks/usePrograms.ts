@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSupabase } from './useSupabase'
 import type { CreateProgramInput } from '@/lib/validations/program'
+import { getTemplate } from '@/lib/constants/templates'
 import type { Tables } from '@/types/database'
 
 export type TrainingProgram = Tables<'training_programs'>
@@ -47,10 +48,13 @@ export function useCreateProgram() {
   return useMutation({
     mutationFn: async (input: CreateProgramInput) => {
       const { data: { user } } = await supabase.auth.getUser()
-      const config = {
+      const tmpl = getTemplate(input.template_key)
+      const config: Record<string, string | number | null> = {
         supplement_key: input.supplement_key ?? null,
-        rounding: input.rounding,
-        tm_percentage: input.tm_percentage,
+      }
+      if (tmpl?.uses_training_max) {
+        config.rounding = input.rounding
+        config.tm_percentage = input.tm_percentage
       }
       // Deactivate any existing active program first
       await supabase

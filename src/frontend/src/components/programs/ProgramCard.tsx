@@ -68,7 +68,7 @@ export function ProgramCard({ program }: ProgramCardProps) {
           )}
           <div className="text-right text-xs text-muted-foreground">
             <div>Started {new Date(program.start_date).toLocaleDateString()}</div>
-            {config.tm_percentage && (
+            {template?.uses_training_max && config.tm_percentage && (
               <div>TM: {Math.round(config.tm_percentage * 100)}%</div>
             )}
           </div>

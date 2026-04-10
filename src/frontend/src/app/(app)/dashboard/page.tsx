@@ -64,7 +64,7 @@ export default function DashboardPage() {
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Started {new Date(program.start_date).toLocaleDateString()}
-                  {config.tm_percentage ? ` · TM: ${Math.round(config.tm_percentage * 100)}%` : ''}
+                  {template.uses_training_max && config.tm_percentage ? ` · TM: ${Math.round(config.tm_percentage * 100)}%` : ''}
                 </p>
               </div>
               <Link href="/programs">
