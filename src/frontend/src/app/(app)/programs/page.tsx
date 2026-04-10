@@ -39,7 +39,7 @@ export default function ProgramsPage() {
               </Badge>
             </div>
             <p className="page-copy">
-              Switch between templates, tune supplements, or build your own progression logic from scratch.
+              Choose a template, pick a variation, or build your own training split from the ground up.
             </p>
           </div>
         </div>
@@ -74,7 +74,7 @@ export default function ProgramsPage() {
               </EmptyMedia>
               <EmptyTitle>No programs yet</EmptyTitle>
               <EmptyDescription>
-                Create your first strength program and start tracking your progression with a cleaner workflow.
+                Create your first program and keep each training day organized from day one.
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>

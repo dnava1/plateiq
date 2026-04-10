@@ -4,14 +4,17 @@ import { useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createProgramSchema, type CreateProgramInput } from '@/lib/validations/program'
+import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { useCreateProgram } from '@/hooks/usePrograms'
 import { getTemplate } from '@/lib/constants/templates'
+import { formatUnit, getRoundingOptions } from '@/lib/utils'
 import { TemplatePicker } from './TemplatePicker'
 import { SupplementSelector } from './SupplementSelector'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { NativeSelect } from '@/components/ui/native-select'
 import {
   Dialog,
   DialogContent,
@@ -30,6 +33,7 @@ interface ProgramConfigFormProps {
 
 export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps) {
   const [step, setStep] = useState<Step>('pick')
+  const preferredUnit = usePreferredUnit()
   const createProgram = useCreateProgram()
 
   const {
@@ -67,7 +71,7 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
 
   const handleNext = () => {
     if (!templateKey) {
-      toast.error('Select a template first')
+      toast.error('Choose a template to continue.')
       return
     }
     if (step === 'pick') {
@@ -111,16 +115,17 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
     onOpenChange(open)
   }
 
-  const stepLabel = step === 'pick' ? 'Choose Program' : step === 'supplement' ? 'Choose Supplement' : 'Configure'
+  const stepLabel = step === 'pick' ? 'Choose Template' : step === 'supplement' ? 'Choose Variation' : 'Set Details'
   const totalSteps = hasSupplements ? 3 : 2
   const currentStep = step === 'pick' ? 1 : step === 'supplement' ? 2 : totalSteps
+  const roundingOptions = getRoundingOptions(preferredUnit)
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader className="gap-4">
           <div className="flex flex-col gap-1.5 pr-8">
-            <DialogTitle>New Program</DialogTitle>
+            <DialogTitle>Start a Program</DialogTitle>
             <DialogDescription>
               Step {currentStep} of {totalSteps} — {stepLabel}
             </DialogDescription>
@@ -191,9 +196,9 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
                     name="tm_percentage"
                     control={control}
                     render={({ field }) => (
-                      <select
+                      <NativeSelect
                         id="tm_percentage"
-                        className="flex h-9 w-full rounded-md border border-input bg-popover px-3 py-1 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        className="h-9"
                         aria-invalid={!!errors.tm_percentage}
                         aria-describedby={errors.tm_percentage ? 'tm-percentage-error' : undefined}
                         value={field.value}
@@ -204,7 +209,7 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
                         <option value={0.9}>90%</option>
                         <option value={0.925}>92.5%</option>
                         <option value={0.95}>95%</option>
-                      </select>
+                      </NativeSelect>
                     )}
                   />
                   {errors.tm_percentage && (
@@ -214,23 +219,23 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
               )}
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor="rounding">Weight Rounding</Label>
+                <Label htmlFor="rounding">Weight Rounding ({formatUnit(preferredUnit)})</Label>
                 <Controller
                   name="rounding"
                   control={control}
                   render={({ field }) => (
-                    <select
+                    <NativeSelect
                       id="rounding"
-                      className="flex h-9 w-full rounded-md border border-input bg-popover px-3 py-1 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      className="h-9"
                       aria-invalid={!!errors.rounding}
                       aria-describedby={errors.rounding ? 'rounding-error' : undefined}
                       value={field.value}
                       onChange={(e) => field.onChange(Number(e.target.value))}
                     >
-                      <option value={2.5}>2.5 lbs</option>
-                      <option value={5}>5 lbs</option>
-                      <option value={10}>10 lbs</option>
-                    </select>
+                      {roundingOptions.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </NativeSelect>
                   )}
                 />
                 {errors.rounding && (

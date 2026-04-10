@@ -53,12 +53,12 @@ describe('setTrainingMaxSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('rejects weight exceeding 2000', () => {
+  it('accepts large display values because the canonical cap is enforced after unit conversion', () => {
     const result = setTrainingMaxSchema.safeParse({
       ...validInput,
       weightLbs: 2001,
     })
-    expect(result.success).toBe(false)
+    expect(result.success).toBe(true)
   })
 
   it('rejects tmPercentage below 0.5', () => {

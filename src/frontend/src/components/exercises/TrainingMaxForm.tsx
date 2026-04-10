@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { setTrainingMaxSchema, type SetTrainingMaxInput } from '@/lib/validations/trainingMax'
@@ -17,8 +17,9 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { roundToNearest } from '@/lib/utils'
+import { displayToLbs, formatUnit, formatWeight, lbsToDisplay, roundToNearest } from '@/lib/utils'
 import { toast } from 'sonner'
+import type { PreferredUnit } from '@/types/domain'
 
 interface TrainingMaxFormProps {
   open: boolean
@@ -26,6 +27,7 @@ interface TrainingMaxFormProps {
   exerciseId: number
   exerciseName: string
   currentTm?: number
+  unit: PreferredUnit
 }
 
 export function TrainingMaxForm({
@@ -34,40 +36,74 @@ export function TrainingMaxForm({
   exerciseId,
   exerciseName,
   currentTm,
+  unit,
 }: TrainingMaxFormProps) {
   const [inputType, setInputType] = useState<'tm' | '1rm'>('tm')
   const setTrainingMax = useSetTrainingMax()
 
   const {
+    clearErrors,
     register,
     handleSubmit,
+    reset,
+    setError,
     watch,
     formState: { errors },
   } = useForm<SetTrainingMaxInput>({
     resolver: zodResolver(setTrainingMaxSchema),
     defaultValues: {
       exerciseId,
-      weightLbs: currentTm ?? 0,
+      weightLbs: lbsToDisplay(currentTm ?? 0, unit),
       tmPercentage: 0.90,
     },
   })
 
+  useEffect(() => {
+    reset({
+      exerciseId,
+      weightLbs: lbsToDisplay(currentTm ?? 0, unit),
+      tmPercentage: 0.90,
+    })
+    setInputType('tm')
+  }, [currentTm, exerciseId, reset, unit])
+
   const weight = watch('weightLbs')
   const tmPercentage = watch('tmPercentage')
-  const calculatedTm = inputType === '1rm' && weight
-    ? roundToNearest(weight * (tmPercentage ?? 0.9), 5)
-    : weight
+  const enteredWeightLbs = displayToLbs(weight || 0, unit)
+  const initialDisplayWeight = lbsToDisplay(currentTm ?? 0, unit)
+  const calculatedTmLbs = inputType === '1rm' && weight
+    ? roundToNearest(enteredWeightLbs * (tmPercentage ?? 0.9), 5)
+    : enteredWeightLbs
 
   const onSubmit = (data: SetTrainingMaxInput) => {
-    const finalWeight = inputType === '1rm'
-      ? roundToNearest(data.weightLbs * (data.tmPercentage ?? 0.9), 5)
-      : data.weightLbs
+    const weightLbs = displayToLbs(data.weightLbs, unit)
+    const unchangedCurrentTm = inputType === 'tm'
+      && typeof currentTm === 'number'
+      && data.weightLbs === initialDisplayWeight
+
+    const finalWeight = unchangedCurrentTm
+      ? currentTm
+      : inputType === '1rm'
+        ? roundToNearest(weightLbs * (data.tmPercentage ?? 0.9), 5)
+        : weightLbs
+
+    if (finalWeight > 2000) {
+      setError('weightLbs', {
+        type: 'manual',
+        message: unit === 'kg'
+          ? `Training max cannot exceed ${lbsToDisplay(2000, 'kg')} kg (2000 lbs)`
+          : 'Training max cannot exceed 2000 lbs',
+      })
+      return
+    }
+
+    clearErrors('weightLbs')
 
     setTrainingMax.mutate(
       { ...data, weightLbs: finalWeight },
       {
         onSuccess: () => {
-          toast.success(`Training max set to ${finalWeight} lbs`)
+          toast.success(`Training max set to ${formatWeight(finalWeight, unit)}`)
           onOpenChange(false)
         },
         onError: (error) => {
@@ -84,7 +120,7 @@ export function TrainingMaxForm({
           <DialogTitle>Set Training Max — {exerciseName}</DialogTitle>
           <DialogDescription>
             {currentTm
-              ? `Current TM: ${currentTm} lbs`
+              ? `Current TM: ${formatWeight(currentTm, unit)}`
               : 'No training max set yet'}
           </DialogDescription>
         </DialogHeader>
@@ -118,13 +154,15 @@ export function TrainingMaxForm({
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="weight">
-              {inputType === 'tm' ? 'Training Max (lbs)' : 'Estimated 1RM (lbs)'}
+              {inputType === 'tm'
+                ? `Training Max (${formatUnit(unit)})`
+                : `Estimated 1RM (${formatUnit(unit)})`}
             </Label>
             <Input
               id="weight"
               type="number"
-              step="2.5"
-              placeholder="e.g., 225"
+              step={unit === 'kg' ? '0.5' : '2.5'}
+              placeholder={unit === 'kg' ? 'e.g., 100' : 'e.g., 225'}
               aria-invalid={!!errors.weightLbs}
               aria-describedby={errors.weightLbs ? 'training-max-weight-error' : undefined}
               {...register('weightLbs', { valueAsNumber: true })}
@@ -158,10 +196,10 @@ export function TrainingMaxForm({
                   <CardContent className="flex flex-col gap-1.5 pt-4">
                     <p className="text-sm">
                       <span className="text-muted-foreground">Calculated TM:</span>{' '}
-                      <span className="font-bold text-foreground">{calculatedTm} lbs</span>
+                      <span className="font-bold text-foreground">{formatWeight(calculatedTmLbs, unit)}</span>
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {weight} × {Math.round((tmPercentage ?? 0.9) * 100)}% = {calculatedTm} lbs (rounded to nearest 5)
+                      {weight} {formatUnit(unit)} × {Math.round((tmPercentage ?? 0.9) * 100)}% = {formatWeight(calculatedTmLbs, unit)}
                     </p>
                   </CardContent>
                 </Card>

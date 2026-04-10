@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest'
-import { cn, formatWeight, roundToNearest, formatDate } from './utils'
+import {
+  cn,
+  displayToLbs,
+  formatDate,
+  formatRounding,
+  formatUnit,
+  formatWeight,
+  getRoundingOptions,
+  lbsToDisplay,
+  roundToNearest,
+} from './utils'
 
 describe('cn', () => {
   it('merges class names', () => {
@@ -42,6 +52,61 @@ describe('formatWeight', () => {
   })
 })
 
+describe('lbsToDisplay', () => {
+  it('returns lbs unchanged for pound preference', () => {
+    expect(lbsToDisplay(225, 'lbs')).toBe(225)
+  })
+
+  it('converts lbs to kg for display', () => {
+    expect(lbsToDisplay(225, 'kg')).toBe(102.1)
+  })
+})
+
+describe('displayToLbs', () => {
+  it('returns lbs unchanged for pound preference', () => {
+    expect(displayToLbs(225, 'lbs')).toBe(225)
+  })
+
+  it('converts kg input back to lbs', () => {
+    expect(displayToLbs(100, 'kg')).toBeCloseTo(220.46, 2)
+  })
+})
+
+describe('formatUnit', () => {
+  it('returns the unit suffix', () => {
+    expect(formatUnit('lbs')).toBe('lbs')
+    expect(formatUnit('kg')).toBe('kg')
+  })
+})
+
+describe('formatRounding', () => {
+  it('formats canonical rounding in lbs', () => {
+    expect(formatRounding(5, 'lbs')).toBe('5 lbs')
+  })
+
+  it('formats canonical rounding in kg', () => {
+    expect(formatRounding(5, 'kg')).toBe('2.3 kg')
+  })
+})
+
+describe('getRoundingOptions', () => {
+  it('keeps canonical lbs values for pound preference', () => {
+    expect(getRoundingOptions('lbs')).toEqual([
+      { value: 2.5, label: '2.5 lbs' },
+      { value: 5, label: '5 lbs' },
+      { value: 10, label: '10 lbs' },
+    ])
+  })
+
+  it('keeps canonical lbs values while converting labels for kilogram preference', () => {
+    expect(getRoundingOptions('kg')).toEqual([
+      { value: 2.5, label: '1.1 kg' },
+      { value: 5, label: '2.3 kg' },
+      { value: 10, label: '4.5 kg' },
+    ])
+  })
+})
+
 describe('roundToNearest', () => {
   it('rounds to nearest 5', () => {
     expect(roundToNearest(137, 5)).toBe(135)
@@ -59,6 +124,10 @@ describe('roundToNearest', () => {
 
   it('handles zero', () => {
     expect(roundToNearest(0, 5)).toBe(0)
+  })
+
+  it('supports converted kg values stored canonically in lbs', () => {
+    expect(roundToNearest(displayToLbs(2.5, 'kg'), 0.5)).toBe(5.5)
   })
 })
 

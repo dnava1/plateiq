@@ -1,20 +1,23 @@
 'use client'
 
+import { usePreferredUnit } from '@/hooks/usePreferredUnit'
+import { formatWeight } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import { useBuilderDraftStore } from '@/store/builderDraftStore'
 import { useCreateCustomProgram } from '@/hooks/usePrograms'
-import { createCustomProgramSchema } from '@/lib/validations/program'
+import {
+  createCustomProgramSchema,
+  getCreateCustomProgramErrorMessage,
+} from '@/lib/validations/program'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
+import type { IntensityType } from '@/types/domain'
 
-const INTENSITY_LABELS: Record<string, string> = {
-  percentage_tm: '% TM',
-  percentage_1rm: '% 1RM',
-  rpe: 'RPE',
-  fixed_weight: 'lbs',
-  bodyweight: 'BW',
-  percentage_work_set: '% Work',
+const BLOCK_ROLE_LABELS: Record<'primary' | 'supplement' | 'accessory', string> = {
+  primary: 'primary',
+  supplement: 'variation',
+  accessory: 'accessory',
 }
 
 const STYLE_LABELS: Record<string, string> = {
@@ -30,13 +33,14 @@ const STYLE_LABELS: Record<string, string> = {
 export function ReviewStep() {
   const router = useRouter()
   const { draft, toConfig, resetDraft, setStep } = useBuilderDraftStore()
+  const preferredUnit = usePreferredUnit()
   const createCustom = useCreateCustomProgram()
 
   const handleSubmit = () => {
     const config = toConfig()
     const result = createCustomProgramSchema.safeParse({ name: draft.name, definition: config })
     if (!result.success) {
-      toast.error(result.error.issues[0]?.message ?? 'Invalid program configuration')
+      toast.error(getCreateCustomProgramErrorMessage(result.error))
       return
     }
     createCustom.mutate(result.data, {
@@ -49,10 +53,13 @@ export function ReviewStep() {
     })
   }
 
-  const formatIntensity = (val: number, type: string) => {
-    if (type.startsWith('percentage')) return `${Math.round(val * 100)}%`
+  const formatIntensity = (val: number, type: IntensityType) => {
+    if (type === 'percentage_tm') return `${Math.round(val * 100)}% TM`
+    if (type === 'percentage_1rm') return `${Math.round(val * 100)}% 1RM`
+    if (type === 'percentage_work_set') return `${Math.round(val * 100)}% Work`
     if (type === 'rpe') return `RPE ${val}`
-    return `${val} lbs`
+    if (type === 'bodyweight') return 'Bodyweight'
+    return formatWeight(val, preferredUnit)
   }
 
   return (
@@ -86,12 +93,12 @@ export function ReviewStep() {
             </div>
             {day.exercise_blocks.map((block, bi) => (
               <div key={bi} className="ml-8 text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">{block.exercise_key || 'TBD'}</span>
-                <span className="text-[10px] uppercase ml-1.5 text-muted-foreground">({block.role})</span>
+                <span className="font-medium text-foreground">{block.exercise_key || 'Unnamed exercise'}</span>
+                <span className="text-[10px] uppercase ml-1.5 text-muted-foreground">({BLOCK_ROLE_LABELS[block.role]})</span>
                 <div className="mt-0.5">
                   {block.sets.map((s, si) => (
                     <span key={si} className="mr-2">
-                      {s.sets}×{s.reps} @ {formatIntensity(s.intensity, s.intensity_type)} {INTENSITY_LABELS[s.intensity_type]}
+                      {s.sets}×{s.reps} @ {formatIntensity(s.intensity, s.intensity_type)}
                     </span>
                   ))}
                 </div>
@@ -106,7 +113,7 @@ export function ReviewStep() {
       {draft.progression.increment_lbs && (
         <div className="rounded-xl border bg-card p-4 text-xs text-muted-foreground">
           <p className="font-medium text-foreground text-sm mb-1">Progression</p>
-          <p>Upper: +{draft.progression.increment_lbs.upper} lbs · Lower: +{draft.progression.increment_lbs.lower} lbs</p>
+          <p>Upper: +{formatWeight(draft.progression.increment_lbs.upper, preferredUnit)} · Lower: +{formatWeight(draft.progression.increment_lbs.lower, preferredUnit)}</p>
           {draft.progression.deload_trigger && <p>Deload: {draft.progression.deload_trigger}</p>}
         </div>
       )}

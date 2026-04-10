@@ -1,16 +1,29 @@
 'use client'
 
+import { useState } from 'react'
+import { usePreferredUnit } from '@/hooks/usePreferredUnit'
+import { formatUnit, getRoundingOptions } from '@/lib/utils'
+import { validateCustomProgramBasicsStep } from '@/lib/validations/program'
 import { useBuilderDraftStore } from '@/store/builderDraftStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import type { ProgramLevel } from '@/types/domain'
+import { NativeSelect } from '@/components/ui/native-select'
 
 export function BasicsStep() {
   const { draft, patchDraft, setStep } = useBuilderDraftStore()
+  const [error, setError] = useState<string | null>(null)
+  const preferredUnit = usePreferredUnit()
+  const roundingOptions = getRoundingOptions(preferredUnit)
 
   const handleNext = () => {
-    if (!draft.name.trim()) return
+    const validationError = validateCustomProgramBasicsStep(draft.name)
+
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
     // Initialize day labels if needed
     if (draft.days.length !== draft.days_per_week) {
       const days = Array.from({ length: draft.days_per_week }, (_, i) => ({
@@ -28,55 +41,51 @@ export function BasicsStep() {
         <Label htmlFor="name">Program Name</Label>
         <Input
           id="name"
-          placeholder="My Custom Program"
+          placeholder="My Four-Day Split"
           value={draft.name}
-          onChange={(e) => patchDraft({ name: e.target.value })}
+          onChange={(e) => {
+            patchDraft({ name: e.target.value })
+            setError(null)
+          }}
           autoFocus
+          aria-invalid={!!error}
+          aria-describedby={error ? 'builder-basics-error' : undefined}
         />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="level">Experience Level</Label>
-        <select
-          id="level"
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          value={draft.level ?? ''}
-          onChange={(e) => patchDraft({ level: (e.target.value || undefined) as ProgramLevel | undefined })}
-        >
-          <option value="">Any level</option>
-          <option value="beginner">Beginner</option>
-          <option value="intermediate">Intermediate</option>
-          <option value="advanced">Advanced</option>
-        </select>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="dpw">Days per Week</Label>
-          <select
+          <NativeSelect
             id="dpw"
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="h-9"
             value={draft.days_per_week}
-            onChange={(e) => patchDraft({ days_per_week: Number(e.target.value) })}
+            onChange={(e) => {
+              patchDraft({ days_per_week: Number(e.target.value) })
+              setError(null)
+            }}
           >
             {[1, 2, 3, 4, 5, 6, 7].map((n) => (
               <option key={n} value={n}>{n}</option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="clw">Cycle Length (weeks)</Label>
-          <select
+          <NativeSelect
             id="clw"
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="h-9"
             value={draft.cycle_length_weeks}
-            onChange={(e) => patchDraft({ cycle_length_weeks: Number(e.target.value) })}
+            onChange={(e) => {
+              patchDraft({ cycle_length_weeks: Number(e.target.value) })
+              setError(null)
+            }}
           >
             {Array.from({ length: 16 }, (_, i) => i + 1).map((n) => (
               <option key={n} value={n}>{n} week{n > 1 ? 's' : ''}</option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
       </div>
 
@@ -100,37 +109,49 @@ export function BasicsStep() {
           <div className="grid grid-cols-2 gap-4 animate-slide-up">
             <div className="space-y-2">
               <Label htmlFor="tmp">TM Percentage</Label>
-              <select
+              <NativeSelect
                 id="tmp"
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="h-9"
                 value={draft.tm_percentage}
-                onChange={(e) => patchDraft({ tm_percentage: Number(e.target.value) })}
+                onChange={(e) => {
+                  patchDraft({ tm_percentage: Number(e.target.value) })
+                  setError(null)
+                }}
               >
                 <option value={0.85}>85%</option>
                 <option value={0.875}>87.5%</option>
                 <option value={0.9}>90%</option>
                 <option value={0.925}>92.5%</option>
                 <option value={0.95}>95%</option>
-              </select>
+              </NativeSelect>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="rnd">Rounding (lbs)</Label>
-              <select
+              <Label htmlFor="rnd">Rounding ({formatUnit(preferredUnit)})</Label>
+              <NativeSelect
                 id="rnd"
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="h-9"
                 value={draft.rounding}
-                onChange={(e) => patchDraft({ rounding: Number(e.target.value) })}
+                onChange={(e) => {
+                  patchDraft({ rounding: Number(e.target.value) })
+                  setError(null)
+                }}
               >
-                <option value={2.5}>2.5 lbs</option>
-                <option value={5}>5 lbs</option>
-                <option value={10}>10 lbs</option>
-              </select>
+                {roundingOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </NativeSelect>
             </div>
           </div>
         )}
       </div>
 
-      <Button onClick={handleNext} disabled={!draft.name.trim()} className="w-full">
+      {error && (
+        <p id="builder-basics-error" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+
+      <Button onClick={handleNext} className="w-full">
         Next
       </Button>
     </div>

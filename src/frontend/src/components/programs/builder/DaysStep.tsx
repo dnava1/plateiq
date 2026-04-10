@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+import { validateCustomProgramDaysStep } from '@/lib/validations/program'
 import { useBuilderDraftStore } from '@/store/builderDraftStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -7,17 +9,23 @@ import { Label } from '@/components/ui/label'
 
 export function DaysStep() {
   const { draft, patchDraft, setStep } = useBuilderDraftStore()
+  const [error, setError] = useState<string | null>(null)
 
   const handleLabelChange = (index: number, label: string) => {
     const days = [...draft.days]
     days[index] = { ...days[index], label }
     patchDraft({ days })
+    setError(null)
   }
 
   const handleNext = () => {
-    // Ensure all days have at least a label
-    const valid = draft.days.every((d) => d.label.trim())
-    if (!valid) return
+    const validationError = validateCustomProgramDaysStep(draft.days)
+
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
     setStep('exercises')
   }
 
@@ -25,7 +33,7 @@ export function DaysStep() {
     <div className="space-y-5">
       <div>
         <p className="text-sm text-muted-foreground">
-          Name each training day. You&apos;ll add exercises in the next step.
+          Name each training day so the rest of the build stays easy to scan.
         </p>
       </div>
 
@@ -48,15 +56,15 @@ export function DaysStep() {
         ))}
       </div>
 
+      {error && (
+        <p className="text-sm text-destructive">{error}</p>
+      )}
+
       <div className="flex gap-2">
         <Button variant="outline" onClick={() => setStep('basics')} className="flex-1">
           Back
         </Button>
-        <Button
-          onClick={handleNext}
-          disabled={!draft.days.every((d) => d.label.trim())}
-          className="flex-1"
-        >
+        <Button onClick={handleNext} className="flex-1">
           Next
         </Button>
       </div>

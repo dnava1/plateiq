@@ -13,17 +13,20 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { Search, SearchX } from 'lucide-react'
+import { formatWeight } from '@/lib/utils'
 import type { Tables } from '@/types/database'
+import type { PreferredUnit } from '@/types/domain'
 
 type Exercise = Tables<'exercises'>
 
 interface ExerciseListProps {
   exercises: Exercise[]
   trainingMaxes?: Map<number, number>
+  unit: PreferredUnit
   onSetTm?: (exercise: Exercise) => void
 }
 
-export function ExerciseList({ exercises, trainingMaxes, onSetTm }: ExerciseListProps) {
+export function ExerciseList({ exercises, trainingMaxes, unit, onSetTm }: ExerciseListProps) {
   const [search, setSearch] = useState('')
 
   const filtered = exercises.filter((e) =>
@@ -80,7 +83,7 @@ export function ExerciseList({ exercises, trainingMaxes, onSetTm }: ExerciseList
               </div>
               <div className="flex items-center gap-3">
                 {exercise.is_main_lift && trainingMaxes?.has(exercise.id) && (
-                  <Badge variant="secondary">TM {trainingMaxes.get(exercise.id)} lbs</Badge>
+                  <Badge variant="secondary">TM {formatWeight(trainingMaxes.get(exercise.id) ?? 0, unit)}</Badge>
                 )}
                 {exercise.is_main_lift && onSetTm && (
                   <Button

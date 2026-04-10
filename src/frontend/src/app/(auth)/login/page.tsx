@@ -70,7 +70,7 @@ export default function LoginPage() {
         <section className="hidden flex-col justify-between gap-8 border-r border-border/70 bg-card/72 p-10 lg:flex">
           <div className="flex flex-col gap-5">
             <Badge variant="outline" className="w-fit rounded-full px-3">
-              Minimal strength tracking
+              For lifters who train often
             </Badge>
             <div className="flex flex-col gap-4">
               <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/12 text-primary ring-1 ring-primary/25">
@@ -79,11 +79,10 @@ export default function LoginPage() {
               <div className="flex flex-col gap-2">
                 <span className="eyebrow">PlateIQ</span>
                 <h1 className="text-4xl font-semibold tracking-[-0.08em] text-foreground">
-                  Train hard. Keep the interface quiet.
+                  Pick up today&apos;s session.
                 </h1>
                 <p className="max-w-md text-sm leading-6 text-muted-foreground">
-                  Built for lifters who want a cleaner view of the work: program structure,
-                  progression, and the signals that matter.
+                  Sign in to see your active cycle, adjust training maxes, and keep the next block moving.
                 </p>
               </div>
             </div>
@@ -96,9 +95,9 @@ export default function LoginPage() {
                   <BarChart3 />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <p className="text-sm font-medium text-foreground">Cleaner progression view</p>
+                  <p className="text-sm font-medium text-foreground">Know what&apos;s next</p>
                   <p className="text-sm leading-6 text-muted-foreground">
-                    Programs, training maxes, and cycles without dashboard clutter.
+                    Open the app and see the block, lift order, and progression details without digging.
                   </p>
                 </div>
               </CardContent>
@@ -110,9 +109,9 @@ export default function LoginPage() {
                   <Sparkles />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <p className="text-sm font-medium text-foreground">Purpose-built flow</p>
+                  <p className="text-sm font-medium text-foreground">Programming that stays readable</p>
                   <p className="text-sm leading-6 text-muted-foreground">
-                    Move from template selection to custom building with a tighter experience.
+                    Move from proven templates to custom builds without losing track of the structure.
                   </p>
                 </div>
               </CardContent>
@@ -124,9 +123,9 @@ export default function LoginPage() {
                   <ShieldCheck />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <p className="text-sm font-medium text-foreground">Sign in and keep training</p>
+                  <p className="text-sm font-medium text-foreground">Stay in sync</p>
                   <p className="text-sm leading-6 text-muted-foreground">
-                    Resume your current block, adjust training maxes, and stay synced across sessions.
+                    Keep your sessions, program changes, and next-cycle setup aligned across devices.
                   </p>
                 </div>
               </CardContent>
@@ -137,7 +136,7 @@ export default function LoginPage() {
         <section className="flex flex-col gap-6 px-6 py-8 sm:px-8 lg:px-10">
           <div className="flex flex-col gap-3">
             <Badge variant="outline" className="w-fit rounded-full px-3 lg:hidden">
-              Strength tracking
+              Daily training
             </Badge>
             <div className="flex items-center gap-3 lg:hidden">
               <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/12 text-primary ring-1 ring-primary/25">
@@ -150,10 +149,10 @@ export default function LoginPage() {
             </div>
             <div className="flex flex-col gap-2">
               <h2 className="text-3xl font-semibold tracking-[-0.06em] text-foreground">
-                {isSignUp ? 'Create your account' : 'Sign in'}
+                {isSignUp ? 'Create your PlateIQ account' : 'Sign in to PlateIQ'}
               </h2>
               <p className="text-sm leading-6 text-muted-foreground">
-                Continue your current block, review your training maxes, and build what comes next.
+                Open your current program, review today&apos;s work, and adjust what comes next when you need to.
               </p>
             </div>
           </div>
@@ -231,7 +230,7 @@ export default function LoginPage() {
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
-            {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+            {isSignUp ? 'Already lifting with PlateIQ?' : 'Need an account?'}{' '}
             <button
               type="button"
               onClick={() => {
@@ -241,7 +240,7 @@ export default function LoginPage() {
               }}
               className="text-primary underline-offset-4 hover:underline"
             >
-              {isSignUp ? 'Sign in' : 'Sign up'}
+              {isSignUp ? 'Sign in' : 'Create one'}
             </button>
           </p>
         </section>

@@ -1,5 +1,7 @@
 'use client'
 
+import { usePreferredUnit } from '@/hooks/usePreferredUnit'
+import { displayToLbs, formatUnit, lbsToDisplay } from '@/lib/utils'
 import { useBuilderDraftStore } from '@/store/builderDraftStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,9 +22,18 @@ const STYLE_OPTIONS: { value: ProgressionStyle; label: string; description: stri
 const showIncrements = (style: ProgressionStyle) =>
   ['linear_per_session', 'linear_per_week', 'linear_per_cycle'].includes(style)
 
+const MAX_INCREMENT_LBS = 50
+const MIN_INCREMENT_LBS = 0
+
 export function ProgressionStep() {
   const { draft, patchDraft, setStep } = useBuilderDraftStore()
+  const preferredUnit = usePreferredUnit()
   const prog = draft.progression
+  const upperDisplay = lbsToDisplay(prog.increment_lbs?.upper ?? 5, preferredUnit)
+  const lowerDisplay = lbsToDisplay(prog.increment_lbs?.lower ?? 10, preferredUnit)
+  const maxDisplayIncrement = lbsToDisplay(MAX_INCREMENT_LBS, preferredUnit)
+
+  const clampIncrement = (value: number) => Math.min(Math.max(value, MIN_INCREMENT_LBS), MAX_INCREMENT_LBS)
 
   const update = (patch: Partial<ProgressionRule>) => {
     patchDraft({ progression: { ...prog, ...patch } })
@@ -59,7 +70,7 @@ export function ProgressionStep() {
 
       {showIncrements(prog.style) && (
         <div className="space-y-3 animate-slide-up">
-          <Label>Weight Increments (lbs)</Label>
+          <Label>Weight Increments ({formatUnit(preferredUnit)})</Label>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="inc-upper" className="text-xs text-muted-foreground">Upper Body</Label>
@@ -67,11 +78,14 @@ export function ProgressionStep() {
                 id="inc-upper"
                 type="number"
                 min={0}
-                max={50}
-                step={2.5}
-                value={prog.increment_lbs?.upper ?? 5}
+                max={maxDisplayIncrement}
+                step={preferredUnit === 'kg' ? 0.5 : 2.5}
+                value={upperDisplay}
                 onChange={(e) => update({
-                  increment_lbs: { upper: Number(e.target.value), lower: prog.increment_lbs?.lower ?? 10 },
+                  increment_lbs: {
+                    upper: clampIncrement(displayToLbs(Number(e.target.value), preferredUnit)),
+                    lower: prog.increment_lbs?.lower ?? 10,
+                  },
                 })}
               />
             </div>
@@ -81,11 +95,14 @@ export function ProgressionStep() {
                 id="inc-lower"
                 type="number"
                 min={0}
-                max={50}
-                step={2.5}
-                value={prog.increment_lbs?.lower ?? 10}
+                max={maxDisplayIncrement}
+                step={preferredUnit === 'kg' ? 0.5 : 2.5}
+                value={lowerDisplay}
                 onChange={(e) => update({
-                  increment_lbs: { upper: prog.increment_lbs?.upper ?? 5, lower: Number(e.target.value) },
+                  increment_lbs: {
+                    upper: prog.increment_lbs?.upper ?? 5,
+                    lower: clampIncrement(displayToLbs(Number(e.target.value), preferredUnit)),
+                  },
                 })}
               />
             </div>

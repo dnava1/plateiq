@@ -38,14 +38,23 @@ export default function SettingsPage() {
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user'] })
+      queryClient.invalidateQueries({ queryKey: ['profile'] })
     },
   })
 
   const handleUnitToggle = (unit: PreferredUnit) => {
+    if (unit === preferredUnit) return
+
+    const previousUnit = preferredUnit
     setPreferredUnit(unit)
+
     if (user) {
-      updateUnit.mutate(unit)
+      updateUnit.mutate(unit, {
+        onError: (error) => {
+          setPreferredUnit(previousUnit)
+          toast.error(error.message)
+        },
+      })
     }
   }
 

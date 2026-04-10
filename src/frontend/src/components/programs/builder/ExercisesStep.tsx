@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+import { validateCustomProgramExerciseDay } from '@/lib/validations/program'
 import { useBuilderDraftStore } from '@/store/builderDraftStore'
 import { ExerciseBlockEditor } from './ExerciseBlockEditor'
 import { Button } from '@/components/ui/button'
@@ -8,6 +10,7 @@ import type { ExerciseBlock } from '@/types/template'
 
 export function ExercisesStep() {
   const { draft, currentDayIndex, setDayIndex, updateDay, setStep } = useBuilderDraftStore()
+  const [error, setError] = useState<string | null>(null)
   const day = draft.days[currentDayIndex]
   const isLastDay = currentDayIndex === draft.days.length - 1
   const isFirstDay = currentDayIndex === 0
@@ -27,12 +30,14 @@ export function ExercisesStep() {
       ...day,
       exercise_blocks: [...day.exercise_blocks, newBlock],
     })
+    setError(null)
   }
 
   const updateBlock = (blockIdx: number, block: ExerciseBlock) => {
     const blocks = [...day.exercise_blocks]
     blocks[blockIdx] = block
     updateDay(currentDayIndex, { ...day, exercise_blocks: blocks })
+    setError(null)
   }
 
   const removeBlock = (blockIdx: number) => {
@@ -40,9 +45,19 @@ export function ExercisesStep() {
       ...day,
       exercise_blocks: day.exercise_blocks.filter((_, i) => i !== blockIdx),
     })
+    setError(null)
   }
 
   const handleNextDay = () => {
+    const validationError = validateCustomProgramExerciseDay(day, currentDayIndex)
+
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
+    setError(null)
+
     if (isLastDay) {
       setStep('progression')
     } else {
@@ -51,6 +66,8 @@ export function ExercisesStep() {
   }
 
   const handlePrevDay = () => {
+    setError(null)
+
     if (isFirstDay) {
       setStep('days')
     } else {
@@ -90,6 +107,10 @@ export function ExercisesStep() {
         ))}
       </div>
 
+      {error && (
+        <p className="text-sm text-destructive">{error}</p>
+      )}
+
       {/* Add exercise */}
       <Button variant="outline" onClick={addExercise} className="w-full border-dashed">
         <PlusIcon className="h-4 w-4 mr-1" />
@@ -101,7 +122,7 @@ export function ExercisesStep() {
         <Button variant="outline" onClick={handlePrevDay} className="flex-1">
           {isFirstDay ? 'Back to Days' : `← ${draft.days[currentDayIndex - 1]?.label}`}
         </Button>
-        <Button onClick={handleNextDay} className="flex-1" disabled={day.exercise_blocks.length === 0}>
+        <Button onClick={handleNextDay} className="flex-1">
           {isLastDay ? 'Progression →' : `${draft.days[currentDayIndex + 1]?.label} →`}
         </Button>
       </div>

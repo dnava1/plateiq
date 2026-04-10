@@ -26,11 +26,11 @@ export default function BuilderPage() {
     <div className="page-shell mx-auto w-full max-w-3xl">
       <section className="page-header">
         <div className="flex flex-col gap-3">
-          <span className="eyebrow">Custom Builder</span>
+          <span className="eyebrow">Program Builder</span>
           <div className="flex flex-col gap-2">
-            <h1 className="page-title">Build Custom Program</h1>
+            <h1 className="page-title">Build a Program</h1>
             <p className="page-copy">
-              Define your own structure, exercises, and progression without losing the clean PlateIQ workflow.
+              Set up your split, name each day, and dial in progression without fighting the form.
             </p>
           </div>
         </div>
@@ -49,7 +49,7 @@ export default function BuilderPage() {
             <div className="flex size-11 items-center justify-center rounded-2xl bg-primary/12 text-primary">
               <WandSparkles />
             </div>
-            <CardTitle className="text-xl">Custom Program Wizard</CardTitle>
+            <CardTitle className="text-xl">Program Setup</CardTitle>
           </div>
           <BuilderStepper
             currentStep={step}

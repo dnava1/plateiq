@@ -1,16 +1,30 @@
 'use client'
 
+import { usePreferredUnit } from '@/hooks/usePreferredUnit'
+import { displayToLbs, formatUnit, lbsToDisplay } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { NativeSelect } from '@/components/ui/native-select'
 import { Trash2 } from 'lucide-react'
 import type { SetPrescription, ExerciseBlock } from '@/types/template'
 import type { IntensityType } from '@/types/domain'
+
+const MIN_SET_COUNT = 1
+const MAX_SET_COUNT = 20
+const MIN_INTENSITY = 0
+const MAX_INTENSITY = 10000
+
+const ROLE_LABELS: Record<ExerciseBlock['role'], string> = {
+  primary: 'Primary',
+  supplement: 'Variation',
+  accessory: 'Accessory',
+}
 
 const INTENSITY_LABELS: Record<IntensityType, string> = {
   percentage_tm: '% TM',
   percentage_1rm: '% 1RM',
   rpe: 'RPE',
-  fixed_weight: 'lbs',
+  fixed_weight: 'Weight',
   bodyweight: 'BW',
   percentage_work_set: '% Work',
 }
@@ -23,7 +37,17 @@ interface ExerciseBlockEditorProps {
   onRemove: () => void
 }
 
+function getDefaultIntensity(type: IntensityType): number {
+  if (type === 'fixed_weight') return 135
+  if (type === 'rpe') return 7
+  if (type === 'percentage_work_set') return 1
+  if (type === 'bodyweight') return 0
+  return 0.75
+}
+
 export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, onRemove }: ExerciseBlockEditorProps) {
+  const preferredUnit = usePreferredUnit()
+
   const updateSet = (setIdx: number, patch: Partial<SetPrescription>) => {
     const sets = [...block.sets]
     sets[setIdx] = { ...sets[setIdx], ...patch }
@@ -50,15 +74,16 @@ export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, o
           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
             {index + 1}
           </span>
-          <select
-            className="h-8 rounded-md border border-input bg-transparent px-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          <NativeSelect
+            wrapperClassName="w-auto shrink-0"
+            className="h-8 w-auto min-w-28 pr-7 text-xs font-medium"
             value={block.role}
             onChange={(e) => onChange({ ...block, role: e.target.value as ExerciseBlock['role'] })}
           >
-            <option value="primary">Primary</option>
-            <option value="supplement">Supplement</option>
-            <option value="accessory">Accessory</option>
-          </select>
+            {Object.entries(ROLE_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </NativeSelect>
         </div>
         <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={onRemove}>
           <Trash2 className="h-3.5 w-3.5" />
@@ -90,7 +115,9 @@ export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, o
               min={1}
               max={20}
               value={set.sets}
-              onChange={(e) => updateSet(si, { sets: Math.max(1, Number(e.target.value)) })}
+              onChange={(e) => updateSet(si, {
+                sets: Math.min(MAX_SET_COUNT, Math.max(MIN_SET_COUNT, Number(e.target.value))),
+              })}
               className="h-8 text-xs text-center"
             />
             <Input
@@ -105,20 +132,45 @@ export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, o
             />
             <Input
               type="number"
-              step={set.intensity_type === 'rpe' ? 0.5 : set.intensity_type.startsWith('percentage') ? 0.01 : 5}
-              value={set.intensity}
-              onChange={(e) => updateSet(si, { intensity: Number(e.target.value) })}
+              step={
+                set.intensity_type === 'rpe'
+                  ? 0.5
+                  : set.intensity_type.startsWith('percentage')
+                    ? 0.01
+                    : preferredUnit === 'kg'
+                      ? 2.5
+                      : 5
+              }
+              value={set.intensity_type === 'fixed_weight' ? lbsToDisplay(set.intensity, preferredUnit) : set.intensity}
+              onChange={(e) => updateSet(si, {
+                intensity: Math.min(
+                  MAX_INTENSITY,
+                  Math.max(
+                    MIN_INTENSITY,
+                    set.intensity_type === 'fixed_weight'
+                      ? displayToLbs(Number(e.target.value), preferredUnit)
+                      : Number(e.target.value),
+                  ),
+                ),
+              })}
               className="h-8 text-xs text-center"
             />
-            <select
-              className="h-8 rounded-md border border-input bg-transparent px-1 text-[10px] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            <NativeSelect
+              wrapperClassName="w-auto"
+              className="h-8 w-auto min-w-24 pr-7 text-[10px]"
               value={set.intensity_type}
-              onChange={(e) => updateSet(si, { intensity_type: e.target.value as IntensityType })}
+              onChange={(e) => {
+                const nextType = e.target.value as IntensityType
+                updateSet(si, {
+                  intensity_type: nextType,
+                  intensity: getDefaultIntensity(nextType),
+                })
+              }}
             >
               {Object.entries(INTENSITY_LABELS).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
+                <option key={k} value={k}>{k === 'fixed_weight' ? `${v} (${formatUnit(preferredUnit)})` : v}</option>
               ))}
-            </select>
+            </NativeSelect>
             <Button
               variant="ghost"
               size="icon"

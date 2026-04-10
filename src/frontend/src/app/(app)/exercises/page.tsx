@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { Dumbbell, PlusIcon } from 'lucide-react'
 import type { Tables } from '@/types/database'
 
@@ -30,6 +31,7 @@ export default function ExercisesPage() {
   const [tmExercise, setTmExercise] = useState<Exercise | null>(null)
   const [category, setCategory] = useState<string>('all')
 
+  const preferredUnit = usePreferredUnit()
   const { data: exercises = [], isLoading } = useExercises()
   const { data: trainingMaxes = [] } = useCurrentTrainingMaxes()
 
@@ -123,6 +125,7 @@ export default function ExercisesPage() {
                       <CurrentTmDisplay
                         exerciseName={MAIN_LIFT_EXACT_NAMES[key]}
                         weightLbs={exercise ? tmMap.get(exercise.id) : undefined}
+                        unit={preferredUnit}
                         effectiveDate={exercise ? tmDateMap.get(exercise.id) : undefined}
                       />
                       <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary">
@@ -160,6 +163,7 @@ export default function ExercisesPage() {
             <ExerciseList
               exercises={filteredExercises}
               trainingMaxes={tmMap}
+              unit={preferredUnit}
               onSetTm={setTmExercise}
             />
           </TabsContent>
@@ -174,6 +178,7 @@ export default function ExercisesPage() {
           exerciseId={tmExercise.id}
           exerciseName={tmExercise.name}
           currentTm={tmMap.get(tmExercise.id)}
+          unit={preferredUnit}
         />
       )}
     </>

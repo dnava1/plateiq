@@ -60,8 +60,8 @@ export function TemplatePicker({ selectedKey, onSelect, onOpenChange }: Template
       {/* Build Custom option */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="eyebrow">Custom</h3>
-          <Badge variant="secondary">Builder</Badge>
+          <h3 className="eyebrow">Build From Scratch</h3>
+          <Badge variant="secondary">Custom</Badge>
         </div>
         <button
           type="button"
@@ -73,9 +73,9 @@ export function TemplatePicker({ selectedKey, onSelect, onOpenChange }: Template
               <Hammer className="h-5 w-5 text-primary" />
             </div>
             <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <p className="text-base font-medium tracking-[-0.04em] text-foreground">Build Custom Program</p>
+              <p className="text-base font-medium tracking-[-0.04em] text-foreground">Build a Program</p>
               <p className="text-sm leading-6 text-muted-foreground">
-                Design your own days, exercises, sets, and progression
+                Set the days, exercises, and progression yourself
               </p>
             </div>
           </div>
@@ -115,7 +115,7 @@ function TemplateCard({ template, isSelected, onSelect }: TemplateCardProps) {
             </Badge>
             {template.supplement_options && template.supplement_options.length > 0 && (
               <Badge variant="secondary" className="text-xs">
-                {template.supplement_options.length} supplement{template.supplement_options.length > 1 ? 's' : ''}
+                {template.supplement_options.length} variation{template.supplement_options.length > 1 ? 's' : ''}
               </Badge>
             )}
           </div>

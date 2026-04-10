@@ -1,5 +1,52 @@
 import { describe, it, expect } from 'vitest'
-import { createProgramSchema } from './program'
+import {
+  createCustomProgramSchema,
+  createProgramSchema,
+  getCreateCustomProgramErrorMessage,
+  validateCustomProgramBasicsStep,
+  validateCustomProgramDaysStep,
+  validateCustomProgramExerciseDay,
+} from './program'
+
+function buildValidCustomProgramInput() {
+  return {
+    name: 'Custom Upper Lower',
+    definition: {
+      type: 'custom' as const,
+      days_per_week: 2,
+      cycle_length_weeks: 4,
+      uses_training_max: true,
+      tm_percentage: 0.9,
+      rounding: 5,
+      days: [
+        {
+          label: 'Upper',
+          exercise_blocks: [
+            {
+              role: 'primary' as const,
+              exercise_key: 'Bench Press',
+              sets: [
+                {
+                  sets: 3,
+                  reps: 5,
+                  intensity: 0.75,
+                  intensity_type: 'percentage_tm' as const,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      progression: {
+        style: 'linear_per_cycle' as const,
+        increment_lbs: {
+          upper: 5,
+          lower: 10,
+        },
+      },
+    },
+  }
+}
 
 describe('createProgramSchema', () => {
   it('accepts valid program creation input', () => {
@@ -86,5 +133,214 @@ describe('createProgramSchema', () => {
       tm_percentage: 0.9,
     })
     expect(result.success).toBe(false)
+  })
+})
+
+describe('custom program builder validation helpers', () => {
+  it('requires a readable program name before leaving basics', () => {
+    expect(validateCustomProgramBasicsStep(' ')).toBe('Give your program a name with at least 2 characters.')
+    expect(validateCustomProgramBasicsStep('Upper / Lower')).toBeNull()
+  })
+
+  it('requires every day label before leaving the days step', () => {
+    expect(
+      validateCustomProgramDaysStep([
+        { label: 'Upper' },
+        { label: ' ' },
+      ]),
+    ).toBe('Add a label for day 2 before continuing.')
+  })
+
+  it('requires at least one named exercise before leaving a day', () => {
+    expect(
+      validateCustomProgramExerciseDay({
+        label: 'Upper',
+        exercise_blocks: [],
+      }, 0),
+    ).toBe('Add at least one exercise to Upper before continuing.')
+
+    expect(
+      validateCustomProgramExerciseDay({
+        label: 'Upper',
+        exercise_blocks: [
+          {
+            role: 'primary',
+            exercise_key: ' ',
+            sets: [
+              {
+                sets: 3,
+                reps: 5,
+                intensity: 0.75,
+                intensity_type: 'percentage_tm',
+              },
+            ],
+          },
+        ],
+      }, 0),
+    ).toBe('Enter a name for exercise 1 on Upper before continuing.')
+  })
+
+  it('requires valid sets and reps before leaving a day', () => {
+    expect(
+      validateCustomProgramExerciseDay({
+        label: 'Upper',
+        exercise_blocks: [
+          {
+            role: 'primary',
+            exercise_key: 'Bench Press',
+            sets: [
+              {
+                sets: 21,
+                reps: 5,
+                intensity: 0.75,
+                intensity_type: 'percentage_tm',
+              },
+            ],
+          },
+        ],
+      }, 0),
+    ).toBe('Enter between 1 and 20 sets for set 1 of exercise 1 on Upper before continuing.')
+
+    expect(
+      validateCustomProgramExerciseDay({
+        label: 'Upper',
+        exercise_blocks: [
+          {
+            role: 'primary',
+            exercise_key: 'Bench Press',
+            sets: [
+              {
+                sets: 3,
+                reps: 'abc',
+                intensity: 0.75,
+                intensity_type: 'percentage_tm',
+              },
+            ],
+          },
+        ],
+      }, 0),
+    ).toBe('Use reps like 5, 5+, or 3-5 for set 1 of exercise 1 on Upper before continuing.')
+  })
+})
+
+describe('getCreateCustomProgramErrorMessage', () => {
+  it('maps a short custom program name to a friendly message', () => {
+    const result = createCustomProgramSchema.safeParse({
+      ...buildValidCustomProgramInput(),
+      name: 'A',
+    })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(getCreateCustomProgramErrorMessage(result.error)).toBe('Give your program a name with at least 2 characters.')
+    }
+  })
+
+  it('maps blank day labels to a friendly review message', () => {
+    const result = createCustomProgramSchema.safeParse({
+      ...buildValidCustomProgramInput(),
+      definition: {
+        ...buildValidCustomProgramInput().definition,
+        days: [
+          {
+            ...buildValidCustomProgramInput().definition.days[0],
+            label: ' ',
+          },
+        ],
+      },
+    })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(getCreateCustomProgramErrorMessage(result.error)).toBe('Add a label for day 1 before creating the program.')
+    }
+  })
+
+  it('maps blank exercise names to a friendly review message', () => {
+    const input = buildValidCustomProgramInput()
+    const result = createCustomProgramSchema.safeParse({
+      ...input,
+      definition: {
+        ...input.definition,
+        days: [
+          {
+            ...input.definition.days[0],
+            exercise_blocks: [
+              {
+                ...input.definition.days[0].exercise_blocks[0],
+                exercise_key: ' ',
+              },
+            ],
+          },
+        ],
+      },
+    })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(getCreateCustomProgramErrorMessage(result.error)).toBe('Enter a name for exercise 1 on day 1 before creating the program.')
+    }
+  })
+
+  it('maps invalid set counts to a friendly review message', () => {
+    const input = buildValidCustomProgramInput()
+    const result = createCustomProgramSchema.safeParse({
+      ...input,
+      definition: {
+        ...input.definition,
+        days: [
+          {
+            ...input.definition.days[0],
+            exercise_blocks: [
+              {
+                ...input.definition.days[0].exercise_blocks[0],
+                sets: [
+                  {
+                    ...input.definition.days[0].exercise_blocks[0].sets[0],
+                    sets: 21,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(getCreateCustomProgramErrorMessage(result.error)).toBe('Enter between 1 and 20 sets for set 1 of exercise 1 on day 1 before creating the program.')
+    }
+  })
+
+  it('maps invalid reps to a friendly review message', () => {
+    const input = buildValidCustomProgramInput()
+    const result = createCustomProgramSchema.safeParse({
+      ...input,
+      definition: {
+        ...input.definition,
+        days: [
+          {
+            ...input.definition.days[0],
+            exercise_blocks: [
+              {
+                ...input.definition.days[0].exercise_blocks[0],
+                sets: [
+                  {
+                    ...input.definition.days[0].exercise_blocks[0].sets[0],
+                    reps: 'abc',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(getCreateCustomProgramErrorMessage(result.error)).toBe('Use reps like 5, 5+, or 3-5 for set 1 of exercise 1 on day 1 before creating the program.')
+    }
   })
 })

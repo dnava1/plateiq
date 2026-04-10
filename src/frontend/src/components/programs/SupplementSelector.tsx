@@ -13,13 +13,20 @@ export function SupplementSelector({ options, selectedKey, onSelect }: Supplemen
   if (options.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        This program has no supplement options — the base template is fixed.
+        This program does not include alternate variations, so the base template stays as-is.
       </p>
     )
   }
 
   return (
     <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
+        <h3 className="text-sm font-medium text-foreground">Choose a variation</h3>
+        <p className="text-sm leading-6 text-muted-foreground">
+          Keep the base template or add a variation that changes the main workload.
+        </p>
+      </div>
+
       {/* None option */}
       <button
         type="button"
@@ -30,10 +37,10 @@ export function SupplementSelector({ options, selectedKey, onSelect }: Supplemen
         )}
       >
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-foreground">Base program only</span>
+          <span className="text-sm font-medium text-foreground">Base template only</span>
           {selectedKey === null && <div className="size-3 rounded-full bg-primary" />}
         </div>
-        <p className="mt-1 text-sm leading-6 text-muted-foreground">No supplement work added</p>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">Keep the standard version with no extra variation blocks.</p>
       </button>
 
       {options.map((option) => (

@@ -1,10 +1,14 @@
+import { formatWeight } from '@/lib/utils'
+import type { PreferredUnit } from '@/types/domain'
+
 interface CurrentTmDisplayProps {
   exerciseName: string
   weightLbs: number | undefined
+  unit: PreferredUnit
   effectiveDate?: string
 }
 
-export function CurrentTmDisplay({ exerciseName, weightLbs, effectiveDate }: CurrentTmDisplayProps) {
+export function CurrentTmDisplay({ exerciseName, weightLbs, unit, effectiveDate }: CurrentTmDisplayProps) {
   if (!weightLbs) {
     return (
       <div className="flex flex-col gap-1.5">
@@ -19,7 +23,7 @@ export function CurrentTmDisplay({ exerciseName, weightLbs, effectiveDate }: Cur
       <span className="text-sm font-medium text-foreground">{exerciseName}</span>
       <div className="flex flex-col gap-1">
         <span className="font-mono text-2xl font-semibold tracking-[-0.06em] text-foreground">
-          {weightLbs} lbs
+          {formatWeight(weightLbs, unit)}
         </span>
         {effectiveDate && (
           <p className="text-xs text-muted-foreground">
