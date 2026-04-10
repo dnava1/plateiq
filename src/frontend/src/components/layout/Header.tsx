@@ -9,6 +9,7 @@ import { LogOut, Dumbbell } from 'lucide-react'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard' },
+  { href: '/programs', label: 'Programs' },
   { href: '/exercises', label: 'Exercises' },
   { href: '/settings', label: 'Settings' },
 ]
