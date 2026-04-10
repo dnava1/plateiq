@@ -3,11 +3,6 @@
 Thumbs.db
 desktop.ini
 
-# ─── Playwright MCP artifacts ─────────────────────────────
-.playwright-mcp/
-/*.png
-/skills-lock.json
-
 # ─── Editors ──────────────────────────────────────────────
 .vscode/settings.json
 .vscode/launch.json
@@ -60,11 +55,6 @@ logs/
 *.log
 npm-debug.log*
 pnpm-debug.log*
-
-# ─── AI Agent Instructions & Skills (local only) ──────────
-AGENTS.md
-CLAUDE.md
-.agents/skills/
 
 # ─── Misc ─────────────────────────────────────────────────
 __pycache__/
