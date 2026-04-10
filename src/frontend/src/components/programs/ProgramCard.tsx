@@ -2,7 +2,10 @@
 
 import { getTemplate } from '@/lib/constants/templates'
 import type { TrainingProgram } from '@/hooks/usePrograms'
+import { useSetActiveProgram } from '@/hooks/usePrograms'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
 import type { Json } from '@/types/database'
 
 interface ProgramConfig {
@@ -23,9 +26,17 @@ interface ProgramCardProps {
 export function ProgramCard({ program }: ProgramCardProps) {
   const template = getTemplate(program.template_key)
   const config = parseConfig(program.config)
+  const setActive = useSetActiveProgram()
   const supplementName = config.supplement_key && template?.supplement_options
     ? template.supplement_options.find((s) => s.key === config.supplement_key)?.name
     : null
+
+  const handleSetActive = () => {
+    setActive.mutate(program.id, {
+      onSuccess: () => toast.success(`"${program.name}" is now your active program`),
+      onError: (err) => toast.error(err.message),
+    })
+  }
 
   return (
     <div className="rounded-lg border bg-card p-4">
@@ -44,11 +55,23 @@ export function ProgramCard({ program }: ProgramCardProps) {
             </p>
           )}
         </div>
-        <div className="text-right text-xs text-muted-foreground">
-          <div>Started {new Date(program.start_date).toLocaleDateString()}</div>
-          {config.tm_percentage && (
-            <div>TM: {Math.round(config.tm_percentage * 100)}%</div>
+        <div className="flex items-start gap-3">
+          {!program.is_active && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSetActive}
+              disabled={setActive.isPending}
+            >
+              {setActive.isPending ? 'Setting…' : 'Set Active'}
+            </Button>
           )}
+          <div className="text-right text-xs text-muted-foreground">
+            <div>Started {new Date(program.start_date).toLocaleDateString()}</div>
+            {config.tm_percentage && (
+              <div>TM: {Math.round(config.tm_percentage * 100)}%</div>
+            )}
+          </div>
         </div>
       </div>
     </div>

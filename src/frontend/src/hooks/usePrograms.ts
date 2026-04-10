@@ -93,3 +93,33 @@ export function useCreateProgram() {
     },
   })
 }
+
+export function useSetActiveProgram() {
+  const supabase = useSupabase()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (programId: number) => {
+      const { data: { user } } = await supabase.auth.getUser()
+      // Deactivate all programs for this user
+      await supabase
+        .from('training_programs')
+        .update({ is_active: false })
+        .eq('is_active', true)
+        .eq('user_id', user!.id)
+
+      // Activate the selected program
+      const { data, error } = await supabase
+        .from('training_programs')
+        .update({ is_active: true })
+        .eq('id', programId)
+        .eq('user_id', user!.id)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['programs'] })
+    },
+  })
+}
