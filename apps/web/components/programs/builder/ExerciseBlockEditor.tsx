@@ -7,7 +7,14 @@ import { ExerciseLibraryField } from './ExerciseLibraryField'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { NativeSelect } from '@/components/ui/native-select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Trash2 } from 'lucide-react'
 import type { SetPrescription, ExerciseBlock } from '@/types/template'
 import type { IntensityType } from '@/types/domain'
@@ -56,6 +63,11 @@ function getSafeNumber(value: string, fallback: number) {
 export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, onRemove }: ExerciseBlockEditorProps) {
   const fieldId = useId()
   const preferredUnit = usePreferredUnit()
+  const roleItems = Object.entries(ROLE_LABELS).map(([value, label]) => ({ value, label }))
+  const loadBasisItems = Object.entries(LOAD_BASIS_LABELS).map(([value, label]) => ({
+    value,
+    label: value === 'fixed_weight' ? `${label} (${formatUnit(preferredUnit)})` : label,
+  }))
 
   const updateSet = (setIdx: number, patch: Partial<SetPrescription>) => {
     const sets = [...block.sets]
@@ -117,16 +129,22 @@ export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, o
 
         <div className="flex flex-col gap-2">
           <Label htmlFor={`${fieldId}-role`}>Block Role</Label>
-          <NativeSelect
-            id={`${fieldId}-role`}
-            className="h-9"
+          <Select
             value={block.role}
-            onChange={(event) => onChange({ ...block, role: event.target.value as ExerciseBlock['role'] })}
+            onValueChange={(value) => onChange({ ...block, role: value as ExerciseBlock['role'] })}
+            items={roleItems}
           >
-            {Object.entries(ROLE_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </NativeSelect>
+            <SelectTrigger id={`${fieldId}-role`} className="w-full h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {roleItems.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -233,25 +251,29 @@ export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, o
 
               <div className="flex flex-col gap-2">
                 <Label htmlFor={`${fieldId}-basis-${si}`} className="text-xs md:sr-only">Load Basis</Label>
-                <NativeSelect
-                  id={`${fieldId}-basis-${si}`}
-                  className="h-9"
+                <Select
                   value={set.intensity_type}
-                  onChange={(event) => {
-                    const nextType = event.target.value as IntensityType
+                  onValueChange={(value) => {
+                    const nextType = value as IntensityType
 
                     updateSet(si, {
                       intensity_type: nextType,
                       intensity: getDefaultIntensity(nextType),
                     })
                   }}
+                  items={loadBasisItems}
                 >
-                  {Object.entries(LOAD_BASIS_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {value === 'fixed_weight' ? `${label} (${formatUnit(preferredUnit)})` : label}
-                    </option>
-                  ))}
-                </NativeSelect>
+                  <SelectTrigger id={`${fieldId}-basis-${si}`} className="w-full h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {loadBasisItems.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
 
               <Button

@@ -13,7 +13,14 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { NativeSelect } from '@/components/ui/native-select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -35,6 +42,14 @@ const DEFAULT_VALUES: CreateProgramInput = {
   rounding: 5,
   tm_percentage: 0.9,
 }
+
+const TM_PERCENTAGE_OPTIONS = [
+  { value: '0.85', label: '85%' },
+  { value: '0.875', label: '87.5%' },
+  { value: '0.9', label: '90%' },
+  { value: '0.925', label: '92.5%' },
+  { value: '0.95', label: '95%' },
+]
 
 export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps) {
   const preferredUnit = usePreferredUnit()
@@ -96,6 +111,10 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
   }
 
   const roundingOptions = getRoundingOptions(preferredUnit)
+  const roundingSelectItems = roundingOptions.map((option) => ({
+    value: String(option.value),
+    label: option.label,
+  }))
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -211,20 +230,27 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
                       name="tm_percentage"
                       control={control}
                       render={({ field }) => (
-                        <NativeSelect
-                          id="tm_percentage"
-                          className="h-9"
-                          aria-invalid={!!errors.tm_percentage}
-                          aria-describedby={errors.tm_percentage ? 'tm-percentage-error' : undefined}
-                          value={field.value}
-                          onChange={(e) => field.onChange(Number(e.target.value))}
+                        <Select
+                          value={String(field.value)}
+                          onValueChange={(value) => field.onChange(Number(value))}
+                          items={TM_PERCENTAGE_OPTIONS}
                         >
-                          <option value={0.85}>85%</option>
-                          <option value={0.875}>87.5%</option>
-                          <option value={0.9}>90%</option>
-                          <option value={0.925}>92.5%</option>
-                          <option value={0.95}>95%</option>
-                        </NativeSelect>
+                          <SelectTrigger
+                            id="tm_percentage"
+                            className="w-full h-9"
+                            aria-invalid={!!errors.tm_percentage}
+                            aria-describedby={errors.tm_percentage ? 'tm-percentage-error' : undefined}
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              {TM_PERCENTAGE_OPTIONS.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                              ))}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
                       )}
                     />
                     {errors.tm_percentage && (
@@ -239,18 +265,27 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
                     name="rounding"
                     control={control}
                     render={({ field }) => (
-                      <NativeSelect
-                        id="rounding"
-                        className="h-9"
-                        aria-invalid={!!errors.rounding}
-                        aria-describedby={errors.rounding ? 'rounding-error' : undefined}
-                        value={field.value}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
+                      <Select
+                        value={String(field.value)}
+                        onValueChange={(value) => field.onChange(Number(value))}
+                        items={roundingSelectItems}
                       >
-                        {roundingOptions.map((option) => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                      </NativeSelect>
+                        <SelectTrigger
+                          id="rounding"
+                          className="w-full h-9"
+                          aria-invalid={!!errors.rounding}
+                          aria-describedby={errors.rounding ? 'rounding-error' : undefined}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            {roundingSelectItems.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
                     )}
                   />
                   {errors.rounding && (

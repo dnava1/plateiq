@@ -1,14 +1,21 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useForm, type FieldErrors } from 'react-hook-form'
+import { useForm, Controller, type FieldErrors } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createExerciseSchema, type CreateExerciseInput } from '@/lib/validations/exercise'
 import { useCreateExercise } from '@/hooks/useExercises'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { NativeSelect } from '@/components/ui/native-select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -30,6 +37,11 @@ interface CreateExerciseFormProps {
   submitLabel?: string
   onCreated?: (exercise: Exercise) => void
 }
+
+const CATEGORY_OPTIONS = [
+  { value: 'main', label: 'Main Lift' },
+  { value: 'accessory', label: 'Accessory' },
+] as const
 
 const MOVEMENT_PATTERNS = [
   { value: 'push', label: 'Push' },
@@ -61,6 +73,7 @@ export function CreateExerciseForm({
   const createExercise = useCreateExercise()
 
   const {
+    control,
     register,
     handleSubmit,
     reset,
@@ -132,16 +145,33 @@ export function CreateExerciseForm({
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="category">Category</Label>
-            <NativeSelect
-              id="category"
-              className="h-9"
-              aria-invalid={!!errors.category}
-              aria-describedby={errors.category ? 'exercise-category-error' : undefined}
-              {...register('category')}
-            >
-              <option value="main">Main Lift</option>
-              <option value="accessory">Accessory</option>
-            </NativeSelect>
+            <Controller
+              control={control}
+              name="category"
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  items={CATEGORY_OPTIONS}
+                >
+                  <SelectTrigger
+                    id="category"
+                    className="w-full h-9"
+                    aria-invalid={!!errors.category}
+                    aria-describedby={errors.category ? 'exercise-category-error' : undefined}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {CATEGORY_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              )}
+            />
             {errors.category && (
               <p id="exercise-category-error" className="text-sm text-destructive">{errors.category.message}</p>
             )}
@@ -149,19 +179,33 @@ export function CreateExerciseForm({
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="movement_pattern">Movement Pattern</Label>
-            <NativeSelect
-              id="movement_pattern"
-              className="h-9"
-              aria-invalid={!!errors.movement_pattern}
-              aria-describedby={errors.movement_pattern ? 'exercise-pattern-error' : undefined}
-              {...register('movement_pattern')}
-            >
-              {MOVEMENT_PATTERNS.map((mp) => (
-                <option key={mp.value} value={mp.value}>
-                  {mp.label}
-                </option>
-              ))}
-            </NativeSelect>
+            <Controller
+              control={control}
+              name="movement_pattern"
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  items={MOVEMENT_PATTERNS}
+                >
+                  <SelectTrigger
+                    id="movement_pattern"
+                    className="w-full h-9"
+                    aria-invalid={!!errors.movement_pattern}
+                    aria-describedby={errors.movement_pattern ? 'exercise-pattern-error' : undefined}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {MOVEMENT_PATTERNS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              )}
+            />
             {errors.movement_pattern && (
               <p id="exercise-pattern-error" className="text-sm text-destructive">{errors.movement_pattern.message}</p>
             )}
