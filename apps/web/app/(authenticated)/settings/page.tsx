@@ -50,7 +50,7 @@ export default function SettingsPage() {
 
     if (user) {
       updateUnit.mutate(unit, {
-        onError: (error) => {
+        onError: (error: Error) => {
           setPreferredUnit(previousUnit)
           toast.error(error.message)
         },
@@ -78,7 +78,7 @@ export default function SettingsPage() {
     .join('') || 'PI'
 
   return (
-    <div className="page-shell max-w-3xl">
+    <div className="page-shell max-w-5xl">
       <section className="page-header">
         <div className="flex flex-col gap-3">
           <span className="eyebrow">Preferences</span>
@@ -91,89 +91,91 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      <Card className="surface-panel">
-        <CardContent className="flex flex-col gap-4 pt-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <Avatar size="lg">
-              {user?.user_metadata?.avatar_url && (
-                <AvatarImage src={user.user_metadata.avatar_url as string} alt={displayName} />
-              )}
-              <AvatarFallback>{initials}</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col gap-1">
-              <span className="eyebrow">Account</span>
-              <h2 className="text-2xl font-semibold tracking-[-0.06em] text-foreground">{displayName}</h2>
-              <p className="text-sm text-muted-foreground">{user?.email ?? '—'}</p>
+      <div className="flex w-full max-w-3xl flex-col gap-6">
+        <Card className="surface-panel">
+          <CardContent className="flex flex-col gap-4 pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <Avatar size="lg">
+                {user?.user_metadata?.avatar_url && (
+                  <AvatarImage src={user.user_metadata.avatar_url as string} alt={displayName} />
+                )}
+                <AvatarFallback>{initials}</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col gap-1">
+                <span className="eyebrow">Account</span>
+                <h2 className="text-2xl font-semibold tracking-[-0.06em] text-foreground">{displayName}</h2>
+                <p className="text-sm text-muted-foreground">{user?.email ?? '—'}</p>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      <Card className="surface-panel">
-        <CardHeader>
-          <CardTitle>Appearance</CardTitle>
-          <CardDescription>
-            Choose your preferred color scheme.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ThemeToggle />
-        </CardContent>
-      </Card>
+        <Card className="surface-panel">
+          <CardHeader>
+            <CardTitle>Appearance</CardTitle>
+            <CardDescription>
+              Choose your preferred color scheme.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ThemeToggle />
+          </CardContent>
+        </Card>
 
-      <Card className="surface-panel">
-        <CardHeader>
-          <CardTitle>Weight Unit</CardTitle>
-          <CardDescription>
-            Choose the unit system PlateIQ should prefer across training maxes and progression.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <ToggleGroup
-            value={[preferredUnit]}
-            role="radiogroup"
-            aria-label="Preferred weight unit"
-            onValueChange={(value) => {
-              const nextValue = value[0]
-              if (nextValue === 'lbs' || nextValue === 'kg') {
-                handleUnitToggle(nextValue)
-              }
-            }}
-            variant="outline"
-            spacing={2}
-            className="w-full"
-          >
-            <ToggleGroupItem value="lbs" role="radio" aria-checked={preferredUnit === 'lbs'} disabled={updateUnit.isPending} className="flex-1 justify-center">
-              Pounds (lbs)
-            </ToggleGroupItem>
-            <ToggleGroupItem value="kg" role="radio" aria-checked={preferredUnit === 'kg'} disabled={updateUnit.isPending} className="flex-1 justify-center">
-              Kilograms (kg)
-            </ToggleGroupItem>
-          </ToggleGroup>
+        <Card className="surface-panel">
+          <CardHeader>
+            <CardTitle>Weight Unit</CardTitle>
+            <CardDescription>
+              Choose the unit system PlateIQ should prefer across training maxes and progression.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <ToggleGroup
+              value={[preferredUnit]}
+              role="radiogroup"
+              aria-label="Preferred weight unit"
+              onValueChange={(value: string[]) => {
+                const nextValue = value[0]
+                if (nextValue === 'lbs' || nextValue === 'kg') {
+                  handleUnitToggle(nextValue)
+                }
+              }}
+              variant="outline"
+              spacing={2}
+              className="w-full"
+            >
+              <ToggleGroupItem value="lbs" role="radio" aria-checked={preferredUnit === 'lbs'} disabled={updateUnit.isPending} className="flex-1 justify-center">
+                Pounds (lbs)
+              </ToggleGroupItem>
+              <ToggleGroupItem value="kg" role="radio" aria-checked={preferredUnit === 'kg'} disabled={updateUnit.isPending} className="flex-1 justify-center">
+                Kilograms (kg)
+              </ToggleGroupItem>
+            </ToggleGroup>
 
-          {updateUnit.isPending && (
-            <p className="text-sm text-muted-foreground">
-              <Ruler className="mr-1 inline-block size-3.5" />
-              Saving preference…
-            </p>
-          )}
-        </CardContent>
-      </Card>
+            {updateUnit.isPending && (
+              <p className="text-sm text-muted-foreground">
+                <Ruler className="mr-1 inline-block size-3.5" />
+                Saving preference…
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
-      <Card className="border-destructive/20 bg-destructive/5 shadow-[0_24px_80px_-42px_rgba(0,0,0,0.85)]">
-        <CardHeader>
-          <CardTitle>Danger Zone</CardTitle>
-          <CardDescription>
-            End the current session on this device.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button variant="destructive" onClick={handleLogout} disabled={isSigningOut}>
-            <LogOut data-icon="inline-start" />
-            {isSigningOut ? 'Signing Out…' : 'Sign Out'}
-          </Button>
-        </CardContent>
-      </Card>
+        <Card className="border-destructive/20 bg-destructive/5 shadow-[0_24px_80px_-42px_rgba(0,0,0,0.85)]">
+          <CardHeader>
+            <CardTitle>Danger Zone</CardTitle>
+            <CardDescription>
+              End the current session on this device.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="destructive" onClick={handleLogout} disabled={isSigningOut}>
+              <LogOut data-icon="inline-start" />
+              {isSigningOut ? 'Signing Out…' : 'Sign Out'}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

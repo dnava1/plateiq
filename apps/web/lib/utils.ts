@@ -4,6 +4,19 @@ import type { PreferredUnit } from '@/types/domain'
 
 const KG_PER_LB = 0.453592
 const ROUNDING_OPTIONS_LBS = [2.5, 5, 10] as const
+const EXERCISE_KEY_ACRONYMS = new Set(['ohp', 'rdl'])
+const EXERCISE_KEY_LABELS: Record<string, string> = {
+  bench: 'Bench Press',
+  barbell_row: 'Barbell Row',
+  chin_up: 'Chin-Up',
+  close_grip_bench: 'Close-Grip Bench Press',
+  incline_bench: 'Incline Bench Press',
+  lat_pulldown: 'Lat Pulldown',
+  ohp: 'Overhead Press',
+  power_clean: 'Power Clean',
+  rdl: 'Romanian Deadlift',
+  sumo_deadlift: 'Sumo Deadlift',
+}
 
 function roundToSingleDecimal(value: number) {
   return Math.round(value * 10) / 10
@@ -39,11 +52,49 @@ export function formatRounding(roundingLbs: number, unit: PreferredUnit): string
   return `${lbsToDisplay(roundingLbs, unit)} ${formatUnit(unit)}`
 }
 
+export function formatDaysPerWeek(days: number): string {
+  return `${days} day${days === 1 ? '' : 's'} per week`
+}
+
+export function formatWeekCycle(weeks: number): string {
+  return `${weeks}-week cycle`
+}
+
+export function normalizeCadenceCopy(text: string): string {
+  return text
+    .replace(/\b(\d+)d\/wk\b/gi, (_, value: string) => formatDaysPerWeek(Number(value)))
+    .replace(/\b(\d+)\s+days?\/week\b/gi, (_, value: string) => formatDaysPerWeek(Number(value)))
+}
+
 export function getRoundingOptions(unit: PreferredUnit) {
   return ROUNDING_OPTIONS_LBS.map((value) => ({
     value,
     label: formatRounding(value, unit),
   }))
+}
+
+export function formatExerciseKey(exerciseKey: string): string {
+  const normalizedKey = exerciseKey.trim().toLowerCase()
+
+  if (normalizedKey.length === 0) {
+    return ''
+  }
+
+  const knownLabel = EXERCISE_KEY_LABELS[normalizedKey]
+  if (knownLabel) {
+    return knownLabel
+  }
+
+  return normalizedKey
+    .split('_')
+    .map((part) => {
+      if (EXERCISE_KEY_ACRONYMS.has(part)) {
+        return part.toUpperCase()
+      }
+
+      return `${part.charAt(0).toUpperCase()}${part.slice(1)}`
+    })
+    .join(' ')
 }
 
 export function formatDate(date: string | Date): string {

@@ -141,6 +141,7 @@
   }
   html {
     @apply font-sans antialiased;
+    scrollbar-gutter: stable;
     transition: background-color 0.15s ease, color 0.15s ease;
   }
   h1,

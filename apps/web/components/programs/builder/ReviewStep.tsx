@@ -1,7 +1,7 @@
 'use client'
 
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
-import { formatWeight } from '@/lib/utils'
+import { formatDaysPerWeek, formatWeight, formatWeekCycle } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import { useBuilderDraftStore } from '@/store/builderDraftStore'
 import { DEFAULT_LINEAR_INCREMENT_LBS, usesLinearProgression } from '@/store/builderDraftStore'
@@ -11,13 +11,12 @@ import {
   getCreateCustomProgramErrorMessage,
 } from '@/lib/validations/program'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import type { IntensityType } from '@/types/domain'
 
 const BLOCK_ROLE_LABELS: Record<'primary' | 'supplement' | 'accessory', string> = {
   primary: 'primary',
-  supplement: 'variation',
+  supplement: 'supplement',
   accessory: 'accessory',
 }
 
@@ -60,62 +59,58 @@ export function ReviewStep() {
   const formatIntensity = (val: number, type: IntensityType) => {
     if (type === 'percentage_tm') return `${Math.round(val * 100)}% TM`
     if (type === 'percentage_1rm') return `${Math.round(val * 100)}% 1RM`
-    if (type === 'percentage_work_set') return `${Math.round(val * 100)}% Work`
+    if (type === 'percentage_work_set') return `${Math.round(val * 100)}% work set`
     if (type === 'rpe') return `RPE ${val}`
     if (type === 'bodyweight') return 'Bodyweight'
     return formatWeight(val, preferredUnit)
   }
 
   return (
-    <div className="space-y-5">
-      {/* Summary header */}
-      <div className="rounded-xl border bg-card p-4 space-y-2">
-        <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-lg">{draft.name}</h3>
-          {draft.level && (
-            <Badge variant="outline" className="text-xs capitalize">{draft.level}</Badge>
-          )}
-        </div>
-        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-          <span>{draft.days_per_week} days/week</span>
-          <span>{draft.cycle_length_weeks}-week cycle</span>
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-2 rounded-[24px] border border-border/70 bg-card/82 p-4 shadow-sm">
+        <h3 className="text-lg font-semibold tracking-[-0.04em] text-foreground">{draft.name}</h3>
+        <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+          <span>{formatDaysPerWeek(draft.days_per_week)}</span>
+          <span>{formatWeekCycle(draft.cycle_length_weeks)}</span>
           <span>Progression: {STYLE_LABELS[draft.progression.style]}</span>
-          {draft.uses_training_max && <span>TM: {Math.round(draft.tm_percentage * 100)}%</span>}
+          {draft.uses_training_max && <span>Training max: {Math.round(draft.tm_percentage * 100)}%</span>}
         </div>
       </div>
 
-      {/* Days detail */}
-      <div className="space-y-3">
+      <div className="flex flex-col gap-3">
         {draft.days.map((day, di) => (
-          <div key={di} className="rounded-xl border bg-card p-4 space-y-2">
+          <div key={di} className="flex flex-col gap-3 rounded-[24px] border border-border/70 bg-card/82 p-4 shadow-sm">
             <div className="flex items-center gap-2">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-xs font-semibold text-primary">
                 {di + 1}
               </span>
-              <h4 className="font-medium text-sm">{day.label}</h4>
+              <h4 className="text-sm font-medium text-foreground">{day.label}</h4>
               <span className="text-xs text-muted-foreground">{day.exercise_blocks.length} exercise{day.exercise_blocks.length !== 1 ? 's' : ''}</span>
             </div>
-            {day.exercise_blocks.map((block, bi) => (
-              <div key={bi} className="ml-8 text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">{block.exercise_key || 'Unnamed exercise'}</span>
-                <span className="text-[10px] uppercase ml-1.5 text-muted-foreground">({BLOCK_ROLE_LABELS[block.role]})</span>
-                <div className="mt-0.5">
-                  {block.sets.map((s, si) => (
-                    <span key={si} className="mr-2">
-                      {s.sets}×{s.reps} @ {formatIntensity(s.intensity, s.intensity_type)}
-                    </span>
-                  ))}
+            <div className="flex flex-col gap-3 sm:pl-9">
+              {day.exercise_blocks.map((block, bi) => (
+                <div key={bi} className="flex flex-col gap-2 rounded-[18px] bg-background/60 p-3 text-sm text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium text-foreground">{block.exercise_key || 'Unnamed exercise'}</span>
+                    <span className="text-[0.72rem] uppercase tracking-[0.18em] text-muted-foreground">{BLOCK_ROLE_LABELS[block.role]}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    {block.sets.map((set, si) => (
+                      <span key={si} className="rounded-full bg-muted px-2.5 py-1 text-foreground">
+                        {set.sets}×{set.reps} at {formatIntensity(set.intensity, set.intensity_type)}
+                      </span>
+                    ))}
+                  </div>
+                  {block.notes && <p className="text-xs italic text-muted-foreground">{block.notes}</p>}
                 </div>
-                {block.notes && <p className="text-[10px] italic mt-0.5">{block.notes}</p>}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Progression */}
-      <div className="rounded-xl border bg-card p-4 text-xs text-muted-foreground">
-        <p className="mb-1 text-sm font-medium text-foreground">Progression</p>
+      <div className="rounded-[24px] border border-border/70 bg-card/82 p-4 text-sm text-muted-foreground shadow-sm">
+        <p className="mb-2 text-sm font-medium text-foreground">Progression</p>
         <p>Style: {STYLE_LABELS[draft.progression.style]}</p>
         {progressionIncrements && (
           <p>Upper: +{formatWeight(progressionIncrements.upper, preferredUnit)} · Lower: +{formatWeight(progressionIncrements.lower, preferredUnit)}</p>

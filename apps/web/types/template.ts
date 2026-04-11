@@ -11,7 +11,9 @@ export interface SetPrescription {
 }
 
 export interface ExerciseBlock {
+  block_id?: string
   role: 'primary' | 'supplement' | 'accessory'
+  exercise_id?: number
   exercise_key?: string // 'squat' | 'bench' | null (user picks)
   sets: SetPrescription[]
   notes?: string

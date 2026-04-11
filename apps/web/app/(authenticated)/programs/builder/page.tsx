@@ -23,7 +23,7 @@ export default function BuilderPage() {
   }, [])
 
   return (
-    <div className="page-shell mx-auto w-full max-w-3xl">
+    <div className="page-shell max-w-5xl">
       <section className="page-header">
         <div className="flex flex-col gap-3">
           <span className="eyebrow">Program Builder</span>
@@ -41,7 +41,7 @@ export default function BuilderPage() {
         </Link>
       </section>
 
-      <Card className="surface-panel">
+      <Card className="surface-panel w-full max-w-3xl">
         <CardHeader className="gap-4">
           <div className="flex items-center gap-3">
             <div className="flex size-11 items-center justify-center rounded-2xl bg-primary/12 text-primary">

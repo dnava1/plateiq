@@ -57,7 +57,9 @@ const setPrescriptionSchema = z.object({
 })
 
 const exerciseBlockSchema = z.object({
+  block_id: z.string().min(1).optional(),
   role: z.enum(['primary', 'supplement', 'accessory']),
+  exercise_id: z.number().int().positive().optional(),
   exercise_key: z.string().trim().min(1, EXERCISE_NAME_ERROR_MESSAGE).optional(),
   sets: z.array(setPrescriptionSchema).min(1),
   notes: z.string().trim().max(MAX_NOTES_LENGTH).optional(),

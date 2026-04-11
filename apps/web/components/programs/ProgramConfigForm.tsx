@@ -1,13 +1,12 @@
 'use client'
 
-import { useState } from 'react'
 import { useForm, Controller, type FieldErrors, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createProgramSchema, type CreateProgramInput } from '@/lib/validations/program'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { useCreateProgram } from '@/hooks/usePrograms'
 import { getTemplate } from '@/lib/constants/templates'
-import { formatUnit, getRoundingOptions } from '@/lib/utils'
+import { formatExerciseKey, formatUnit, getRoundingOptions } from '@/lib/utils'
 import { TemplatePicker } from './TemplatePicker'
 import { SupplementSelector } from './SupplementSelector'
 import { Button } from '@/components/ui/button'
@@ -24,16 +23,20 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 
-type Step = 'pick' | 'supplement' | 'configure'
-
 interface ProgramConfigFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
+const DEFAULT_VALUES: CreateProgramInput = {
+  template_key: '',
+  name: '',
+  supplement_key: undefined,
+  rounding: 5,
+  tm_percentage: 0.9,
+}
+
 export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps) {
-  const [step, setStep] = useState<Step>('pick')
-  const [stepError, setStepError] = useState<string | null>(null)
   const preferredUnit = usePreferredUnit()
   const createProgram = useCreateProgram()
 
@@ -47,52 +50,21 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
     formState: { errors },
   } = useForm<CreateProgramInput>({
     resolver: zodResolver(createProgramSchema),
-    defaultValues: {
-      template_key: '',
-      name: '',
-      supplement_key: undefined,
-      rounding: 5,
-      tm_percentage: 0.9,
-    },
+    defaultValues: DEFAULT_VALUES,
   })
 
   const templateKey = useWatch({ control, name: 'template_key' })
   const template = templateKey ? getTemplate(templateKey) : null
   const hasSupplements = (template?.supplement_options?.length ?? 0) > 0
+  const requiredLifts = template?.required_exercises.map(formatExerciseKey).join(', ') ?? ''
 
   const handleTemplateSelect = (key: string) => {
     const tpl = getTemplate(key)
-    setValue('template_key', key)
-    setValue('name', tpl?.name ?? '')
-    setValue('supplement_key', undefined)
+    setValue('template_key', key, { shouldDirty: true, shouldValidate: true })
+    setValue('name', tpl?.name ?? '', { shouldDirty: true })
+    setValue('supplement_key', undefined, { shouldDirty: true })
     if (tpl?.default_tm_percentage) {
-      setValue('tm_percentage', tpl.default_tm_percentage)
-    }
-  }
-
-  const handleNext = () => {
-    if (!templateKey) {
-      setStepError('Choose a template to continue.')
-      return
-    }
-    setStepError(null)
-    if (step === 'pick') {
-      if (hasSupplements) {
-        setStep('supplement')
-      } else {
-        setStep('configure')
-      }
-    } else if (step === 'supplement') {
-      setStep('configure')
-    }
-  }
-
-  const handleBack = () => {
-    setStepError(null)
-    if (step === 'configure') {
-      setStep(hasSupplements ? 'supplement' : 'pick')
-    } else if (step === 'supplement') {
-      setStep('pick')
+      setValue('tm_percentage', tpl.default_tm_percentage, { shouldDirty: true })
     }
   }
 
@@ -100,9 +72,7 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
     createProgram.mutate(data, {
       onSuccess: () => {
         toast.success(`Program "${data.name}" created!`)
-        reset()
-        setStep('pick')
-        setStepError(null)
+        reset(DEFAULT_VALUES)
         onOpenChange(false)
       },
       onError: (error) => {
@@ -120,177 +90,188 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
-      reset()
-      setStep('pick')
-      setStepError(null)
+      reset(DEFAULT_VALUES)
     }
     onOpenChange(open)
   }
 
-  const stepLabel = step === 'pick' ? 'Choose Template' : step === 'supplement' ? 'Choose Variation' : 'Set Details'
-  const totalSteps = hasSupplements ? 3 : 2
-  const currentStep = step === 'pick' ? 1 : step === 'supplement' ? 2 : totalSteps
   const roundingOptions = getRoundingOptions(preferredUnit)
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
-        <DialogHeader className="gap-4">
-          <div className="flex flex-col gap-1.5 pr-8">
+      <DialogContent className="max-w-3xl">
+        <DialogHeader className="gap-2 pr-8">
+          <div className="flex flex-col gap-1.5">
             <DialogTitle>Start a Program</DialogTitle>
             <DialogDescription>
-              Step {currentStep} of {totalSteps} — {stepLabel}
+              Pick a template, inspect the full approach, and tune the setup details without bouncing through a fake stepper.
             </DialogDescription>
-          </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-primary transition-all duration-300 motion-reduce:transition-none"
-              style={{ width: `${(currentStep / totalSteps) * 100}%` }}
-            />
           </div>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit, handleInvalidSubmit)} className="flex flex-col gap-6">
-          {step === 'pick' && (
-            <>
-              <TemplatePicker
-                selectedKey={templateKey || null}
-                onSelect={(key) => {
-                  handleTemplateSelect(key)
-                  setStepError(null)
-                }}
-                onOpenChange={handleOpenChange}
-              />
-              {stepError && (
-                <p role="alert" className="text-sm text-destructive">{stepError}</p>
-              )}
-            </>
-          )}
-
-          {step === 'supplement' && template?.supplement_options && (
-            <Controller
-              name="supplement_key"
-              control={control}
-              render={({ field }) => (
-                <SupplementSelector
-                  options={template.supplement_options!}
-                  selectedKey={field.value ?? null}
-                  onSelect={(key) => field.onChange(key ?? undefined)}
-                />
-              )}
+          <div className="flex flex-col gap-4">
+            <TemplatePicker
+              selectedKey={templateKey || null}
+              onSelect={handleTemplateSelect}
+              onOpenChange={handleOpenChange}
             />
-          )}
+            {errors.template_key && (
+              <p role="alert" className="text-sm text-destructive">{errors.template_key.message}</p>
+            )}
+          </div>
 
-          {step === 'configure' && template && (
-            <div className="flex flex-col gap-4">
+          {template && (
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
               <Card className="border-border/70 bg-card/70">
-                <CardContent className="flex flex-col gap-2 pt-4 text-sm">
-                  <p className="font-medium text-foreground">{template.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {template.days_per_week} days/week · {template.cycle_length_weeks}-week cycle
-                  </p>
+                <CardContent className="flex h-full flex-col gap-4 pt-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-col gap-1">
+                      <p className="text-sm font-medium text-foreground">Template details</p>
+                      <p className="text-xs leading-5 text-muted-foreground">
+                        A quick breakdown of the required lifts and weekly flow before you create the program.
+                      </p>
+                    </div>
+                    {template.uses_training_max && (
+                      <span className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
+                        Training max default {Math.round((template.default_tm_percentage ?? 0.9) * 100)}%
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-2 text-sm">
+                    <p className="font-medium text-foreground">Required lifts</p>
+                    <p className="leading-6 text-muted-foreground">{requiredLifts}</p>
+                  </div>
+
+                  <div className="flex flex-col gap-2 text-sm">
+                    <p className="font-medium text-foreground">Weekly structure</p>
+                    <div className="flex flex-wrap gap-2">
+                      {template.days.map((day, index) => (
+                        <span key={`${template.key}-${day.label}-${index}`} className="rounded-full bg-background px-2.5 py-1 text-xs text-muted-foreground">
+                          {day.label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {hasSupplements && (
+                    <div className="flex flex-col gap-2 text-sm">
+                      <p className="font-medium text-foreground">Available variations</p>
+                      <div className="flex flex-wrap gap-2">
+                        {template.supplement_options?.map((option) => (
+                          <span key={option.key} className="rounded-full bg-background px-2.5 py-1 text-xs text-muted-foreground">
+                            {option.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="name">Program Name</Label>
-                <Input
-                  id="name"
-                  placeholder={template.name}
-                  aria-invalid={!!errors.name}
-                  aria-describedby={errors.name ? 'program-name-error' : undefined}
-                  {...register('name')}
-                />
-                {errors.name && (
-                  <p id="program-name-error" className="text-sm text-destructive">{errors.name.message}</p>
-                )}
-              </div>
-
-              {template.uses_training_max && (
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="tm_percentage">
-                    TM Percentage{' '}
-                    <span className="font-normal text-muted-foreground">
-                      (default {Math.round((template.default_tm_percentage ?? 0.9) * 100)}%)
-                    </span>
-                  </Label>
+              <div className="flex flex-col gap-4">
+                {template.supplement_options && template.supplement_options.length > 0 && (
                   <Controller
-                    name="tm_percentage"
+                    name="supplement_key"
+                    control={control}
+                    render={({ field }) => (
+                      <SupplementSelector
+                        options={template.supplement_options!}
+                        selectedKey={field.value ?? null}
+                        onSelect={(key) => field.onChange(key ?? undefined)}
+                      />
+                    )}
+                  />
+                )}
+
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="name">Program Name</Label>
+                  <Input
+                    id="name"
+                    placeholder={template.name}
+                    aria-invalid={!!errors.name}
+                    aria-describedby={errors.name ? 'program-name-error' : undefined}
+                    {...register('name')}
+                  />
+                  {errors.name && (
+                    <p id="program-name-error" className="text-sm text-destructive">{errors.name.message}</p>
+                  )}
+                </div>
+
+                {template.uses_training_max && (
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="tm_percentage">
+                      Training Max Percentage{' '}
+                      <span className="font-normal text-muted-foreground">
+                        (default {Math.round((template.default_tm_percentage ?? 0.9) * 100)}%)
+                      </span>
+                    </Label>
+                    <Controller
+                      name="tm_percentage"
+                      control={control}
+                      render={({ field }) => (
+                        <NativeSelect
+                          id="tm_percentage"
+                          className="h-9"
+                          aria-invalid={!!errors.tm_percentage}
+                          aria-describedby={errors.tm_percentage ? 'tm-percentage-error' : undefined}
+                          value={field.value}
+                          onChange={(e) => field.onChange(Number(e.target.value))}
+                        >
+                          <option value={0.85}>85%</option>
+                          <option value={0.875}>87.5%</option>
+                          <option value={0.9}>90%</option>
+                          <option value={0.925}>92.5%</option>
+                          <option value={0.95}>95%</option>
+                        </NativeSelect>
+                      )}
+                    />
+                    {errors.tm_percentage && (
+                      <p id="tm-percentage-error" className="text-sm text-destructive">{errors.tm_percentage.message}</p>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="rounding">Weight Rounding ({formatUnit(preferredUnit)})</Label>
+                  <Controller
+                    name="rounding"
                     control={control}
                     render={({ field }) => (
                       <NativeSelect
-                        id="tm_percentage"
+                        id="rounding"
                         className="h-9"
-                        aria-invalid={!!errors.tm_percentage}
-                        aria-describedby={errors.tm_percentage ? 'tm-percentage-error' : undefined}
+                        aria-invalid={!!errors.rounding}
+                        aria-describedby={errors.rounding ? 'rounding-error' : undefined}
                         value={field.value}
                         onChange={(e) => field.onChange(Number(e.target.value))}
                       >
-                        <option value={0.85}>85%</option>
-                        <option value={0.875}>87.5%</option>
-                        <option value={0.9}>90%</option>
-                        <option value={0.925}>92.5%</option>
-                        <option value={0.95}>95%</option>
+                        {roundingOptions.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
                       </NativeSelect>
                     )}
                   />
-                  {errors.tm_percentage && (
-                    <p id="tm-percentage-error" className="text-sm text-destructive">{errors.tm_percentage.message}</p>
+                  {errors.rounding && (
+                    <p id="rounding-error" className="text-sm text-destructive">{errors.rounding.message}</p>
                   )}
                 </div>
-              )}
-
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="rounding">Weight Rounding ({formatUnit(preferredUnit)})</Label>
-                <Controller
-                  name="rounding"
-                  control={control}
-                  render={({ field }) => (
-                    <NativeSelect
-                      id="rounding"
-                      className="h-9"
-                      aria-invalid={!!errors.rounding}
-                      aria-describedby={errors.rounding ? 'rounding-error' : undefined}
-                      value={field.value}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                    >
-                      {roundingOptions.map((option) => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </NativeSelect>
-                  )}
-                />
-                {errors.rounding && (
-                  <p id="rounding-error" className="text-sm text-destructive">{errors.rounding.message}</p>
-                )}
               </div>
             </div>
           )}
 
           <div className="flex gap-2 pt-2">
-            {step !== 'pick' && (
-              <Button type="button" variant="outline" onClick={handleBack} className="flex-1">
-                Back
-              </Button>
-            )}
-            {step !== 'configure' ? (
-              <Button
-                type="button"
-                onClick={handleNext}
-                disabled={!templateKey}
-                className="flex-1"
-              >
-                Next
-              </Button>
-            ) : (
-              <Button
-                type="submit"
-                disabled={createProgram.isPending}
-                className="flex-1"
-              >
-                {createProgram.isPending ? 'Creating…' : 'Create Program'}
-              </Button>
-            )}
+            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} className="flex-1">
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={!templateKey || createProgram.isPending}
+              className="flex-1"
+            >
+              {createProgram.isPending ? 'Creating…' : 'Create Program'}
+            </Button>
           </div>
         </form>
       </DialogContent>

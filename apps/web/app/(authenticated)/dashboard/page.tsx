@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useActiveProgram } from '@/hooks/usePrograms'
 import { getTemplate } from '@/lib/constants/templates'
 import { isCustomProgramConfig } from '@/types/template'
+import { formatDaysPerWeek, formatWeekCycle } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -59,6 +60,12 @@ export default function DashboardPage() {
   const cycleWeeks = isCustom
     ? (rawConfig as { cycle_length_weeks?: number }).cycle_length_weeks
     : template?.cycle_length_weeks
+
+  const summaryParts = [
+    typeof daysPerWeek === 'number' ? formatDaysPerWeek(daysPerWeek) : null,
+    typeof cycleWeeks === 'number' ? formatWeekCycle(cycleWeeks) : null,
+    supplementName,
+  ].filter(Boolean)
 
   return (
     <div className="page-shell max-w-5xl">
@@ -145,8 +152,7 @@ export default function DashboardPage() {
                     {isCustom && <Badge variant="outline">Custom</Badge>}
                   </div>
                   <CardDescription>
-                    {formatUnit(daysPerWeek, 'day')}/week · {formatUnit(cycleWeeks, 'week')} cycle
-                    {supplementName ? ` · ${supplementName}` : ''}
+                    {summaryParts.join(' · ')}
                   </CardDescription>
                 </div>
               </div>

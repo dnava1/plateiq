@@ -8,13 +8,12 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Card,
-  CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
+import { cn, formatDaysPerWeek, formatWeekCycle } from '@/lib/utils'
 import { toast } from 'sonner'
 import { Dumbbell, Hammer } from 'lucide-react'
 import type { Json } from '@/types/database'
@@ -54,12 +53,11 @@ export function ProgramCard({ program }: ProgramCardProps) {
     : template?.cycle_length_weeks
 
   const descriptionParts = [
-    typeof daysPerWeek === 'number' ? `${daysPerWeek}d/wk` : null,
-    typeof cycleWeeks === 'number' ? `${cycleWeeks}-week cycle` : null,
+    typeof daysPerWeek === 'number' ? formatDaysPerWeek(daysPerWeek) : null,
+    typeof cycleWeeks === 'number' ? formatWeekCycle(cycleWeeks) : null,
     supplementName,
+    template?.uses_training_max && config.tm_percentage ? `TM ${Math.round(config.tm_percentage * 100)}%` : null,
   ].filter(Boolean)
-
-  const hasBadges = (!isCustom && template?.level) || (template?.uses_training_max && config.tm_percentage)
 
   const handleSetActive = () => {
     setActive.mutate(program.id, {
@@ -101,21 +99,6 @@ export function ProgramCard({ program }: ProgramCardProps) {
           </div>
         </div>
       </CardHeader>
-
-      {hasBadges && (
-        <CardContent className="flex flex-col gap-3">
-          <div className="flex flex-wrap gap-2">
-            {!isCustom && template?.level && (
-              <Badge variant="outline" className="capitalize">
-                {template.level}
-              </Badge>
-            )}
-            {template?.uses_training_max && config.tm_percentage && (
-              <Badge variant="outline">TM {Math.round(config.tm_percentage * 100)}%</Badge>
-            )}
-          </div>
-        </CardContent>
-      )}
 
       {!program.is_active && (
         <CardFooter>

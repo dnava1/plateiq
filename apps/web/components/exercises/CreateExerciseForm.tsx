@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useForm, type FieldErrors } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createExerciseSchema, type CreateExerciseInput } from '@/lib/validations/exercise'
@@ -16,10 +17,18 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
+import type { Tables } from '@/types/database'
+
+type Exercise = Tables<'exercises'>
 
 interface CreateExerciseFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  initialValues?: Partial<CreateExerciseInput>
+  title?: string
+  description?: string
+  submitLabel?: string
+  onCreated?: (exercise: Exercise) => void
 }
 
 const MOVEMENT_PATTERNS = [
@@ -32,7 +41,23 @@ const MOVEMENT_PATTERNS = [
   { value: 'other', label: 'Other' },
 ] as const
 
-export function CreateExerciseForm({ open, onOpenChange }: CreateExerciseFormProps) {
+function getDefaultValues(initialValues?: Partial<CreateExerciseInput>): CreateExerciseInput {
+  return {
+    name: initialValues?.name ?? '',
+    category: initialValues?.category ?? 'accessory',
+    movement_pattern: initialValues?.movement_pattern ?? 'other',
+  }
+}
+
+export function CreateExerciseForm({
+  open,
+  onOpenChange,
+  initialValues,
+  title = 'Add Custom Exercise',
+  description = 'Create a new exercise to use in your programs.',
+  submitLabel,
+  onCreated,
+}: CreateExerciseFormProps) {
   const createExercise = useCreateExercise()
 
   const {
@@ -43,17 +68,21 @@ export function CreateExerciseForm({ open, onOpenChange }: CreateExerciseFormPro
     formState: { errors },
   } = useForm<CreateExerciseInput>({
     resolver: zodResolver(createExerciseSchema),
-    defaultValues: {
-      category: 'accessory',
-      movement_pattern: 'other',
-    },
+    defaultValues: getDefaultValues(initialValues),
   })
+
+  useEffect(() => {
+    if (open) {
+      reset(getDefaultValues(initialValues))
+    }
+  }, [initialValues, open, reset])
 
   const onSubmit = (data: CreateExerciseInput) => {
     createExercise.mutate(data, {
-      onSuccess: () => {
-        toast.success('Exercise created')
-        reset()
+      onSuccess: (exercise) => {
+        toast.success(onCreated ? 'Exercise created and selected' : 'Exercise created')
+        onCreated?.(exercise)
+        reset(getDefaultValues(initialValues))
         onOpenChange(false)
       },
       onError: (error) => {
@@ -69,14 +98,22 @@ export function CreateExerciseForm({ open, onOpenChange }: CreateExerciseFormPro
     }
   }
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      reset(getDefaultValues(initialValues))
+    }
+
+    onOpenChange(nextOpen)
+  }
+
+  const submitButtonLabel = submitLabel ?? (onCreated ? 'Create and Select Exercise' : 'Create Exercise')
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Custom Exercise</DialogTitle>
-          <DialogDescription>
-            Create a new exercise to use in your programs.
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit, handleInvalidSubmit)} className="mt-6 flex flex-col gap-4">
           <div className="flex flex-col gap-2">
@@ -135,7 +172,7 @@ export function CreateExerciseForm({ open, onOpenChange }: CreateExerciseFormPro
             className="w-full"
             disabled={createExercise.isPending}
           >
-            {createExercise.isPending ? 'Creating...' : 'Create Exercise'}
+            {createExercise.isPending ? 'Creating…' : submitButtonLabel}
           </Button>
         </form>
       </DialogContent>

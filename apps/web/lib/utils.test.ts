@@ -3,11 +3,15 @@ import {
   cn,
   displayToLbs,
   formatDate,
+  formatDaysPerWeek,
+  formatExerciseKey,
   formatRounding,
   formatUnit,
+  formatWeekCycle,
   formatWeight,
   getRoundingOptions,
   lbsToDisplay,
+  normalizeCadenceCopy,
   roundToNearest,
 } from './utils'
 
@@ -89,6 +93,27 @@ describe('formatRounding', () => {
   })
 })
 
+describe('cadence formatters', () => {
+  it('formats days per week with full words', () => {
+    expect(formatDaysPerWeek(1)).toBe('1 day per week')
+    expect(formatDaysPerWeek(4)).toBe('4 days per week')
+  })
+
+  it('formats week cycles consistently', () => {
+    expect(formatWeekCycle(1)).toBe('1-week cycle')
+    expect(formatWeekCycle(6)).toBe('6-week cycle')
+  })
+
+  it('normalizes abbreviated cadence copy inside longer descriptions', () => {
+    expect(normalizeCadenceCopy('Classic LP. 3 days/week, linear progression.')).toBe(
+      'Classic LP. 3 days per week, linear progression.',
+    )
+    expect(normalizeCadenceCopy('High volume. 4d/wk with plenty of accessory work.')).toBe(
+      'High volume. 4 days per week with plenty of accessory work.',
+    )
+  })
+})
+
 describe('getRoundingOptions', () => {
   it('keeps canonical lbs values for pound preference', () => {
     expect(getRoundingOptions('lbs')).toEqual([
@@ -104,6 +129,26 @@ describe('getRoundingOptions', () => {
       { value: 5, label: '2.3 kg' },
       { value: 10, label: '4.5 kg' },
     ])
+  })
+})
+
+describe('formatExerciseKey', () => {
+  it('formats common shorthand exercise keys into readable labels', () => {
+    expect(formatExerciseKey('bench')).toBe('Bench Press')
+    expect(formatExerciseKey('barbell_row')).toBe('Barbell Row')
+    expect(formatExerciseKey('chin_up')).toBe('Chin-Up')
+    expect(formatExerciseKey('close_grip_bench')).toBe('Close-Grip Bench Press')
+    expect(formatExerciseKey('incline_bench')).toBe('Incline Bench Press')
+    expect(formatExerciseKey('lat_pulldown')).toBe('Lat Pulldown')
+    expect(formatExerciseKey('ohp')).toBe('Overhead Press')
+    expect(formatExerciseKey('power_clean')).toBe('Power Clean')
+    expect(formatExerciseKey('rdl')).toBe('Romanian Deadlift')
+    expect(formatExerciseKey('sumo_deadlift')).toBe('Sumo Deadlift')
+  })
+
+  it('falls back to title-casing unknown exercise keys', () => {
+    expect(formatExerciseKey('box_squat')).toBe('Box Squat')
+    expect(formatExerciseKey('board_press')).toBe('Board Press')
   })
 })
 

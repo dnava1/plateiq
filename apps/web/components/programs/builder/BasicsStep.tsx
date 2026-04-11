@@ -73,7 +73,7 @@ export function BasicsStep() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="clw">Cycle Length (weeks)</Label>
+          <Label htmlFor="clw">Cycle Length</Label>
           <NativeSelect
             id="clw"
             className="h-9"
@@ -114,7 +114,7 @@ export function BasicsStep() {
         {draft.uses_training_max && (
           <div className="grid grid-cols-2 gap-4 animate-slide-up motion-reduce:animate-none">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="tmp">TM Percentage</Label>
+              <Label htmlFor="tmp">Training Max Percentage</Label>
               <NativeSelect
                 id="tmp"
                 className="h-9"
