@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import { SupplementSelector } from './SupplementSelector'
+import { VariationSelector } from './VariationSelector'
 
 const options = [
   {
@@ -19,17 +19,17 @@ const options = [
   },
 ]
 
-function SupplementSelectorHarness() {
+function VariationSelectorHarness() {
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
 
-  return <SupplementSelector options={options} selectedKey={selectedKey} onSelect={setSelectedKey} />
+  return <VariationSelector options={options} selectedKey={selectedKey} onSelect={setSelectedKey} />
 }
 
-describe('SupplementSelector', () => {
-  it('supports arrow-key navigation across supplement radios', async () => {
+describe('VariationSelector', () => {
+  it('supports arrow-key navigation across variation radios', async () => {
     const user = userEvent.setup()
 
-    render(<SupplementSelectorHarness />)
+    render(<VariationSelectorHarness />)
 
     const baseOption = screen.getByRole('radio', { name: /Base template only/i })
     const bbbOption = screen.getByRole('radio', { name: /Boring But Big/i })

@@ -10,7 +10,7 @@ export function MobileNav() {
 
   return (
     <nav aria-label="App tabs" className="fixed inset-x-0 bottom-0 z-50 px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] md:hidden">
-      <div className="mx-auto grid max-w-md grid-cols-4 gap-1.5 rounded-[28px] border border-border/70 bg-background/78 p-2 shadow-[0_24px_70px_-34px_rgba(0,0,0,0.92)] backdrop-blur-xl">
+      <div className="mx-auto grid max-w-md grid-cols-5 gap-1.5 rounded-[28px] border border-border/70 bg-background/78 p-2 shadow-[0_24px_70px_-34px_rgba(0,0,0,0.92)] backdrop-blur-xl">
         {APP_NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const isActive = isActiveNavPath(pathname, href)
           return (

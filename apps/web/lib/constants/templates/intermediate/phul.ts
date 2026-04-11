@@ -27,7 +27,7 @@ export const phul: ProgramTemplate = {
           notes: 'Bent-over barbell row — match bench intensity',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'incline_bench',
           sets: [{ sets: 3, reps: '5-8', intensity: 7.5, intensity_type: 'rpe' }],
           notes: 'Incline dumbbell or barbell press',
@@ -66,7 +66,7 @@ export const phul: ProgramTemplate = {
           notes: 'Conventional or sumo deadlift',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'leg_press',
           sets: [{ sets: 3, reps: '10-15', intensity: 7.0, intensity_type: 'rpe' }],
         },
@@ -97,13 +97,13 @@ export const phul: ProgramTemplate = {
           sets: [{ sets: 4, reps: '8-12', intensity: 7.0, intensity_type: 'rpe' }],
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'bench',
           sets: [{ sets: 4, reps: '8-12', intensity: 7.0, intensity_type: 'rpe' }],
           notes: 'Flat dumbbell press',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'lat_pulldown',
           sets: [{ sets: 4, reps: '8-12', intensity: 7.0, intensity_type: 'rpe' }],
         },
@@ -135,12 +135,12 @@ export const phul: ProgramTemplate = {
           notes: 'Romanian deadlift for hamstring/glute development',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'leg_press',
           sets: [{ sets: 3, reps: '12-15', intensity: 6.5, intensity_type: 'rpe' }],
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'leg_curl',
           sets: [{ sets: 3, reps: '12-15', intensity: 6.5, intensity_type: 'rpe' }],
         },

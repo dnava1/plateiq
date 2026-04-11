@@ -50,7 +50,7 @@ export function useCreateProgram() {
       const { data: { user } } = await supabase.auth.getUser()
       const tmpl = getTemplate(input.template_key)
       const config: Record<string, string | number | null> = {
-        supplement_key: input.supplement_key ?? null,
+        variation_key: input.variation_key ?? null,
       }
       if (tmpl?.uses_training_max) {
         config.rounding = input.rounding

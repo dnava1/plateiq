@@ -26,7 +26,7 @@ describe('ProgramCard', () => {
           name: '5/3/1 Leader',
           template_key: 'wendler_531',
           config: {
-            supplement_key: 'bbb',
+            variation_key: 'bbb',
             tm_percentage: 0.9,
             rounding: 5,
           },

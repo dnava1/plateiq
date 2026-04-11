@@ -5,9 +5,20 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { get, set, del } from 'idb-keyval'
 import { useState, useEffect } from 'react'
 import { useUiStore } from '@/store/uiStore'
+import { createClient } from '@/lib/supabase/client'
+import {
+  completeWorkoutMutation,
+  ensureWorkoutMutation,
+  logSetMutation,
+  workoutMutationKeys,
+  workoutQueryKeys,
+  type CompleteWorkoutInput,
+  type EnsureWorkoutInput,
+  type LogSetInput,
+} from '@/hooks/useWorkouts'
 
 function makeQueryClient() {
-  return new QueryClient({
+  const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
         staleTime: 60 * 1000,
@@ -18,6 +29,39 @@ function makeQueryClient() {
       },
     },
   })
+
+  const supabase = createClient()
+
+  queryClient.setMutationDefaults(workoutMutationKeys.ensureWorkout(), {
+    mutationFn: (variables) => ensureWorkoutMutation(supabase, variables as unknown as EnsureWorkoutInput),
+    onSuccess: (_data, variables) => {
+      const input = variables as unknown as EnsureWorkoutInput
+      queryClient.invalidateQueries({ queryKey: workoutQueryKeys.cycle(input.cycleId) })
+    },
+  })
+
+  queryClient.setMutationDefaults(workoutMutationKeys.logSet(), {
+    mutationFn: (variables) => logSetMutation(supabase, variables as unknown as LogSetInput),
+    onSuccess: (_data, variables) => {
+      const input = variables as unknown as LogSetInput
+      queryClient.invalidateQueries({ queryKey: workoutQueryKeys.sets(input.workoutId) })
+      if (input.isAmrap) {
+        queryClient.invalidateQueries({ queryKey: workoutQueryKeys.amrapHistory(input.exerciseId) })
+      }
+    },
+  })
+
+  queryClient.setMutationDefaults(workoutMutationKeys.completeWorkout(), {
+    mutationFn: (variables) => completeWorkoutMutation(supabase, variables as unknown as CompleteWorkoutInput),
+    onSuccess: (_data, variables) => {
+      const input = variables as unknown as CompleteWorkoutInput
+      queryClient.invalidateQueries({ queryKey: ['workouts'] })
+      queryClient.invalidateQueries({ queryKey: workoutQueryKeys.cycle(input.cycleId) })
+      queryClient.invalidateQueries({ queryKey: workoutQueryKeys.sets(input.workoutId) })
+    },
+  })
+
+  return queryClient
 }
 
 function createIdbPersister() {
@@ -71,6 +115,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <PersistQueryClientProvider
       client={queryClient}
       persistOptions={{ persister, maxAge: 1000 * 60 * 60 * 24 }}
+      onSuccess={() => {
+        void queryClient.resumePausedMutations()
+      }}
     >
       <ThemeSync />
       {children}

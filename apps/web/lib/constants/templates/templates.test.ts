@@ -50,20 +50,20 @@ describe('TEMPLATE_REGISTRY', () => {
     expect(getTemplate('nonexistent_program')).toBeUndefined()
   })
 
-  it('Wendler 531 has supplement options', () => {
+  it('Wendler 531 has variation options', () => {
     const template = getTemplate('wendler_531')
-    expect(template?.supplement_options).toBeDefined()
-    expect(template!.supplement_options!.length).toBeGreaterThan(0)
-    const keys = template!.supplement_options!.map((s) => s.key)
+    expect(template?.variation_options).toBeDefined()
+    expect(template!.variation_options!.length).toBeGreaterThan(0)
+    const keys = template!.variation_options!.map((variation) => variation.key)
     expect(keys).toContain('bbb')
     expect(keys).toContain('fsl')
   })
 
-  it('Starting Strength has no supplement options', () => {
+  it('Starting Strength has no variation options', () => {
     const template = getTemplate('starting_strength')
     expect(template).toBeDefined()
-    const hasSupplements = (template?.supplement_options?.length ?? 0) > 0
-    expect(hasSupplements).toBe(false)
+    const hasVariations = (template?.variation_options?.length ?? 0) > 0
+    expect(hasVariations).toBe(false)
   })
 
   it('all templates have at least one day with at least one exercise block', () => {
@@ -75,10 +75,10 @@ describe('TEMPLATE_REGISTRY', () => {
     }
   })
 
-  it('all supplement options have valid structure', () => {
+  it('all variation options have valid structure', () => {
     for (const template of Object.values(TEMPLATE_REGISTRY)) {
-      if (!template.supplement_options) continue
-      for (const option of template.supplement_options) {
+      if (!template.variation_options) continue
+      for (const option of template.variation_options) {
         expect(option.key).toBeTruthy()
         expect(option.name).toBeTruthy()
         expect(option.description).toBeTruthy()

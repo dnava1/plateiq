@@ -6,6 +6,7 @@ import type { TrainingProgram } from '@/hooks/usePrograms'
 import { useSetActiveProgram } from '@/hooks/usePrograms'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { CompleteCycleDialog } from '@/components/programs/CompleteCycleDialog'
 import {
   Card,
   CardDescription,
@@ -19,7 +20,7 @@ import { Dumbbell, Hammer } from 'lucide-react'
 import type { Json } from '@/types/database'
 
 interface ProgramConfig {
-  supplement_key?: string | null
+  variation_key?: string | null
   rounding?: number
   tm_percentage?: number
 }
@@ -40,8 +41,8 @@ export function ProgramCard({ program }: ProgramCardProps) {
   const config = parseConfig(rawConfig)
   const setActive = useSetActiveProgram()
 
-  const supplementName = config.supplement_key && template?.supplement_options
-    ? template.supplement_options.find((s) => s.key === config.supplement_key)?.name
+  const variationName = config.variation_key && template?.variation_options
+    ? template.variation_options.find((variation) => variation.key === config.variation_key)?.name
     : null
 
   const daysPerWeek = isCustom
@@ -55,7 +56,7 @@ export function ProgramCard({ program }: ProgramCardProps) {
   const descriptionParts = [
     typeof daysPerWeek === 'number' ? formatDaysPerWeek(daysPerWeek) : null,
     typeof cycleWeeks === 'number' ? formatWeekCycle(cycleWeeks) : null,
-    supplementName,
+    variationName,
     template?.uses_training_max && config.tm_percentage ? `TM ${Math.round(config.tm_percentage * 100)}%` : null,
   ].filter(Boolean)
 
@@ -100,7 +101,11 @@ export function ProgramCard({ program }: ProgramCardProps) {
         </div>
       </CardHeader>
 
-      {!program.is_active && (
+      {program.is_active ? (
+        <CardFooter className="justify-end">
+          <CompleteCycleDialog program={program} />
+        </CardFooter>
+      ) : (
         <CardFooter>
           <Button
             variant="outline"

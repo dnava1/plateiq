@@ -20,12 +20,13 @@ PWA strength training tracker supporting 15+ popular programs — from Starting 
 
 ```
 plateiq/
+├── apps/
+│   └── web/                    ← Next.js application
 ├── docs/
 │   ├── architecture.md         ← complete system architecture blueprint (start here)
-│   └── implementation-plan.md  ← 12-stage implementation plan
-├── src/
-│   └── frontend/               ← Next.js application (the only codebase)
-├── supabase/                   ← Supabase migrations + config (created by supabase init)
+│   └── implementation-plan.md  ← staged delivery plan
+├── supabase/
+│   └── migrations/             ← versioned database changes
 ├── .github/
 │   └── workflows/
 │       └── deploy.yml          ← CI/CD pipeline
@@ -41,8 +42,8 @@ See [docs/architecture.md](docs/architecture.md) for the complete system design,
 - **15 Built-in Programs** — Starting Strength, StrongLifts 5×5, GZCLP, Greyskull LP, Phrak's GSLP, Wendler's 5/3/1, Texas Method, Madcow 5×5, nSuns LP, PHUL, Conjugate, Juggernaut, Sheiko, Building the Monolith, Smolov Jr
 - **Custom Programs** — create your own with full control over sets, reps, intensity, and progression
 - **Universal Template Engine** — all programs share the same workout logging, offline sync, analytics, and AI insights
-- **Configurable Supplements** — BBB, FSL, Joker sets for 5/3/1; backoff sets for Texas Method; template-specific options per program
-- **AMRAP Tracking** — logs PR sets, calculates estimated 1RM (Epley + Brzycki), detects personal records automatically
+- **Configurable Variations** — BBB, FSL, Joker sets for 5/3/1; backoff sets for Texas Method; template-specific options per program
+- **AMRAP Tracking** — logs PR sets, calculates a consistent estimated 1RM, detects personal records automatically
 - **Auto-Progression** — template-driven TM increments on cycle completion (+5 upper / +10 lower, or program-specific rules)
 - **Analytics Dashboard** — interactive charts: 1RM trends, volume tracking, PR timeline, muscle balance radar, consistency heatmap, TM progression
 - **AI Training Insights** — Gemini-powered coaching fed by analytics data: plateau detection, volume trends, consistency analysis, personalized recommendations

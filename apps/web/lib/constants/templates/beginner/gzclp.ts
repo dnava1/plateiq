@@ -21,7 +21,7 @@ export const gzclp: ProgramTemplate = {
           notes: 'T1 — 5 sets of 3 (last set AMRAP); if AMRAP >= 10 add weight next session',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'bench',
           sets: [{ sets: 3, reps: 10, intensity: 0, intensity_type: 'fixed_weight' }],
           notes: 'T2 — 3×10; add weight when all reps completed',
@@ -44,7 +44,7 @@ export const gzclp: ProgramTemplate = {
           notes: 'T1 — 5×3 (last set AMRAP)',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'deadlift',
           sets: [{ sets: 3, reps: 10, intensity: 0, intensity_type: 'fixed_weight' }],
           notes: 'T2 — 3×10',
@@ -67,7 +67,7 @@ export const gzclp: ProgramTemplate = {
           notes: 'T1 — 5×3 (last set AMRAP)',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'squat',
           sets: [{ sets: 3, reps: 10, intensity: 0, intensity_type: 'fixed_weight' }],
           notes: 'T2 — 3×10',
@@ -90,7 +90,7 @@ export const gzclp: ProgramTemplate = {
           notes: 'T1 — 5×3 (last set AMRAP)',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'ohp',
           sets: [{ sets: 3, reps: 10, intensity: 0, intensity_type: 'fixed_weight' }],
           notes: 'T2 — 3×10',

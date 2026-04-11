@@ -59,17 +59,17 @@ describe('createProgramSchema', () => {
     expect(result.success).toBe(true)
   })
 
-  it('accepts optional supplement_key', () => {
+  it('accepts optional variation_key', () => {
     const result = createProgramSchema.safeParse({
       template_key: 'wendler_531',
       name: "My 5/3/1",
-      supplement_key: 'bbb',
+      variation_key: 'bbb',
       rounding: 5,
       tm_percentage: 0.9,
     })
     expect(result.success).toBe(true)
     if (result.success) {
-      expect(result.data.supplement_key).toBe('bbb')
+      expect(result.data.variation_key).toBe('bbb')
     }
   })
 

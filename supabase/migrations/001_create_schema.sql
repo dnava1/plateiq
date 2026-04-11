@@ -560,7 +560,7 @@ DECLARE
 BEGIN
   SELECT jsonb_build_object(
 
-    -- Epley e1RM for every AMRAP set in the date window.
+    -- Brzycki estimated 1RM for every AMRAP set in the date window.
     'e1rm_trend', (
       SELECT COALESCE(
         jsonb_agg(
@@ -570,7 +570,10 @@ BEGIN
             'exercise_name', e.name,
             'weight',        ws.weight_lbs,
             'reps',          ws.reps_actual,
-            'e1rm',          ROUND((ws.weight_lbs * (1 + ws.reps_actual::decimal / 30))::numeric, 1)
+            'e1rm',          ROUND((CASE
+              WHEN ws.reps_actual <= 1 OR ws.reps_actual >= 37 THEN ws.weight_lbs
+              ELSE (ws.weight_lbs * 36) / (37 - ws.reps_actual::decimal)
+            END)::numeric, 1)
           )
           ORDER BY w.scheduled_date
         ),
@@ -620,7 +623,7 @@ BEGIN
       ) vol
     ),
 
-    -- Best e1RM per exercise per day (used to surface PR history).
+    -- Best estimated 1RM per exercise per day (used to surface PR history).
     'pr_history', (
       SELECT COALESCE(
         jsonb_agg(
@@ -643,7 +646,10 @@ BEGIN
           e.name                                                                       AS exercise_name,
           ws.weight_lbs,
           ws.reps_actual,
-          ROUND((ws.weight_lbs * (1 + ws.reps_actual::decimal / 30))::numeric, 1)     AS e1rm
+          ROUND((CASE
+            WHEN ws.reps_actual <= 1 OR ws.reps_actual >= 37 THEN ws.weight_lbs
+            ELSE (ws.weight_lbs * 36) / (37 - ws.reps_actual::decimal)
+          END)::numeric, 1) AS e1rm
         FROM   workout_sets ws
         JOIN   workouts    w ON w.id  = ws.workout_id
         JOIN   exercises   e ON e.id  = ws.exercise_id

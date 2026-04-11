@@ -35,7 +35,7 @@ export const nsunsLp: ProgramTemplate = {
           notes: '9 working sets — AMRAP on set 3 and last set',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'ohp',
           sets: [
             { sets: 1, reps: 6, intensity: 0.6, intensity_type: 'percentage_tm' },
@@ -71,7 +71,7 @@ export const nsunsLp: ProgramTemplate = {
           notes: 'Squat 9 working sets',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'sumo_deadlift',
           sets: [
             { sets: 1, reps: 5, intensity: 0.6, intensity_type: 'percentage_tm' },
@@ -107,7 +107,7 @@ export const nsunsLp: ProgramTemplate = {
           notes: 'OHP 9 working sets',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'incline_bench',
           sets: [
             { sets: 1, reps: 6, intensity: 0.6, intensity_type: 'percentage_tm' },
@@ -143,7 +143,7 @@ export const nsunsLp: ProgramTemplate = {
           notes: 'Deadlift 9 working sets',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'front_squat',
           sets: [
             { sets: 1, reps: 5, intensity: 0.5, intensity_type: 'percentage_tm' },
@@ -179,7 +179,7 @@ export const nsunsLp: ProgramTemplate = {
           notes: 'Bench Day 5 — slightly lighter than Day 1 (3s week pattern)',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'close_grip_bench',
           sets: [
             { sets: 1, reps: 6, intensity: 0.55, intensity_type: 'percentage_tm' },

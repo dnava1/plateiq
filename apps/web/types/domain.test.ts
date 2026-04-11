@@ -3,7 +3,7 @@ import type { SetType, ExerciseCategory, MovementPattern, IntensityType, Progres
 
 describe('domain enum types', () => {
   it('SetType values are valid', () => {
-    const values: SetType[] = ['warmup', 'main', 'amrap', 'supplement', 'accessory']
+    const values: SetType[] = ['warmup', 'main', 'amrap', 'variation', 'accessory']
     expect(values).toHaveLength(5)
     values.forEach((v) => expect(typeof v).toBe('string'))
   })

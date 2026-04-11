@@ -14,9 +14,9 @@ import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import type { IntensityType } from '@/types/domain'
 
-const BLOCK_ROLE_LABELS: Record<'primary' | 'supplement' | 'accessory', string> = {
+const BLOCK_ROLE_LABELS: Record<'primary' | 'variation' | 'accessory', string> = {
   primary: 'primary',
-  supplement: 'supplement',
+  variation: 'variation',
   accessory: 'accessory',
 }
 

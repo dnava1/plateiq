@@ -88,14 +88,14 @@ export const wendler531: ProgramTemplate = {
       ],
     },
   ],
-  supplement_options: [
+  variation_options: [
     {
       key: 'bbb',
       name: 'Boring But Big (BBB)',
       description: '5 sets × 10 reps @ 50% TM of the main lift',
       blocks: [
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: undefined,
           sets: [{ sets: 5, reps: 10, intensity: 0.5, intensity_type: 'percentage_tm' }],
           notes: 'BBB — same lift as main, 50% TM',
@@ -108,7 +108,7 @@ export const wendler531: ProgramTemplate = {
       description: '5 sets × 5 reps at the first working set weight',
       blocks: [
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: undefined,
           sets: [{ sets: 5, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' }],
           notes: 'FSL — 5×5 at first working set weight',

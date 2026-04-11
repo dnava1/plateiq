@@ -28,7 +28,7 @@ import { Dumbbell, PlusIcon } from 'lucide-react'
 import type { Json } from '@/types/database'
 
 interface ProgramConfig {
-  supplement_key?: string | null
+  variation_key?: string | null
   rounding?: number
   tm_percentage?: number
 }
@@ -49,8 +49,8 @@ export default function DashboardPage() {
   const rawConfig = program?.config ?? null
   const isCustom = rawConfig && isCustomProgramConfig(rawConfig)
   const template = program && !isCustom ? getTemplate(program.template_key) : null
-  const supplementName = config.supplement_key && template?.supplement_options
-    ? template.supplement_options.find((s) => s.key === config.supplement_key)?.name
+  const variationName = config.variation_key && template?.variation_options
+    ? template.variation_options.find((variation) => variation.key === config.variation_key)?.name
     : null
 
   const daysPerWeek = isCustom
@@ -64,7 +64,7 @@ export default function DashboardPage() {
   const summaryParts = [
     typeof daysPerWeek === 'number' ? formatDaysPerWeek(daysPerWeek) : null,
     typeof cycleWeeks === 'number' ? formatWeekCycle(cycleWeeks) : null,
-    supplementName,
+    variationName,
   ].filter(Boolean)
 
   return (

@@ -8,7 +8,7 @@ import { useCreateProgram } from '@/hooks/usePrograms'
 import { getTemplate } from '@/lib/constants/templates'
 import { formatExerciseKey, formatUnit, getRoundingOptions } from '@/lib/utils'
 import { TemplatePicker } from './TemplatePicker'
-import { SupplementSelector } from './SupplementSelector'
+import { VariationSelector } from './VariationSelector'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -38,7 +38,7 @@ interface ProgramConfigFormProps {
 const DEFAULT_VALUES: CreateProgramInput = {
   template_key: '',
   name: '',
-  supplement_key: undefined,
+  variation_key: undefined,
   rounding: 5,
   tm_percentage: 0.9,
 }
@@ -70,14 +70,14 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
 
   const templateKey = useWatch({ control, name: 'template_key' })
   const template = templateKey ? getTemplate(templateKey) : null
-  const hasSupplements = (template?.supplement_options?.length ?? 0) > 0
+  const hasVariations = (template?.variation_options?.length ?? 0) > 0
   const requiredLifts = template?.required_exercises.map(formatExerciseKey).join(', ') ?? ''
 
   const handleTemplateSelect = (key: string) => {
     const tpl = getTemplate(key)
     setValue('template_key', key, { shouldDirty: true, shouldValidate: true })
     setValue('name', tpl?.name ?? '', { shouldDirty: true })
-    setValue('supplement_key', undefined, { shouldDirty: true })
+    setValue('variation_key', undefined, { shouldDirty: true })
     if (tpl?.default_tm_percentage) {
       setValue('tm_percentage', tpl.default_tm_percentage, { shouldDirty: true })
     }
@@ -174,11 +174,11 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
                     </div>
                   </div>
 
-                  {hasSupplements && (
+                  {hasVariations && (
                     <div className="flex flex-col gap-2 text-sm">
                       <p className="font-medium text-foreground">Available variations</p>
                       <div className="flex flex-wrap gap-2">
-                        {template.supplement_options?.map((option) => (
+                        {template.variation_options?.map((option) => (
                           <span key={option.key} className="rounded-full bg-background px-2.5 py-1 text-xs text-muted-foreground">
                             {option.name}
                           </span>
@@ -190,13 +190,13 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
               </Card>
 
               <div className="flex flex-col gap-4">
-                {template.supplement_options && template.supplement_options.length > 0 && (
+                {template.variation_options && template.variation_options.length > 0 && (
                   <Controller
-                    name="supplement_key"
+                    name="variation_key"
                     control={control}
                     render={({ field }) => (
-                      <SupplementSelector
-                        options={template.supplement_options!}
+                      <VariationSelector
+                        options={template.variation_options!}
                         selectedKey={field.value ?? null}
                         onSelect={(key) => field.onChange(key ?? undefined)}
                       />

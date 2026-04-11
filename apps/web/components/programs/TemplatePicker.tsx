@@ -106,9 +106,9 @@ function TemplateCard({ template }: TemplateCardProps) {
           <Badge variant="outline" className="text-xs">
             {formatWeekCycle(template.cycle_length_weeks)}
           </Badge>
-          {template.supplement_options && template.supplement_options.length > 0 && (
+          {template.variation_options && template.variation_options.length > 0 && (
             <Badge variant="secondary" className="text-xs">
-              {template.supplement_options.length} variation{template.supplement_options.length > 1 ? 's' : ''}
+              {template.variation_options.length} variation{template.variation_options.length > 1 ? 's' : ''}
             </Badge>
           )}
         </div>

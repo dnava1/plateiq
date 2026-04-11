@@ -26,7 +26,7 @@ const MAX_INTENSITY = 10000
 
 const ROLE_LABELS: Record<ExerciseBlock['role'], string> = {
   primary: 'Primary',
-  supplement: 'Supplement',
+  variation: 'Variation',
   accessory: 'Accessory',
 }
 

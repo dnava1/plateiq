@@ -36,7 +36,7 @@ const DEFAULT_CUSTOM_PROGRAM_ERROR_MESSAGE = 'Check your program details and try
 export const createProgramSchema = z.object({
   template_key: z.string().min(1, 'Select a program template'),
   name: z.string().trim().min(MIN_PROGRAM_NAME_LENGTH, PROGRAM_NAME_ERROR_MESSAGE).max(MAX_PROGRAM_NAME_LENGTH),
-  supplement_key: z.string().optional(),
+  variation_key: z.string().optional(),
   rounding: z.number().min(MIN_ROUNDING).max(MAX_ROUNDING),
   tm_percentage: z.number().min(MIN_TM_PERCENTAGE).max(MAX_TM_PERCENTAGE),
 })
@@ -58,7 +58,7 @@ const setPrescriptionSchema = z.object({
 
 const exerciseBlockSchema = z.object({
   block_id: z.string().min(1).optional(),
-  role: z.enum(['primary', 'supplement', 'accessory']),
+  role: z.enum(['primary', 'variation', 'accessory']),
   exercise_id: z.number().int().positive().optional(),
   exercise_key: z.string().trim().min(1, EXERCISE_NAME_ERROR_MESSAGE).optional(),
   sets: z.array(setPrescriptionSchema).min(1),

@@ -52,7 +52,7 @@ export const juggernaut: ProgramTemplate = {
           notes: 'Base: 60% TM × 10. Week scheme modifies intensity for periodization phases.',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'leg_press',
           sets: [{ sets: 3, reps: 'varies', intensity: 7.0, intensity_type: 'rpe' }],
           notes: 'Squat supplemental — leg press, front squat, or SSB squat',
@@ -78,7 +78,7 @@ export const juggernaut: ProgramTemplate = {
           notes: 'Base: 60% TM × 10. See week scheme for phase-specific weights.',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'incline_bench',
           sets: [{ sets: 3, reps: 'varies', intensity: 7.0, intensity_type: 'rpe' }],
           notes: 'Bench supplemental — incline, dumbbell press, close-grip',
@@ -104,7 +104,7 @@ export const juggernaut: ProgramTemplate = {
           notes: 'Base: 60% TM × 10.',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'rdl',
           sets: [{ sets: 3, reps: 'varies', intensity: 7.0, intensity_type: 'rpe' }],
           notes: 'Deadlift supplemental — RDL, SLDL, trap bar',
@@ -129,7 +129,7 @@ export const juggernaut: ProgramTemplate = {
           notes: 'Base: 60% TM × 10.',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'incline_bench',
           sets: [{ sets: 3, reps: 'varies', intensity: 7.0, intensity_type: 'rpe' }],
           notes: 'OHP supplemental — push press, dumbbell OHP',

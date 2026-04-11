@@ -1,4 +1,4 @@
-export type SetType = 'warmup' | 'main' | 'amrap' | 'supplement' | 'accessory'
+export type SetType = 'warmup' | 'main' | 'amrap' | 'variation' | 'accessory'
 export type ExerciseCategory = 'main' | 'accessory'
 export type MovementPattern = 'push' | 'pull' | 'hinge' | 'squat' | 'single_leg' | 'core' | 'other'
 export type IntensityType = 'percentage_tm' | 'percentage_1rm' | 'rpe' | 'fixed_weight' | 'bodyweight' | 'percentage_work_set'

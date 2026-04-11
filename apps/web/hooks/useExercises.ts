@@ -1,11 +1,71 @@
 'use client'
 
+import { useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSupabase } from './useSupabase'
 import type { CreateExerciseInput } from '@/lib/validations/exercise'
 import type { Tables } from '@/types/database'
 
-type Exercise = Tables<'exercises'>
+export type Exercise = Tables<'exercises'>
+
+const EXERCISE_KEY_ALIASES: Record<string, string[]> = {
+  bench: ['bench press'],
+  close_grip_bench: ['close-grip bench press'],
+  incline_bench: ['incline bench press'],
+  ohp: ['overhead press'],
+  rdl: ['romanian deadlift'],
+}
+
+function normalizeExerciseLookupKey(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+}
+
+export function getExerciseLookupKeys(value: string) {
+  const normalized = normalizeExerciseLookupKey(value)
+  const lookups = new Set<string>([normalized])
+
+  if (normalized.endsWith('_press')) {
+    lookups.add(normalized.replace(/_press$/, ''))
+  }
+
+  for (const [key, aliases] of Object.entries(EXERCISE_KEY_ALIASES)) {
+    const normalizedAliases = aliases.map(normalizeExerciseLookupKey)
+    if (key === normalized || normalizedAliases.includes(normalized)) {
+      lookups.add(key)
+    }
+  }
+
+  return Array.from(lookups)
+}
+
+export function buildExerciseKeyMap(exercises: Exercise[] | undefined) {
+  const lookup = new Map<string, number>()
+
+  for (const exercise of exercises ?? []) {
+    for (const key of getExerciseLookupKeys(exercise.name)) {
+      if (!lookup.has(key)) {
+        lookup.set(key, exercise.id)
+      }
+    }
+  }
+
+  return lookup
+}
+
+export function resolveExerciseIdFromMap(exerciseKeyMap: Map<string, number>, exerciseKey?: string | null) {
+  if (!exerciseKey) return undefined
+
+  for (const key of getExerciseLookupKeys(exerciseKey)) {
+    const exerciseId = exerciseKeyMap.get(key)
+    if (exerciseId) return exerciseId
+  }
+
+  return undefined
+}
 
 function upsertExercise(current: Exercise[] | undefined, exercise: Exercise) {
   const next = [...(current ?? []).filter((item) => item.id !== exercise.id), exercise]
@@ -25,6 +85,12 @@ export function useExercises(category?: string) {
     },
     staleTime: 30 * 60 * 1000,
   })
+}
+
+export function useExerciseKeyMap() {
+  const { data } = useExercises()
+
+  return useMemo(() => buildExerciseKeyMap(data), [data])
 }
 
 export function useCreateExercise() {

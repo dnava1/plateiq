@@ -2,15 +2,15 @@
 
 import { Radio } from '@base-ui/react/radio'
 import { RadioGroup } from '@base-ui/react/radio-group'
-import type { SupplementOption } from '@/types/template'
+import type { VariationOption } from '@/types/template'
 
-interface SupplementSelectorProps {
-  options: SupplementOption[]
+interface VariationSelectorProps {
+  options: VariationOption[]
   selectedKey: string | null
   onSelect: (key: string | null) => void
 }
 
-export function SupplementSelector({ options, selectedKey, onSelect }: SupplementSelectorProps) {
+export function VariationSelector({ options, selectedKey, onSelect }: VariationSelectorProps) {
   if (options.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
@@ -33,7 +33,6 @@ export function SupplementSelector({ options, selectedKey, onSelect }: Supplemen
         </p>
       </div>
 
-      {/* None option */}
       <Radio.Root
         value="__base__"
         nativeButton

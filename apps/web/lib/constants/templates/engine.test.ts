@@ -56,7 +56,7 @@ describe('resolveWeight', () => {
 
   it('handles percentage_work_set', () => {
     const prescription = makePrescription({ intensity: 0.5, intensity_type: 'percentage_work_set' })
-    expect(resolveWeight(prescription, trainingMaxes, 'squat')).toBe(0)
+    expect(resolveWeight(prescription, trainingMaxes, 'squat', 5, 255)).toBe(130)
   })
 
   it('rounds to custom increment', () => {
@@ -141,24 +141,51 @@ describe('generateWorkoutPlan', () => {
     expect(sets[0].weight_lbs).toBe(120)
   })
 
-  it('handles supplement options (5/3/1 BBB)', () => {
+  it('handles variation options (5/3/1 BBB)', () => {
     const template = TEMPLATE_REGISTRY['wendler_531']
     const sets = generateWorkoutPlan(template, 3, 1, trainingMaxes, ['bbb'])
 
-    // 3 main sets + 5 BBB supplement sets = 8
+    // 3 main sets + 5 BBB variation sets = 8
     expect(sets).toHaveLength(8)
 
-    const suppSets = sets.filter((s) => s.set_type === 'supplement')
-    expect(suppSets).toHaveLength(5)
-    suppSets.forEach((s) => {
+    const variationSets = sets.filter((s) => s.set_type === 'variation')
+    expect(variationSets).toHaveLength(5)
+    variationSets.forEach((s) => {
       expect(s.reps_prescribed).toBe(10)
-      // BBB exercise_key is undefined → resolves to 'unknown' → no TM → weight 0
-      // In real usage, user picks exercise and TM would be found
-      expect(s.weight_lbs).toBe(0)
+      expect(s.exercise_key).toBe('squat')
+      expect(s.weight_lbs).toBe(150)
     })
   })
 
-  it('ignores unselected supplements', () => {
+  it('uses the first working set weight for percentage_work_set variations', () => {
+    const template = TEMPLATE_REGISTRY['wendler_531']
+    const customVariation = {
+      ...template,
+      variation_options: [
+        {
+          key: 'backoff',
+          name: 'Backoff',
+          description: 'Backoff sets based on the first work set',
+          blocks: [
+            {
+              role: 'variation' as const,
+              exercise_key: undefined,
+              sets: [{ sets: 2, reps: 5, intensity: 0.9, intensity_type: 'percentage_work_set' as const }],
+            },
+          ],
+        },
+      ],
+    }
+
+    const sets = generateWorkoutPlan(customVariation, 3, 1, trainingMaxes, ['backoff'])
+    const backoffSets = sets.filter((set) => set.set_type === 'variation')
+
+    expect(backoffSets).toHaveLength(2)
+    expect(backoffSets[0].weight_lbs).toBe(175)
+    expect(backoffSets[0].exercise_key).toBe('squat')
+  })
+
+  it('ignores unselected variations', () => {
     const template = TEMPLATE_REGISTRY['wendler_531']
     const sets = generateWorkoutPlan(template, 3, 1, trainingMaxes, [])
     expect(sets).toHaveLength(3)
@@ -187,7 +214,7 @@ describe('generateWorkoutPlan', () => {
     sets.forEach((s) => {
       expect(s.exercise_key).toBeTruthy()
       expect(s.set_order).toBeGreaterThanOrEqual(1)
-      expect(['warmup', 'main', 'amrap', 'supplement', 'accessory']).toContain(s.set_type)
+      expect(['warmup', 'main', 'amrap', 'variation', 'accessory']).toContain(s.set_type)
       expect(typeof s.weight_lbs).toBe('number')
       expect(s.reps_prescribed).toBeGreaterThanOrEqual(0)
       expect(typeof s.is_amrap).toBe('boolean')

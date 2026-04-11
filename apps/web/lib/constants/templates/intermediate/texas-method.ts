@@ -27,7 +27,7 @@ export const texasMethod: ProgramTemplate = {
           notes: 'Alternate bench/OHP Mon/Wed/Fri each week',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'row',
           sets: [{ sets: 3, reps: 8, intensity: 0, intensity_type: 'fixed_weight' }],
         },
@@ -49,7 +49,7 @@ export const texasMethod: ProgramTemplate = {
           notes: 'Recovery — light overhead press',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'deadlift',
           sets: [{ sets: 1, reps: 5, intensity: 0.7, intensity_type: 'percentage_1rm' }],
           notes: 'Light pull — Power Clean 5×3 is a common substitution',
@@ -72,7 +72,7 @@ export const texasMethod: ProgramTemplate = {
           notes: 'New 5-rep PR attempt',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'deadlift',
           sets: [{ sets: 1, reps: 5, intensity: 1.0, intensity_type: 'fixed_weight' }],
           notes: 'Heavy 1×5 deadlift, add weight when possible',

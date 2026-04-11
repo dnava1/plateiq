@@ -26,7 +26,7 @@ export const conjugate: ProgramTemplate = {
           notes: 'Max Effort — work to 1-3RM on rotating ME exercise (board press, floor press, close-grip, Slingshot, etc.). Rotate every 2-3 weeks.',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'row',
           sets: [{ sets: 4, reps: '8-12', intensity: 7.5, intensity_type: 'rpe' }],
           notes: 'Secondary upper back work — DB rows, cable rows, or face pulls',
@@ -60,7 +60,7 @@ export const conjugate: ProgramTemplate = {
           notes: 'Max Effort lower — rotate between SSB squat, box squat, good mornings, deadlift variations, trap bar DL. Work to a 1-3RM.',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'rdl',
           sets: [{ sets: 4, reps: '6-10', intensity: 7.5, intensity_type: 'rpe' }],
           notes: 'Posterior chain accessory — RDLs, GHR, hyperextensions',
@@ -83,7 +83,7 @@ export const conjugate: ProgramTemplate = {
           notes: 'DE Bench — 9×3 @ 50-60% + optional accommodating resistance (bands/chains). Move bar explosively. 3-week wave: 50→55→60%.',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'ohp',
           sets: [{ sets: 4, reps: '8-10', intensity: 7.0, intensity_type: 'rpe' }],
           notes: 'Overhead pressing accessory',
@@ -112,7 +112,7 @@ export const conjugate: ProgramTemplate = {
           notes: 'DE Box Squat — 10-12×2 @ 50-60% + accommodating resistance. 3-week wave: 50→55→60%. Sit back onto box.',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'deadlift',
           sets: [{ sets: 6, reps: 1, intensity: 0.60, intensity_type: 'percentage_1rm' }],
           notes: 'DE Deadlifts — 6-10 singles from floor or elevated (rack pulls, blocks)',

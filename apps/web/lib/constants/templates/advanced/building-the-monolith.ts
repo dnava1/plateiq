@@ -39,7 +39,7 @@ export const buildingTheMonolith: ProgramTemplate = {
           notes: 'Standard 5/3/1 sets + Widowmaker set @ first-set-last weight (65%) for 20 reps',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'ohp',
           sets: [{ sets: 5, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' }],
           notes: 'OHP 5×5 at FSL (65% OHP TM)',
@@ -78,7 +78,7 @@ export const buildingTheMonolith: ProgramTemplate = {
           notes: 'Standard 5/3/1 — no Widowmaker on deadlift day',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'bench',
           sets: [{ sets: 5, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' }],
           notes: 'Bench 5×5 @ FSL (65% bench TM)',
@@ -111,7 +111,7 @@ export const buildingTheMonolith: ProgramTemplate = {
           notes: 'Standard 5/3/1 OHP',
         },
         {
-          role: 'supplement',
+          role: 'variation',
           exercise_key: 'squat',
           sets: [{ sets: 5, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' }],
           notes: 'Squat 5×5 @ FSL (65% squat TM)',

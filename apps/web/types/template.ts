@@ -12,7 +12,7 @@ export interface SetPrescription {
 
 export interface ExerciseBlock {
   block_id?: string
-  role: 'primary' | 'supplement' | 'accessory'
+  role: 'primary' | 'variation' | 'accessory'
   exercise_id?: number
   exercise_key?: string // 'squat' | 'bench' | null (user picks)
   sets: SetPrescription[]
@@ -24,7 +24,7 @@ export interface DayTemplate {
   exercise_blocks: ExerciseBlock[]
 }
 
-export interface SupplementOption {
+export interface VariationOption {
   key: string
   name: string
   description: string
@@ -50,15 +50,16 @@ export interface ProgramTemplate {
   required_exercises: string[] // exercise keys needed for this program
   days: DayTemplate[]
   week_schemes?: Record<number, { label: string; intensity_modifier?: number }> // for wave loading (5/3/1 weeks)
-  supplement_options?: SupplementOption[]
+  variation_options?: VariationOption[]
   progression: ProgressionRule
   source_url?: string
 }
 
 export interface GeneratedSet {
   exercise_key: string
+  exercise_id?: number
   set_order: number
-  set_type: 'warmup' | 'main' | 'amrap' | 'supplement' | 'accessory'
+  set_type: 'warmup' | 'main' | 'amrap' | 'variation' | 'accessory'
   weight_lbs: number
   reps_prescribed: number
   reps_prescribed_max?: number
