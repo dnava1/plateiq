@@ -29,14 +29,21 @@ test.describe('authenticated dashboard and analytics flows', () => {
     await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible()
     await expect(page.locator('#analytics-range')).toContainText(/6m|Last 6 months/)
 
+    await page.locator('#analytics-exercise').click({ force: true })
+    await page.waitForTimeout(300)
+    await page.locator('#analytics-exercise').focus()
+    await page.keyboard.press('ArrowDown')
+    await page.waitForTimeout(300)
+
+    const benchPressOption = page.getByRole('option', { name: 'Bench Press', exact: true })
+    await expect(benchPressOption).toBeVisible()
+    await benchPressOption.click({ force: true })
+    await expect(page.locator('#analytics-exercise')).toContainText('Bench Press')
+
     await page.locator('#analytics-range').click()
     await expect(page.getByRole('option', { name: 'Last 8 weeks', exact: true })).toBeVisible()
     await page.getByRole('option', { name: 'Last 8 weeks', exact: true }).click({ force: true })
     await expect(page.locator('#analytics-range')).toContainText(/8w|Last 8 weeks/)
-
-    await page.locator('#analytics-exercise').click()
-    await page.getByRole('option', { name: /Bench Press|Squat/ }).first().click()
-    await expect(page.locator('#analytics-exercise')).not.toContainText('All exercises')
 
     await page.getByRole('tab', { name: 'Strength' }).click()
     await expect(page.getByText('TM Progression')).toBeVisible()

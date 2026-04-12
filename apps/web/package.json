@@ -7,8 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "seed-data": "node ./scripts/seed-data.mjs",
     "test": "vitest run",
-    "test:e2e": "playwright test",
+    "test:browser": "playwright test",
     "test:watch": "vitest"
   },
   "dependencies": {

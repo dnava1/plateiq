@@ -47,7 +47,7 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${playwrigh
 const shouldManageWebServer = process.env.PLAYWRIGHT_BASE_URL === undefined
 
 export default defineConfig({
-  testDir: './e2e',
+  testDir: './browser-tests',
   fullyParallel: false,
   timeout: 45_000,
   expect: {

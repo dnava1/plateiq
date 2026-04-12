@@ -69,6 +69,16 @@ export function AnalyticsDashboard() {
   const dateRange = useMemo(() => createDateRange(rangeKey), [rangeKey])
   const selectedExerciseId = selectedExerciseValue === 'all' ? null : Number(selectedExerciseValue)
   const { data: exercises } = useExercises()
+  const exerciseSelectItems = useMemo(
+    () => [
+      { value: 'all', label: 'All exercises' },
+      ...(exercises ?? []).map((exercise) => ({
+        value: String(exercise.id),
+        label: exercise.name,
+      })),
+    ],
+    [exercises],
+  )
   const { data, isLoading } = useAnalytics(selectedExerciseId, dateRange)
   const analytics = data ?? EMPTY_ANALYTICS
   const weeklyActivity = useMemo(() => buildWeeklyActivity(analytics.volumeTrend, 12, dateRange.to), [analytics.volumeTrend, dateRange.to])
@@ -125,7 +135,7 @@ export function AnalyticsDashboard() {
           <CardContent className="grid gap-4 pt-0 lg:grid-cols-[minmax(0,18rem)_minmax(0,18rem)_1fr] lg:items-end">
             <div className="flex flex-col gap-2">
               <label htmlFor="analytics-range" className="text-sm font-medium text-foreground">Date Range</label>
-              <Select value={rangeKey} onValueChange={(value) => value && setRangeKey(value)}>
+              <Select value={rangeKey} onValueChange={(value) => value && setRangeKey(value)} items={DATE_RANGE_PRESETS}>
                 <SelectTrigger id="analytics-range" className="w-full h-9">
                   <SelectValue />
                 </SelectTrigger>
@@ -141,15 +151,18 @@ export function AnalyticsDashboard() {
 
             <div className="flex flex-col gap-2">
               <label htmlFor="analytics-exercise" className="text-sm font-medium text-foreground">Exercise</label>
-              <Select value={selectedExerciseValue} onValueChange={(value) => value && setSelectedExerciseValue(value)}>
+              <Select
+                value={selectedExerciseValue}
+                onValueChange={(value) => value && setSelectedExerciseValue(value)}
+                items={exerciseSelectItems}
+              >
                 <SelectTrigger id="analytics-exercise" className="w-full h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    <SelectItem value="all">All exercises</SelectItem>
-                    {(exercises ?? []).map((exercise) => (
-                      <SelectItem key={exercise.id} value={String(exercise.id)}>{exercise.name}</SelectItem>
+                    {exerciseSelectItems.map((exercise) => (
+                      <SelectItem key={exercise.value} value={exercise.value}>{exercise.label}</SelectItem>
                     ))}
                   </SelectGroup>
                 </SelectContent>
