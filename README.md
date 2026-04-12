@@ -11,7 +11,7 @@ PWA strength training tracker supporting 15+ popular programs — from Starting 
 | Database + API | Supabase PostgreSQL + PostgREST + RLS (500 MB free) |
 | Business Logic | Next.js API routes + PostgreSQL functions (RPC) |
 | Charts | Recharts (line, bar, radar, scatter, heatmap) |
-| AI | Google Gemini 2.0 Flash (1,500 req/day free) |
+| AI | Google Gemini 2.5 Flash via @google/genai (free tier available; quotas vary by AI Studio project tier) |
 | Offline | TanStack Query mutation persistence + service worker (IndexedDB) |
 | Hosting | Vercel Free (frontend + API routes) + Supabase Free (DB + Auth) |
 | CI/CD | GitHub Actions + Vercel auto-deploy |

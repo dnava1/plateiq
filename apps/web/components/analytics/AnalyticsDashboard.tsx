@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { TrendingUp } from 'lucide-react'
 import { useAnalytics, type AnalyticsDateRange } from '@/hooks/useAnalytics'
 import { useExercises } from '@/hooks/useExercises'
-import { aggregateWeeklyVolume, buildWeeklyActivity, deriveRecentPrs } from '@/lib/analytics'
+import { aggregateWeeklyVolume, buildWeeklyActivity, deriveRecentPrs, hasAnalyticsData as hasAnalyticsSnapshot } from '@/lib/analytics'
 import { ChartCard } from '@/components/charts/ChartCard'
 import { ConsistencyHeatmap } from '@/components/charts/ConsistencyHeatmap'
 import { E1rmTrendChart } from '@/components/charts/E1rmTrendChart'
@@ -12,6 +12,7 @@ import { MuscleBalanceChart } from '@/components/charts/MuscleBalanceChart'
 import { PrTimelineChart } from '@/components/charts/PrTimelineChart'
 import { TmProgressionChart } from '@/components/charts/TmProgressionChart'
 import { VolumeTrendChart } from '@/components/charts/VolumeTrendChart'
+import { AiInsightsPanel } from './AiInsightsPanel'
 import { PlateCalculator } from './PlateCalculator'
 import {
   Card,
@@ -29,7 +30,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { formatDate } from '@/lib/utils'
+import { formatDate, formatDateAsLocalIso } from '@/lib/utils'
 import type { AnalyticsData } from '@/types/analytics'
 
 const EMPTY_ANALYTICS: AnalyticsData = {
@@ -89,6 +90,7 @@ export function AnalyticsDashboard() {
     ? previousWeeks.reduce((total, entry) => total + entry.totalVolume, 0) / previousWeeks.length
     : 0
   const recentPrs = useMemo(() => deriveRecentPrs(analytics.prHistory, 6), [analytics.prHistory])
+  const selectedDateRangeLabel = DATE_RANGE_PRESETS.find((preset) => preset.value === rangeKey)?.label ?? 'Last 6 months'
   const selectedExerciseName = selectedExerciseId
     ? exercises?.find((exercise) => exercise.id === selectedExerciseId)?.name ?? null
     : null
@@ -103,12 +105,12 @@ export function AnalyticsDashboard() {
       : [],
     [analytics.tmProgression, selectedExerciseId],
   )
-  const hasAnalyticsData = analytics.e1rmTrend.length > 0
-    || analytics.volumeTrend.length > 0
-    || analytics.prHistory.length > 0
-    || analytics.muscleBalance.length > 0
-    || analytics.stallDetection.length > 0
-    || analytics.consistency.totalSessions > 0
+  const aiInsightScopeKey = [
+    selectedExerciseId ?? 'all',
+    formatDateAsLocalIso(dateRange.from),
+    formatDateAsLocalIso(dateRange.to),
+  ].join(':')
+  const hasAnalyticsData = hasAnalyticsSnapshot(analytics)
 
   return (
     <div className="page-shell max-w-6xl">
@@ -228,7 +230,7 @@ export function AnalyticsDashboard() {
                       <div className="rounded-[20px] border border-border/70 bg-background/45 p-4">
                         <span className="eyebrow">Current Window</span>
                         <p className="mt-2 text-sm font-medium text-foreground">
-                          {DATE_RANGE_PRESETS.find((preset) => preset.value === rangeKey)?.label ?? 'Last 6 months'}
+                          {selectedDateRangeLabel}
                         </p>
                       </div>
                     </div>
@@ -397,38 +399,16 @@ export function AnalyticsDashboard() {
             </TabsContent>
 
             <TabsContent value="ai" className="mt-4">
-              <Card className="surface-panel">
-                <CardHeader className="gap-2">
-                  <CardTitle className="text-base">AI Insights</CardTitle>
-                  <CardDescription>
-                    The analytics snapshot is in place; structured coaching summaries can layer on top once the generator is enabled.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-4 pt-0 lg:grid-cols-[minmax(0,1fr)_18rem]">
-                  <div className="rounded-[22px] border border-border/70 bg-background/45 p-4">
-                    <p className="text-sm leading-6 text-muted-foreground">
-                      {hasAnalyticsData
-                        ? 'This athlete snapshot already includes the trend, consistency, PR, and stall signals the insight generator will consume. Use the chart tabs to review the raw picture until automated summaries are switched on.'
-                        : 'Build a little more training history first. The insight generator depends on the same analytics snapshot shown in the Overview, Strength, and Volume tabs.'}
-                    </p>
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-                    <div className="rounded-[20px] border border-border/70 bg-background/45 p-4">
-                      <span className="eyebrow">Snapshot Ready</span>
-                      <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-foreground">{hasAnalyticsData ? 'Yes' : 'Not yet'}</p>
-                    </div>
-                    <div className="rounded-[20px] border border-border/70 bg-background/45 p-4">
-                      <span className="eyebrow">PR Signals</span>
-                      <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-foreground">{recentPrs.length}</p>
-                    </div>
-                    <div className="rounded-[20px] border border-border/70 bg-background/45 p-4">
-                      <span className="eyebrow">Stalls Flagged</span>
-                      <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-foreground">{analytics.stallDetection.length}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <AiInsightsPanel
+                key={aiInsightScopeKey}
+                dateRange={dateRange}
+                dateRangeLabel={selectedDateRangeLabel}
+                hasAnalyticsData={hasAnalyticsData}
+                recentPrCount={recentPrs.length}
+                selectedExerciseId={selectedExerciseId}
+                selectedExerciseName={selectedExerciseName}
+                stallCount={analytics.stallDetection.length}
+              />
             </TabsContent>
           </Tabs>
 

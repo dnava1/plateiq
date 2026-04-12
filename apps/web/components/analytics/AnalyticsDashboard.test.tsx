@@ -21,6 +21,10 @@ vi.mock('@/hooks/useAnalytics', () => ({
   useAnalytics: mocks.useAnalytics,
 }))
 
+vi.mock('./AiInsightsPanel', () => ({
+  AiInsightsPanel: () => <div>ai-insights-panel</div>,
+}))
+
 vi.mock('@/components/charts/E1rmTrendChart', () => ({
   E1rmTrendChart: () => <div>e1rm-chart</div>,
 }))
@@ -112,7 +116,6 @@ describe('AnalyticsDashboard', () => {
 
     await user.click(screen.getByRole('tab', { name: 'AI Insights' }))
 
-    expect(screen.getByText('Snapshot Ready')).toBeInTheDocument()
-    expect(screen.getByText(/structured coaching summaries can layer on top once the generator is enabled/i)).toBeInTheDocument()
+    expect(screen.getByText('ai-insights-panel')).toBeInTheDocument()
   })
 })

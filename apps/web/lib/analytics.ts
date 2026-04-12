@@ -352,6 +352,15 @@ export function parseAnalyticsData(value: Json | null): AnalyticsData {
   }
 }
 
+export function hasAnalyticsData(analytics: AnalyticsData) {
+  return analytics.e1rmTrend.length > 0
+    || analytics.volumeTrend.length > 0
+    || analytics.prHistory.length > 0
+    || analytics.muscleBalance.length > 0
+    || analytics.stallDetection.length > 0
+    || analytics.consistency.totalSessions > 0
+}
+
 export function deriveRecentPrs(prHistory: AnalyticsPrPoint[], limit: number = 4): DerivedRecentPr[] {
   const bestByExercise = new Map<number, number>()
   const discoveredPrs: DerivedRecentPr[] = []

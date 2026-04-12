@@ -1,8 +1,9 @@
-import { describe, it, expect } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   cn,
   displayToLbs,
   formatDate,
+  formatDateAsLocalIso,
   formatDaysPerWeek,
   formatExerciseKey,
   formatRounding,
@@ -15,6 +16,22 @@ import {
   roundToIncrement,
   roundToNearest,
 } from './utils'
+
+function createMockDate(localDate: string, utcDate: string) {
+  const [year, month, day] = localDate.split('-').map(Number)
+
+  return {
+    getFullYear: () => year,
+    getMonth: () => month - 1,
+    getDate: () => day,
+    toISOString: () => `${utcDate}T00:00:00.000Z`,
+  } as unknown as Date
+}
+
+afterEach(() => {
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+})
 
 describe('cn', () => {
   it('merges class names', () => {
@@ -193,9 +210,39 @@ describe('formatDate', () => {
     expect(result).toMatch(/Jun\s+15,\s+2024/)
   })
 
+  it('treats date-only strings as local calendar dates', () => {
+    const OriginalDate = Date
+    const dateCalls: unknown[][] = []
+
+    class DateSpy extends OriginalDate {
+      constructor(...args: ConstructorParameters<DateConstructor>) {
+        dateCalls.push([...args])
+        super(...args)
+      }
+    }
+
+    vi.stubGlobal('Date', DateSpy as unknown as DateConstructor)
+
+    const result = formatDate('2024-06-15')
+
+    expect(result).toMatch(/Jun\s+15,\s+2024/)
+    expect(dateCalls).toContainEqual([2024, 5, 15])
+    expect(dateCalls).not.toContainEqual(['2024-06-15'])
+  })
+
   it('formats a Date object', () => {
     const result = formatDate(new Date(2024, 0, 15))
     expect(result).toMatch(/Jan/)
     expect(result).toMatch(/2024/)
+  })
+})
+
+describe('formatDateAsLocalIso', () => {
+  it('returns a zero-padded local calendar date', () => {
+    expect(formatDateAsLocalIso(new Date(2026, 1, 3, 18, 45))).toBe('2026-02-03')
+  })
+
+  it('uses local date parts instead of UTC serialization', () => {
+    expect(formatDateAsLocalIso(createMockDate('2026-02-03', '2026-02-02'))).toBe('2026-02-03')
   })
 })

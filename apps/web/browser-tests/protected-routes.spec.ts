@@ -23,7 +23,24 @@ test.describe('authenticated dashboard and analytics flows', () => {
     await expect(page.getByText('Recent PRs', { exact: true })).toBeVisible()
   })
 
-  test('supports analytics filter changes and stage 10 tabs', async ({ page }) => {
+  test('supports analytics filter changes and AI insight generation', async ({ page }) => {
+    let insightRequestBody: Record<string, unknown> | null = null
+
+    await page.route('**/api/insights/generate', async (route) => {
+      insightRequestBody = route.request().postDataJSON() as Record<string, unknown>
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          summary: 'Bench press momentum is positive, but squat progress needs closer monitoring.',
+          strengths: ['Bench press estimated 1RM is moving in the right direction.'],
+          concerns: ['Squat has gone multiple weeks without a fresh PR.'],
+          recommendations: ['Keep bench volume stable and add one focused squat exposure this week.'],
+        }),
+      })
+    })
+
     await page.goto('/analytics')
 
     await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible()
@@ -49,7 +66,19 @@ test.describe('authenticated dashboard and analytics flows', () => {
     await expect(page.getByText('TM Progression')).toBeVisible()
 
     await page.getByRole('tab', { name: 'AI Insights' }).click()
-    await expect(page.getByText('Snapshot Ready')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Generate insight for Bench Press' })).toBeVisible()
+    await page.getByRole('button', { name: 'Generate insight for Bench Press' }).click()
+
+    expect(insightRequestBody?.['exerciseId']).toEqual(expect.any(Number))
+    expect(insightRequestBody?.['dateFrom']).toEqual(expect.any(String))
+    expect(insightRequestBody?.['dateTo']).toEqual(expect.any(String))
+    expect(insightRequestBody).not.toHaveProperty('exerciseName')
+
+    await expect(page.getByRole('heading', { name: 'Summary' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Strengths' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Concerns' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Recommendations' })).toBeVisible()
+    await expect(page.getByText('Bench press momentum is positive, but squat progress needs closer monitoring.')).toBeVisible()
   })
 
   test('clears persisted query cache state when signing out', async ({ page }) => {

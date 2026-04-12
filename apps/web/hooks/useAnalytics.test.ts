@@ -2,13 +2,24 @@ import * as React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { useAnalytics } from './useAnalytics'
+import { analyticsQueryKeys, useAnalytics } from './useAnalytics'
 
 const useSupabaseMock = vi.fn()
 
 vi.mock('./useSupabase', () => ({
   useSupabase: () => useSupabaseMock(),
 }))
+
+function createMockDate(localDate: string, utcDate: string) {
+  const [year, month, day] = localDate.split('-').map(Number)
+
+  return {
+    getFullYear: () => year,
+    getMonth: () => month - 1,
+    getDate: () => day,
+    toISOString: () => `${utcDate}T00:00:00.000Z`,
+  } as unknown as Date
+}
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -59,8 +70,8 @@ describe('useAnalytics', () => {
 
     const { result } = renderHook(
       () => useAnalytics(2, {
-        from: new Date('2026-02-01T00:00:00.000Z'),
-        to: new Date('2026-04-01T00:00:00.000Z'),
+        from: createMockDate('2026-02-01', '2026-01-31'),
+        to: createMockDate('2026-04-01', '2026-03-31'),
       }),
       { wrapper: createWrapper() },
     )
@@ -112,5 +123,14 @@ describe('useAnalytics', () => {
     })
 
     expect(result.current.error).toBe(error)
+  })
+
+  it('uses local calendar dates in query keys', () => {
+    expect(
+      analyticsQueryKeys.filtered(2, {
+        from: createMockDate('2026-02-01', '2026-01-31'),
+        to: createMockDate('2026-04-01', '2026-03-31'),
+      }),
+    ).toEqual(['analytics', 2, '2026-02-01', '2026-04-01'])
   })
 })

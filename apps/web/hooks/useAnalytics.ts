@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { parseAnalyticsData } from '@/lib/analytics'
+import { formatDateAsLocalIso } from '@/lib/utils'
 import { useSupabase } from './useSupabase'
 
 export interface AnalyticsDateRange {
@@ -14,8 +15,8 @@ export const analyticsQueryKeys = {
   filtered: (exerciseId: number | null | undefined, dateRange?: AnalyticsDateRange) => [
     'analytics',
     exerciseId ?? 'all',
-    dateRange?.from?.toISOString().slice(0, 10) ?? 'default',
-    dateRange?.to?.toISOString().slice(0, 10) ?? 'default',
+    dateRange?.from ? formatDateAsLocalIso(dateRange.from) : 'default',
+    dateRange?.to ? formatDateAsLocalIso(dateRange.to) : 'default',
   ] as const,
 }
 
@@ -26,8 +27,8 @@ async function fetchAnalyticsAggregate(
 ) {
   const { data, error } = await supabase.rpc('get_analytics_data', {
     ...(exerciseId ? { p_exercise_id: exerciseId } : {}),
-    ...(dateRange?.from ? { p_date_from: dateRange.from.toISOString().slice(0, 10) } : {}),
-    ...(dateRange?.to ? { p_date_to: dateRange.to.toISOString().slice(0, 10) } : {}),
+    ...(dateRange?.from ? { p_date_from: formatDateAsLocalIso(dateRange.from) } : {}),
+    ...(dateRange?.to ? { p_date_to: formatDateAsLocalIso(dateRange.to) } : {}),
   })
 
   if (error) throw error

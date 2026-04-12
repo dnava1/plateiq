@@ -5,6 +5,7 @@ import type { PreferredUnit } from '@/types/domain'
 const KG_PER_LB = 0.453592
 const ROUNDING_OPTIONS_LBS = [2.5, 5, 10] as const
 const ROUNDING_EPSILON = 1e-9
+const ISO_DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/
 const EXERCISE_KEY_ACRONYMS = new Set(['ohp', 'rdl'])
 const EXERCISE_KEY_LABELS: Record<string, string> = {
   bench: 'Bench Press',
@@ -105,11 +106,32 @@ export function formatExerciseKey(exerciseKey: string): string {
 }
 
 export function formatDate(date: string | Date): string {
+  const normalizedDate = typeof date === 'string'
+    ? (() => {
+      const match = ISO_DATE_ONLY_PATTERN.exec(date)
+
+      if (!match) {
+        return new Date(date)
+      }
+
+      const [, year, month, day] = match
+      return new Date(Number(year), Number(month) - 1, Number(day))
+    })()
+    : new Date(date)
+
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  }).format(new Date(date))
+  }).format(normalizedDate)
+}
+
+export function formatDateAsLocalIso(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
 }
 
 export function roundToIncrement(value: number, increment: number, mode: RoundingMode = 'nearest'): number {
