@@ -12,6 +12,7 @@ import {
   getRoundingOptions,
   lbsToDisplay,
   normalizeCadenceCopy,
+  roundToIncrement,
   roundToNearest,
 } from './utils'
 
@@ -173,6 +174,16 @@ describe('roundToNearest', () => {
 
   it('supports converted kg values stored canonically in lbs', () => {
     expect(roundToNearest(displayToLbs(2.5, 'kg'), 0.5)).toBe(5.5)
+  })
+})
+
+describe('roundToIncrement', () => {
+  it('can round down to the lower increment', () => {
+    expect(roundToIncrement(239.8, 5, 'down')).toBe(235)
+  })
+
+  it('can round up to the higher increment', () => {
+    expect(roundToIncrement(239.8, 5, 'up')).toBe(240)
   })
 })
 

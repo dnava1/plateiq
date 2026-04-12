@@ -9,6 +9,7 @@ import { useUser } from '@/hooks/useUser'
 import { useCycleWorkouts, useActiveCycle, useEnsureWorkout, resolveWorkoutProgram, buildTrainingMaxMap } from '@/hooks/useWorkouts'
 import type { TrainingProgram } from '@/hooks/usePrograms'
 import { generateWorkoutPlan } from '@/lib/constants/templates/engine'
+import { findSuggestedWorkoutSelection } from '@/lib/workout-progress'
 import { formatExerciseKey, formatWeekCycle } from '@/lib/utils'
 import { useWorkoutSessionStore } from '@/store/workoutSessionStore'
 import { Badge } from '@/components/ui/badge'
@@ -19,24 +20,6 @@ import type { WorkoutDisplaySet } from './types'
 
 interface WorkoutLauncherProps {
   program: TrainingProgram
-}
-
-function findSuggestedSelection(
-  cycleLengthWeeks: number,
-  dayLabels: string[],
-  workouts: Array<{ completed_at: string | null; day_label: string | null; id: number; week_number: number }> | undefined,
-) {
-  for (let weekNumber = 1; weekNumber <= cycleLengthWeeks; weekNumber += 1) {
-    for (let dayIndex = 0; dayIndex < dayLabels.length; dayIndex += 1) {
-      const dayLabel = dayLabels[dayIndex]
-      const workout = workouts?.find((item) => item.week_number === weekNumber && item.day_label === dayLabel)
-      if (!workout || !workout.completed_at) {
-        return { dayIndex, weekNumber }
-      }
-    }
-  }
-
-  return { dayIndex: 0, weekNumber: 1 }
 }
 
 export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
@@ -58,7 +41,7 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
 
   const suggestedSelection = useMemo(() => {
     const dayLabels = template?.days.map((day) => day.label) ?? []
-    return findSuggestedSelection(template?.cycle_length_weeks ?? 1, dayLabels, cycleWorkouts)
+    return findSuggestedWorkoutSelection(template?.cycle_length_weeks ?? 1, dayLabels, cycleWorkouts)
   }, [cycleWorkouts, template])
 
   const selectionScope = `${program.id}:${activeCycle?.id ?? 'none'}`
@@ -94,6 +77,7 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
           ? exerciseNameById.get(exerciseId) ?? formatExerciseKey(set.exercise_key)
           : formatExerciseKey(set.exercise_key),
         loggedAt: null,
+        prescribedWeightLbs: set.weight_lbs,
         repsActual: null,
         workoutId: null,
       }

@@ -4,6 +4,7 @@ import type { PreferredUnit } from '@/types/domain'
 
 const KG_PER_LB = 0.453592
 const ROUNDING_OPTIONS_LBS = [2.5, 5, 10] as const
+const ROUNDING_EPSILON = 1e-9
 const EXERCISE_KEY_ACRONYMS = new Set(['ohp', 'rdl'])
 const EXERCISE_KEY_LABELS: Record<string, string> = {
   bench: 'Bench Press',
@@ -21,6 +22,12 @@ const EXERCISE_KEY_LABELS: Record<string, string> = {
 function roundToSingleDecimal(value: number) {
   return Math.round(value * 10) / 10
 }
+
+function normalizeRoundedValue(value: number) {
+  return Math.round(value * 1000) / 1000
+}
+
+export type RoundingMode = 'nearest' | 'down' | 'up'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -105,6 +112,23 @@ export function formatDate(date: string | Date): string {
   }).format(new Date(date))
 }
 
+export function roundToIncrement(value: number, increment: number, mode: RoundingMode = 'nearest'): number {
+  if (!Number.isFinite(value) || !Number.isFinite(increment) || increment <= 0) {
+    return value
+  }
+
+  const scaled = value / increment
+
+  switch (mode) {
+    case 'down':
+      return normalizeRoundedValue(Math.floor(scaled + ROUNDING_EPSILON) * increment)
+    case 'up':
+      return normalizeRoundedValue(Math.ceil(scaled - ROUNDING_EPSILON) * increment)
+    default:
+      return normalizeRoundedValue(Math.round(scaled) * increment)
+  }
+}
+
 export function roundToNearest(value: number, nearest: number): number {
-  return Math.round(value / nearest) * nearest
+  return roundToIncrement(value, nearest, 'nearest')
 }

@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getTemplate } from '@/lib/constants/templates'
 import { getExerciseLookupKeys } from '@/hooks/useExercises'
+import { analyticsQueryKeys } from '@/hooks/useAnalytics'
+import { dashboardQueryKeys } from '@/hooks/useDashboard'
 import { useSupabase } from './useSupabase'
 import type { TrainingProgram } from './usePrograms'
 import type { Database, Json, Tables } from '@/types/database'
@@ -362,6 +364,7 @@ export function useEnsureWorkout() {
     mutationFn: async (input: EnsureWorkoutInput) => ensureWorkoutMutation(supabase, input),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: workoutQueryKeys.cycle(variables.cycleId) })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() })
     },
   })
 }
@@ -417,6 +420,8 @@ export function useLogSet() {
       if (variables.isAmrap) {
         queryClient.invalidateQueries({ queryKey: workoutQueryKeys.amrapHistory(variables.exerciseId) })
       }
+      queryClient.invalidateQueries({ queryKey: analyticsQueryKeys.all() })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() })
     },
   })
 }
@@ -459,6 +464,8 @@ export function useCompleteWorkout() {
       queryClient.invalidateQueries({ queryKey: ['workouts'] })
       queryClient.invalidateQueries({ queryKey: workoutQueryKeys.cycle(variables.cycleId) })
       queryClient.invalidateQueries({ queryKey: workoutQueryKeys.sets(variables.workoutId) })
+      queryClient.invalidateQueries({ queryKey: analyticsQueryKeys.all() })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() })
     },
   })
 }

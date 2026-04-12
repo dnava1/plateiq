@@ -1,6 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { dashboardQueryKeys } from './useDashboard'
 import { useSupabase } from './useSupabase'
 import type { SetTrainingMaxInput } from '@/lib/validations/trainingMax'
 
@@ -47,6 +48,7 @@ export function useSetTrainingMax() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['training-maxes'] })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() })
     },
   })
 }

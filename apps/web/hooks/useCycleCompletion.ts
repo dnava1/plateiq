@@ -7,6 +7,8 @@ import { useCurrentTrainingMaxes } from '@/hooks/useTrainingMaxes'
 import { getProgressionIncrements } from '@/lib/constants/templates/engine'
 import { isCustomProgramConfig, type CustomProgramConfig, type ProgressionRule } from '@/types/template'
 import type { Database } from '@/types/database'
+import { analyticsQueryKeys } from './useAnalytics'
+import { dashboardQueryKeys } from './useDashboard'
 import type { TrainingProgram } from './usePrograms'
 import { useSupabase } from './useSupabase'
 import { resolveWorkoutProgram, useActiveCycle, useCycleWorkouts, type CycleWorkout } from './useWorkouts'
@@ -399,7 +401,8 @@ export function useCompleteCycle() {
         queryClient.invalidateQueries({ queryKey: ['workout-sets'] }),
         queryClient.invalidateQueries({ queryKey: ['programs'] }),
         queryClient.invalidateQueries({ queryKey: ['training-maxes'] }),
-        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+        queryClient.invalidateQueries({ queryKey: analyticsQueryKeys.all() }),
+        queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() }),
       ])
     },
   })

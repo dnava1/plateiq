@@ -2,9 +2,13 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { LogOut, Ruler } from 'lucide-react'
+import { toast } from 'sonner'
 import { useUser } from '@/hooks/useUser'
 import { useSupabase } from '@/hooks/useSupabase'
 import { useUiStore } from '@/store/uiStore'
+import { clearAllPersistedQueryCaches } from '@/lib/query-persistence'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -16,9 +20,6 @@ import {
 } from '@/components/ui/card'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { LogOut, Ruler } from 'lucide-react'
-import { toast } from 'sonner'
 import type { PreferredUnit } from '@/types/domain'
 
 export default function SettingsPage() {
@@ -60,13 +61,16 @@ export default function SettingsPage() {
 
   const handleLogout = async () => {
     setIsSigningOut(true)
-    const { error } = await supabase.auth.signOut()
+    const { error } = await supabase.auth.signOut({ scope: 'local' })
     if (error) {
       toast.error(error.message)
       setIsSigningOut(false)
       return
     }
-    router.push('/login')
+
+    await clearAllPersistedQueryCaches().catch(() => undefined)
+
+    router.replace('/login')
   }
 
   const displayName = user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? 'Athlete'

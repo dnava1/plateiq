@@ -1,11 +1,18 @@
 'use client'
 
-import { QueryClient } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
-import { get, set, del } from 'idb-keyval'
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useUiStore } from '@/store/uiStore'
 import { createClient } from '@/lib/supabase/client'
+import { analyticsQueryKeys } from '@/hooks/useAnalytics'
+import { dashboardQueryKeys } from '@/hooks/useDashboard'
+import {
+  clearAllPersistedQueryCaches,
+  clearLegacyPersistedQueryCache,
+  createIdbPersister,
+  getQueryPersistenceBuster,
+} from '@/lib/query-persistence'
 import {
   completeWorkoutMutation,
   ensureWorkoutMutation,
@@ -17,7 +24,9 @@ import {
   type LogSetInput,
 } from '@/hooks/useWorkouts'
 
-function makeQueryClient() {
+function makeQueryClient(scope: string) {
+  void scope
+
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -37,6 +46,7 @@ function makeQueryClient() {
     onSuccess: (_data, variables) => {
       const input = variables as unknown as EnsureWorkoutInput
       queryClient.invalidateQueries({ queryKey: workoutQueryKeys.cycle(input.cycleId) })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() })
     },
   })
 
@@ -48,6 +58,8 @@ function makeQueryClient() {
       if (input.isAmrap) {
         queryClient.invalidateQueries({ queryKey: workoutQueryKeys.amrapHistory(input.exerciseId) })
       }
+      queryClient.invalidateQueries({ queryKey: analyticsQueryKeys.all() })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() })
     },
   })
 
@@ -58,27 +70,15 @@ function makeQueryClient() {
       queryClient.invalidateQueries({ queryKey: ['workouts'] })
       queryClient.invalidateQueries({ queryKey: workoutQueryKeys.cycle(input.cycleId) })
       queryClient.invalidateQueries({ queryKey: workoutQueryKeys.sets(input.workoutId) })
+      queryClient.invalidateQueries({ queryKey: analyticsQueryKeys.all() })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() })
     },
   })
 
   return queryClient
 }
 
-function createIdbPersister() {
-  return {
-    persistClient: async (client: unknown) => {
-      await set('plateiq-query-cache', client)
-    },
-    restoreClient: async () => {
-      return await get('plateiq-query-cache')
-    },
-    removeClient: async () => {
-      await del('plateiq-query-cache')
-    },
-  }
-}
-
-const persister = createIdbPersister()
+const QUERY_CACHE_MAX_AGE = 1000 * 60 * 60 * 24
 
 function ThemeSync() {
   const theme = useUiStore((s) => s.theme)
@@ -109,18 +109,106 @@ function ThemeSync() {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(makeQueryClient)
+  const [supabase] = useState(() => createClient())
+  const [authScope, setAuthScope] = useState<string | null>(null)
+  const [isAuthReady, setIsAuthReady] = useState(false)
+  const previousAuthScopeRef = useRef<string | null>(null)
+  const queryClientScope = authScope ?? 'signed-out'
+  const queryClient = useMemo(() => makeQueryClient(queryClientScope), [queryClientScope])
+  const persister = useMemo(() => {
+    return authScope ? createIdbPersister(authScope) : null
+  }, [authScope])
+
+  useEffect(() => {
+    let isActive = true
+
+    void clearLegacyPersistedQueryCache().catch(() => undefined)
+
+    const applyAuthScope = (nextScope: string | null) => {
+      if (!isActive) return
+
+      setIsAuthReady(true)
+      setAuthScope((currentScope) => {
+        if (currentScope === nextScope) {
+          return currentScope
+        }
+
+        return nextScope
+      })
+    }
+
+    const resolveInitialScope = async () => {
+      const { data, error } = await supabase.auth.getSession()
+
+      if (!isActive) return
+
+      if (error) {
+        applyAuthScope(null)
+        return
+      }
+
+      applyAuthScope(data.session?.user?.id ?? null)
+    }
+
+    void resolveInitialScope()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      applyAuthScope(session?.user?.id ?? null)
+    })
+
+    return () => {
+      isActive = false
+      subscription.unsubscribe()
+    }
+  }, [supabase])
+
+  useEffect(() => {
+    if (!isAuthReady) {
+      return
+    }
+
+    const previousScope = previousAuthScopeRef.current
+    previousAuthScopeRef.current = authScope
+
+    if (!previousScope || previousScope === authScope) {
+      return
+    }
+
+    void clearAllPersistedQueryCaches().catch(() => undefined)
+    void clearLegacyPersistedQueryCache().catch(() => undefined)
+  }, [authScope, isAuthReady])
+
+  const content = (
+    <>
+      <ThemeSync />
+      {children}
+    </>
+  )
+
+  if (!isAuthReady || !authScope || !persister) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        {content}
+      </QueryClientProvider>
+    )
+  }
 
   return (
     <PersistQueryClientProvider
+      key={authScope}
       client={queryClient}
-      persistOptions={{ persister, maxAge: 1000 * 60 * 60 * 24 }}
+      persistOptions={{
+        persister,
+        buster: getQueryPersistenceBuster(authScope),
+        maxAge: QUERY_CACHE_MAX_AGE,
+      }}
       onSuccess={() => {
         void queryClient.resumePausedMutations()
       }}
     >
-      <ThemeSync />
-      {children}
+      {content}
     </PersistQueryClientProvider>
   )
 }

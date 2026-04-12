@@ -1,6 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { dashboardQueryKeys } from './useDashboard'
 import { useSupabase } from './useSupabase'
 import type { CreateProgramInput, CreateCustomProgramInput } from '@/lib/validations/program'
 import { getTemplate } from '@/lib/constants/templates'
@@ -94,6 +95,7 @@ export function useCreateProgram() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['programs'] })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() })
     },
   })
 }
@@ -124,6 +126,7 @@ export function useSetActiveProgram() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['programs'] })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() })
     },
   })
 }
@@ -170,6 +173,7 @@ export function useCreateCustomProgram() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['programs'] })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() })
     },
   })
 }

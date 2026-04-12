@@ -6,6 +6,7 @@ export interface WorkoutDisplaySet extends GeneratedSet {
   exerciseId: number | null
   exerciseName: string
   loggedAt: string | null
+  prescribedWeightLbs: number
   repsActual: number | null
   workoutId: number | null
 }

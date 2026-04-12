@@ -73,6 +73,7 @@ const baseSet = {
   exercise_id: 2,
   set_order: 1,
   set_type: 'main' as const,
+  prescribedWeightLbs: 225,
   weight_lbs: 225,
   reps_prescribed: 5,
   reps_prescribed_max: undefined,

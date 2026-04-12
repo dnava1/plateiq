@@ -10,6 +10,7 @@ import { formatWeight } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { AmrapEntry } from './AmrapEntry'
+import { SetEntry } from './SetEntry'
 import {
   estimateOneRepMax,
   formatRepTarget,
@@ -45,18 +46,21 @@ export function SetRow({ set, syncState, onSyncStateChange, userId }: SetRowProp
   const hasShownPrToast = useWorkoutSessionStore((state) => state.hasShownPrToast)
   const markPrToastShown = useWorkoutSessionStore((state) => state.markPrToastShown)
   const [showAmrapEntry, setShowAmrapEntry] = useState(false)
+  const [showSetEntry, setShowSetEntry] = useState(false)
 
   const repTarget = formatRepTarget(set.reps_prescribed, set.reps_prescribed_max, set.is_amrap)
   const estimatedOneRepMax = set.repsActual !== null
     ? estimateOneRepMax(set.weight_lbs, set.repsActual)
     : null
   const syncLabel = getSyncLabel(syncState)
+  const supportsEditableLogging = set.set_type === 'variation' || set.set_type === 'accessory'
+  const usesAdjustedLoad = Math.abs(set.weight_lbs - set.prescribedWeightLbs) > 0.1
 
   const updateSyncState = (status: SetSyncState['status']) => {
     onSyncStateChange?.({ status })
   }
 
-  const announcePersonalRecord = async (repsActual: number) => {
+  const announcePersonalRecord = async (repsActual: number, weightLbs: number) => {
     if (!set.is_amrap || !set.exerciseId || !set.workoutId) {
       return
     }
@@ -72,7 +76,7 @@ export function SetRow({ set, syncState, onSyncStateChange, userId }: SetRowProp
         .filter((entry) => !(entry.workout_id === set.workoutId && entry.set_order === set.set_order))
         .map((entry) => estimateOneRepMax(entry.weight_lbs, entry.reps_actual ?? 0))
 
-      const nextEstimate = estimateOneRepMax(set.weight_lbs, repsActual)
+      const nextEstimate = estimateOneRepMax(weightLbs, repsActual)
       if (!isEstimatedOneRepMaxPr(nextEstimate, historicalEstimates)) {
         return
       }
@@ -84,7 +88,7 @@ export function SetRow({ set, syncState, onSyncStateChange, userId }: SetRowProp
     }
   }
 
-  const submitLog = (repsActual: number) => {
+  const submitLog = (repsActual: number, weightLbs: number = set.weight_lbs) => {
     if (!set.exerciseId || !set.workoutId || !userId) {
       toast.error(`Couldn't resolve the exercise for set ${set.set_order}.`)
       return
@@ -100,7 +104,7 @@ export function SetRow({ set, syncState, onSyncStateChange, userId }: SetRowProp
         userId,
         setOrder: set.set_order,
         setType: set.set_type,
-        weightLbs: set.weight_lbs,
+        weightLbs,
         repsPrescribed: set.reps_prescribed,
         repsPrescribedMax: set.reps_prescribed_max,
         repsActual,
@@ -112,9 +116,10 @@ export function SetRow({ set, syncState, onSyncStateChange, userId }: SetRowProp
         onSuccess: async () => {
           updateSyncState('synced')
           setShowAmrapEntry(false)
+          setShowSetEntry(false)
 
           if (set.is_amrap) {
-            await announcePersonalRecord(repsActual)
+            await announcePersonalRecord(repsActual, weightLbs)
           }
         },
         onError: (error) => {
@@ -141,6 +146,11 @@ export function SetRow({ set, syncState, onSyncStateChange, userId }: SetRowProp
             <p className="text-sm text-muted-foreground">
               {formatWeight(set.weight_lbs, preferredUnit)} × {repTarget} reps
             </p>
+            {usesAdjustedLoad ? (
+              <p className="text-xs text-muted-foreground">
+                Suggested {formatWeight(set.prescribedWeightLbs, preferredUnit)}
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -162,6 +172,11 @@ export function SetRow({ set, syncState, onSyncStateChange, userId }: SetRowProp
                 <PencilLine data-icon="inline-start" />
                 Update
               </Button>
+            ) : supportsEditableLogging ? (
+              <Button type="button" variant="ghost" size="sm" onClick={() => setShowSetEntry((current) => !current)}>
+                <PencilLine data-icon="inline-start" />
+                Update
+              </Button>
             ) : null}
           </div>
         ) : set.is_amrap ? (
@@ -169,8 +184,13 @@ export function SetRow({ set, syncState, onSyncStateChange, userId }: SetRowProp
             <PencilLine data-icon="inline-start" />
             {showAmrapEntry ? 'Close' : 'Log'}
           </Button>
+        ) : supportsEditableLogging ? (
+          <Button type="button" variant="outline" size="sm" onClick={() => setShowSetEntry((current) => !current)} disabled={logSet.isPending}>
+            <PencilLine data-icon="inline-start" />
+            {showSetEntry ? 'Close' : 'Log set'}
+          </Button>
         ) : (
-          <Button type="button" size="sm" onClick={() => submitLog(set.reps_prescribed)} disabled={logSet.isPending}>
+          <Button type="button" size="sm" onClick={() => submitLog(set.reps_prescribed, set.prescribedWeightLbs)} disabled={logSet.isPending}>
             {syncState === 'queued' ? <CloudAlert data-icon="inline-start" /> : <CloudUpload data-icon="inline-start" />}
             {logSet.isPending ? 'Saving…' : 'Log'}
           </Button>
@@ -185,6 +205,18 @@ export function SetRow({ set, syncState, onSyncStateChange, userId }: SetRowProp
           onSubmit={submitLog}
           prescribedReps={set.reps_prescribed}
           weightLbs={set.weight_lbs}
+        />
+      ) : null}
+
+      {!set.is_amrap && showSetEntry ? (
+        <SetEntry
+          allowZeroWeight={set.intensity_type === 'bodyweight'}
+          defaultReps={set.repsActual ?? set.reps_prescribed}
+          defaultWeightLbs={set.weight_lbs}
+          isPending={logSet.isPending}
+          onCancel={() => setShowSetEntry(false)}
+          onSubmit={({ reps, weightLbs }) => submitLog(reps, weightLbs)}
+          suggestedWeightLbs={set.prescribedWeightLbs}
         />
       ) : null}
     </div>

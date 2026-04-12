@@ -1,0 +1,457 @@
+'use client'
+
+import Link from 'next/link'
+import { useMemo } from 'react'
+import { Activity, ArrowRight, Dumbbell, PlusIcon, TrendingUp } from 'lucide-react'
+import { useAnalytics, type AnalyticsDateRange } from '@/hooks/useAnalytics'
+import { useDashboard } from '@/hooks/useDashboard'
+import { useActiveProgram } from '@/hooks/usePrograms'
+import { usePreferredUnit } from '@/hooks/usePreferredUnit'
+import { resolveWorkoutProgram, useActiveCycle, useCycleWorkouts } from '@/hooks/useWorkouts'
+import { aggregateWeeklyVolume, buildWeeklyActivity, deriveRecentPrs } from '@/lib/analytics'
+import { calculateCycleProgress, findSuggestedWorkoutSelection } from '@/lib/workout-progress'
+import { buttonVariants } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ChartCard } from '@/components/charts/ChartCard'
+import { ConsistencyHeatmap } from '@/components/charts/ConsistencyHeatmap'
+import { E1rmTrendChart } from '@/components/charts/E1rmTrendChart'
+import { VolumeTrendChart } from '@/components/charts/VolumeTrendChart'
+import { formatDate, formatDaysPerWeek, formatWeight, formatWeekCycle } from '@/lib/utils'
+import type { Json } from '@/types/database'
+
+interface ProgramConfig {
+  variation_key?: string | null
+}
+
+function parseProgramConfig(config: Json | null): ProgramConfig {
+  if (!config || typeof config !== 'object' || Array.isArray(config)) {
+    return {}
+  }
+
+  return config as ProgramConfig
+}
+
+export function DashboardOverview() {
+  const preferredUnit = usePreferredUnit()
+  const { data: program, isLoading: isProgramLoading } = useActiveProgram()
+  const { data: dashboard, isLoading: isDashboardLoading } = useDashboard()
+  const { template, isCustom } = useMemo(() => resolveWorkoutProgram(program), [program])
+  const { data: activeCycle, isLoading: isCycleLoading } = useActiveCycle(program?.id)
+  const { data: cycleWorkouts } = useCycleWorkouts(activeCycle?.id)
+  const analyticsRange = useMemo<AnalyticsDateRange>(() => {
+    const to = new Date()
+    const from = new Date(to)
+    from.setDate(to.getDate() - 84)
+    return { from, to }
+  }, [])
+  const { data: analytics, isLoading: isAnalyticsLoading } = useAnalytics(undefined, analyticsRange)
+
+  const config = parseProgramConfig(program?.config ?? null)
+  const variationName = config.variation_key && template?.variation_options
+    ? template.variation_options.find((variation) => variation.key === config.variation_key)?.name
+    : null
+  const summaryParts = [
+    template ? formatDaysPerWeek(template.days_per_week) : null,
+    template ? formatWeekCycle(template.cycle_length_weeks) : null,
+    variationName,
+  ].filter(Boolean)
+  const cycleProgress = useMemo(
+    () => calculateCycleProgress(template?.cycle_length_weeks ?? 0, template?.days.length ?? 0, cycleWorkouts),
+    [cycleWorkouts, template],
+  )
+  const suggestedWorkout = useMemo(
+    () => findSuggestedWorkoutSelection(template?.cycle_length_weeks ?? 1, template?.days.map((day) => day.label) ?? [], cycleWorkouts),
+    [cycleWorkouts, template],
+  )
+  const cycleIsComplete = cycleProgress.totalPlannedWorkouts > 0 && cycleProgress.remainingWorkouts === 0
+  const nextWorkoutLabel = cycleIsComplete
+    ? 'Cycle ready to wrap'
+    : template?.days[suggestedWorkout.dayIndex]?.label ?? 'Next workout'
+  const recentPrs = useMemo(() => deriveRecentPrs(analytics?.prHistory ?? [], 4), [analytics?.prHistory])
+  const weeklyActivity = useMemo(
+    () => buildWeeklyActivity(analytics?.volumeTrend ?? [], 8, analyticsRange.to),
+    [analytics?.volumeTrend, analyticsRange.to],
+  )
+  const weeklyVolume = useMemo(() => aggregateWeeklyVolume(analytics?.volumeTrend ?? []), [analytics?.volumeTrend])
+  const currentWeekVolume = weeklyVolume.length > 0 ? weeklyVolume[weeklyVolume.length - 1].totalVolume : 0
+  const priorWeeks = weeklyVolume.slice(Math.max(0, weeklyVolume.length - 5), weeklyVolume.length - 1)
+  const rollingAverageVolume = priorWeeks.length > 0
+    ? priorWeeks.reduce((total, entry) => total + entry.totalVolume, 0) / priorWeeks.length
+    : 0
+  const currentTms = useMemo(
+    () => [...(dashboard?.currentTms ?? [])].sort((left, right) => left.exerciseName.localeCompare(right.exerciseName)),
+    [dashboard?.currentTms],
+  )
+  const recentWorkouts = dashboard?.recentWorkouts ?? []
+  const lastCompletedWorkout = recentWorkouts.find((workout) => workout.completedAt) ?? null
+  const areSecondaryQueriesLoading = isDashboardLoading || isAnalyticsLoading || isCycleLoading
+
+  if (isProgramLoading) {
+    return (
+      <div className="page-shell max-w-6xl">
+        <section className="page-header">
+          <div className="flex flex-col gap-3">
+            <span className="eyebrow">Overview</span>
+            <div className="flex flex-col gap-2">
+              <h1 className="page-title">Dashboard</h1>
+            </div>
+          </div>
+        </section>
+
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+          <div className="flex flex-col gap-4">
+            <Card className="surface-panel">
+              <CardContent className="flex flex-col gap-4 pt-5">
+                <Skeleton className="h-6 w-44" />
+                <Skeleton className="h-4 w-72" />
+              </CardContent>
+            </Card>
+            <div className="grid gap-4 lg:grid-cols-2">
+              {Array.from({ length: 2 }).map((_, index) => (
+                <Card key={index} className="surface-panel">
+                  <CardContent className="flex flex-col gap-3 pt-5">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-8 w-40" />
+                    <Skeleton className="h-4 w-full" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col gap-4">
+            <Card className="surface-panel">
+              <CardContent className="flex flex-col gap-3 pt-5">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-24 w-full rounded-[22px]" />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!program || !template) {
+    return (
+      <div className="page-shell max-w-6xl">
+        <section className="page-header">
+          <div className="flex flex-col gap-3">
+            <span className="eyebrow">Overview</span>
+            <div className="flex flex-col gap-2">
+              <h1 className="page-title">Dashboard</h1>
+            </div>
+          </div>
+        </section>
+
+        <Card className="surface-panel">
+          <CardContent className="pt-4">
+            <Empty className="border-border/70 bg-background/40 py-10">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Dumbbell />
+                </EmptyMedia>
+                <EmptyTitle>No active program yet</EmptyTitle>
+                <EmptyDescription>
+                  Start with a built-in template or build a custom program from scratch.
+                </EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                <Link href="/programs" className={buttonVariants({ variant: 'default' })}>
+                  <PlusIcon data-icon="inline-start" />
+                  Start a Program
+                </Link>
+              </EmptyContent>
+            </Empty>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  return (
+    <div className="page-shell max-w-6xl">
+      <section className="page-header">
+        <div className="flex flex-col gap-3">
+          <span className="eyebrow">Overview</span>
+          <div className="flex flex-col gap-2">
+            <h1 className="page-title">Dashboard</h1>
+            <p className="page-copy">
+              Keep the next session, recent PRs, cycle momentum, and current working numbers in one place.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
+        <div className="flex flex-col gap-4">
+          <Card className="surface-panel">
+            <CardHeader className="gap-4">
+              <div className="flex items-start gap-4">
+                <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/12 text-primary">
+                  <Activity />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <CardTitle className="text-xl">{program.name}</CardTitle>
+                    <Badge>Active</Badge>
+                    {isCustom ? <Badge variant="outline">Custom</Badge> : null}
+                  </div>
+                  <CardDescription>{summaryParts.join(' · ')}</CardDescription>
+                </div>
+              </div>
+              <CardAction>
+                <Link href="/programs" className={buttonVariants({ variant: 'outline' })}>
+                  Manage
+                </Link>
+              </CardAction>
+            </CardHeader>
+          </Card>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card className="surface-panel">
+              <CardHeader className="gap-2">
+                <CardTitle className="text-base">Next Workout</CardTitle>
+                <CardDescription>
+                  {cycleIsComplete
+                    ? 'All planned sessions are logged. Review the cycle and roll forward when ready.'
+                    : `Week ${suggestedWorkout.weekNumber} · ${nextWorkoutLabel}`}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4 pt-0">
+                <p className="text-3xl font-semibold tracking-[-0.08em] text-foreground">
+                  {cycleIsComplete ? 'Cycle complete' : nextWorkoutLabel}
+                </p>
+                <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                  {activeCycle ? <Badge variant="outline">Cycle {activeCycle.cycle_number}</Badge> : null}
+                  {!cycleIsComplete ? <Badge variant="outline">Week {suggestedWorkout.weekNumber}</Badge> : null}
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                  {lastCompletedWorkout?.completedAt ? (
+                    <span>Last finished {formatDate(lastCompletedWorkout.completedAt)}</span>
+                  ) : (
+                    <span>No completed workouts yet for this block.</span>
+                  )}
+                </div>
+                <Link href={cycleIsComplete ? '/programs' : '/workouts'} className={buttonVariants({ variant: 'default' })}>
+                  {cycleIsComplete ? 'Review cycle' : 'Open workouts'}
+                  <ArrowRight data-icon="inline-end" />
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="surface-panel">
+              <CardHeader className="gap-2">
+                <CardTitle className="text-base">Cycle Progress</CardTitle>
+                <CardDescription>
+                  {cycleProgress.completedWorkouts} of {cycleProgress.totalPlannedWorkouts} sessions complete.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4 pt-0">
+                <div>
+                  <p className="text-3xl font-semibold tracking-[-0.08em] text-foreground">
+                    {Math.round(cycleProgress.completionRatio * 100)}%
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {cycleProgress.remainingWorkouts > 0
+                      ? `${cycleProgress.remainingWorkouts} sessions still open in this block.`
+                      : 'Every planned workout in this block has been logged.'}
+                  </p>
+                </div>
+                <div className="h-3 overflow-hidden rounded-full bg-muted/70">
+                  <div
+                    className="h-full rounded-full bg-primary transition-[width]"
+                    style={{ width: `${Math.round(cycleProgress.completionRatio * 100)}%` }}
+                  />
+                </div>
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <span>{formatWeekCycle(template.cycle_length_weeks)}</span>
+                  <span>{formatDaysPerWeek(template.days_per_week)}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="surface-panel">
+            <CardHeader className="gap-2">
+              <CardTitle className="text-base">Current Training Maxes</CardTitle>
+              <CardDescription>
+                Latest effective values surfaced from the dashboard aggregate.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {isDashboardLoading ? (
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <div key={index} className="rounded-[22px] border border-border/70 bg-background/45 p-4">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="mt-3 h-8 w-28" />
+                    </div>
+                  ))}
+                </div>
+              ) : currentTms.length === 0 ? (
+                <div className="rounded-[22px] border border-border/70 bg-background/45 px-4 py-5 text-sm text-muted-foreground">
+                  Add training maxes for the main lifts to populate this panel.
+                </div>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {currentTms.map((trainingMax) => (
+                    <div key={trainingMax.exerciseId} className="rounded-[22px] border border-border/70 bg-background/45 p-4">
+                      <p className="text-sm font-medium text-foreground">{trainingMax.exerciseName}</p>
+                      <p className="mt-2 text-2xl font-semibold tracking-[-0.07em] text-foreground">
+                        {formatWeight(trainingMax.weightLbs, preferredUnit)}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">Effective {formatDate(trainingMax.effectiveDate)}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-4 xl:grid-cols-3">
+            <ChartCard
+              title="Strength Trend"
+              description="Recent estimated 1RM movement from logged AMRAPs."
+              emptyMessage="Log AMRAP work to light up the strength trend."
+              isEmpty={(analytics?.e1rmTrend.length ?? 0) === 0}
+              isLoading={isAnalyticsLoading}
+              heightClassName="h-28"
+            >
+              <E1rmTrendChart compact data={analytics?.e1rmTrend ?? []} />
+            </ChartCard>
+
+            <ChartCard
+              title="Volume Pace"
+              description={rollingAverageVolume > 0
+                ? `This week ${Math.round(currentWeekVolume)} lbs vs ${Math.round(rollingAverageVolume)} lbs recent average.`
+                : 'Weekly logged volume across all exercises.'}
+              emptyMessage="Log completed work sets to compare weekly volume."
+              isEmpty={(analytics?.volumeTrend.length ?? 0) === 0}
+              isLoading={isAnalyticsLoading}
+              heightClassName="h-28"
+            >
+              <VolumeTrendChart compact data={analytics?.volumeTrend ?? []} />
+            </ChartCard>
+
+            <ChartCard
+              title="Consistency"
+              description={`${analytics?.consistency.totalSessions ?? 0} sessions over ${analytics?.consistency.weeksActive ?? 0} active weeks.`}
+              emptyMessage="Finish workouts to build a weekly consistency trail."
+              isEmpty={(analytics?.consistency.totalSessions ?? 0) === 0}
+              isLoading={isAnalyticsLoading}
+              heightClassName="h-28"
+            >
+              <ConsistencyHeatmap compact data={weeklyActivity} />
+            </ChartCard>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <Card className="surface-panel">
+            <CardHeader className="gap-2">
+              <CardTitle className="text-base">Recent PRs</CardTitle>
+              <CardDescription>
+                Newly established estimated 1RM highs from your logged AMRAP work.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {areSecondaryQueriesLoading ? (
+                <div className="flex flex-col gap-3">
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <div key={index} className="rounded-[20px] border border-border/70 bg-background/45 p-3">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="mt-2 h-6 w-32" />
+                    </div>
+                  ))}
+                </div>
+              ) : recentPrs.length === 0 ? (
+                <div className="rounded-[22px] border border-border/70 bg-background/45 px-4 py-5 text-sm text-muted-foreground">
+                  No PRs yet in this range. Hit an AMRAP and the newest milestones will land here.
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {recentPrs.map((record) => (
+                    <div key={`${record.exerciseId}-${record.date}`} className="rounded-[20px] border border-border/70 bg-background/45 p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{record.exerciseName}</p>
+                          <p className="text-xs text-muted-foreground">{formatDate(record.date)}</p>
+                        </div>
+                        <TrendingUp className="text-primary" />
+                      </div>
+                      <p className="mt-3 text-lg font-semibold tracking-[-0.06em] text-foreground">
+                        {formatWeight(record.e1rm, preferredUnit)}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {formatWeight(record.weight, preferredUnit)} × {record.reps}
+                        {record.improvementLbs !== null ? ` · +${formatWeight(record.improvementLbs, preferredUnit)} over the prior best` : ''}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="surface-panel">
+            <CardHeader className="gap-2">
+              <CardTitle className="text-base">Recent Activity</CardTitle>
+              <CardDescription>
+                The latest workout rows returned by the dashboard aggregate.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {isDashboardLoading ? (
+                <div className="flex flex-col gap-3">
+                  {Array.from({ length: 4 }).map((_, index) => (
+                    <div key={index} className="rounded-[20px] border border-border/70 bg-background/45 p-3">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="mt-2 h-4 w-32" />
+                    </div>
+                  ))}
+                </div>
+              ) : recentWorkouts.length === 0 ? (
+                <div className="rounded-[22px] border border-border/70 bg-background/45 px-4 py-5 text-sm text-muted-foreground">
+                  Start logging workouts and the latest sessions will show up here.
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {recentWorkouts.map((workout) => (
+                    <div key={workout.id} className="rounded-[20px] border border-border/70 bg-background/45 p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{workout.exerciseName}</p>
+                          <p className="text-xs text-muted-foreground">Week {workout.weekNumber} · {formatDate(workout.scheduledDate)}</p>
+                        </div>
+                        <Badge variant={workout.completedAt ? 'secondary' : 'outline'}>
+                          {workout.completedAt ? 'Completed' : 'In progress'}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  )
+}

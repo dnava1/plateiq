@@ -84,9 +84,11 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
 
       return {
         ...set,
+        weight_lbs: loggedSet?.weight_lbs ?? set.weight_lbs,
         exerciseId,
         exerciseName,
         loggedAt: loggedSet?.logged_at ?? null,
+        prescribedWeightLbs: set.weight_lbs,
         repsActual: loggedSet?.reps_actual ?? null,
         workoutId: activeWorkoutId,
       }
