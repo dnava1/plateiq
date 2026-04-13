@@ -6,7 +6,7 @@ import {
 
 describe('workout type helpers', () => {
   it('calculates the estimated 1RM from a completed set', () => {
-    expect(estimateOneRepMax(225, 5)).toBeCloseTo(253.125)
+    expect(estimateOneRepMax(225, 5)).toBeCloseTo(262.31, 2)
   })
 
   it('falls back to the lifted weight for singles and very high rep counts', () => {
@@ -15,11 +15,11 @@ describe('workout type helpers', () => {
   })
 
   it('treats the first estimate as a PR when no history exists', () => {
-    expect(isEstimatedOneRepMaxPr(253.125, [])).toBe(true)
+    expect(isEstimatedOneRepMaxPr(262.31, [])).toBe(true)
   })
 
   it('requires the new estimate to clear the epsilon threshold', () => {
-    expect(isEstimatedOneRepMaxPr(253.4, [253.1])).toBe(false)
-    expect(isEstimatedOneRepMaxPr(253.7, [253.1])).toBe(true)
+    expect(isEstimatedOneRepMaxPr(262.6, [262.3])).toBe(false)
+    expect(isEstimatedOneRepMaxPr(262.9, [262.3])).toBe(true)
   })
 })

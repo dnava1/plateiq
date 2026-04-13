@@ -2,6 +2,7 @@ import * as React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createEmptyStrengthProfile } from '@/lib/strength-profile'
 import { analyticsQueryKeys, useAnalytics } from './useAnalytics'
 
 const useSupabaseMock = vi.fn()
@@ -107,6 +108,7 @@ describe('useAnalytics', () => {
       muscleBalance: [],
       stallDetection: [],
       tmProgression: [],
+      strengthProfile: createEmptyStrengthProfile(),
     })
   })
 

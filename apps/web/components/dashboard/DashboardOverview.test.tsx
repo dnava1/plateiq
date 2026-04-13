@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, beforeEach, vi } from 'vitest'
+import { createEmptyStrengthProfile } from '@/lib/strength-profile'
 import { DashboardOverview } from './DashboardOverview'
 
 const mocks = vi.hoisted(() => ({
@@ -81,6 +82,7 @@ describe('DashboardOverview', () => {
         muscleBalance: [],
         stallDetection: [],
         tmProgression: [],
+        strengthProfile: createEmptyStrengthProfile(),
       },
       isLoading: false,
     })
@@ -157,6 +159,7 @@ describe('DashboardOverview', () => {
         muscleBalance: [],
         stallDetection: [],
         tmProgression: [],
+        strengthProfile: createEmptyStrengthProfile(),
       },
       isLoading: false,
     })

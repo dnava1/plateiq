@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { createEmptyStrengthProfile } from './strength-profile'
 import {
   aggregateWeeklyVolume,
   buildWeeklyActivity,
@@ -112,6 +113,7 @@ describe('parseAnalyticsData', () => {
     expect(result.tmProgression).toEqual([
       { effectiveDate: '2026-03-01', exerciseId: 1, exerciseName: 'Squat', weightLbs: 315 },
     ])
+    expect(result.strengthProfile).toEqual(createEmptyStrengthProfile())
   })
 })
 

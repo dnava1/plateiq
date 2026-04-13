@@ -2,7 +2,7 @@ import type { QueryClient } from '@tanstack/react-query'
 import { del, delMany, get, keys, set } from 'idb-keyval'
 
 const QUERY_CACHE_KEY_PREFIX = 'plateiq-query-cache'
-const QUERY_CACHE_BUSTER_PREFIX = 'plateiq-query-cache:v2'
+const QUERY_CACHE_BUSTER_PREFIX = 'plateiq-query-cache:v3'
 const LEGACY_QUERY_CACHE_KEY = QUERY_CACHE_KEY_PREFIX
 
 export function getPersistedQueryCacheKey(userId: string) {

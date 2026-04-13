@@ -96,6 +96,7 @@ export type Database = {
           movement_pattern: string
           name: string
           progression_increment_lbs: number | null
+          strength_lift_slug: string | null
         }
         Insert: {
           category: string
@@ -106,6 +107,7 @@ export type Database = {
           movement_pattern: string
           name: string
           progression_increment_lbs?: number | null
+          strength_lift_slug?: string | null
         }
         Update: {
           category?: string
@@ -116,6 +118,7 @@ export type Database = {
           movement_pattern?: string
           name?: string
           progression_increment_lbs?: number | null
+          strength_lift_slug?: string | null
         }
         Relationships: [
           {
@@ -179,6 +182,9 @@ export type Database = {
           display_name: string
           id: string
           preferred_unit: string
+          strength_profile_age_years: number | null
+          strength_profile_bodyweight_lbs: number | null
+          strength_profile_sex: string | null
           updated_at: string | null
         }
         Insert: {
@@ -187,6 +193,9 @@ export type Database = {
           display_name: string
           id: string
           preferred_unit?: string
+          strength_profile_age_years?: number | null
+          strength_profile_bodyweight_lbs?: number | null
+          strength_profile_sex?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -195,6 +204,9 @@ export type Database = {
           display_name?: string
           id?: string
           preferred_unit?: string
+          strength_profile_age_years?: number | null
+          strength_profile_bodyweight_lbs?: number | null
+          strength_profile_sex?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -450,6 +462,14 @@ export type Database = {
         Returns: Json
       }
       get_dashboard: { Args: Record<PropertyKey, never>; Returns: Json }
+      update_strength_profile: {
+        Args: {
+          p_age_years?: number
+          p_bodyweight_lbs?: number
+          p_sex?: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

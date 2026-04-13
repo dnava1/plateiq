@@ -1,0 +1,155 @@
+import * as React from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import SettingsPage from './page'
+
+const mocks = vi.hoisted(() => ({
+  clearAllPersistedQueryCaches: vi.fn().mockResolvedValue(undefined),
+  clearPendingGuestMergeClient: vi.fn().mockResolvedValue(undefined),
+  finalizePendingGuestMergeClient: vi.fn().mockResolvedValue(undefined),
+  getPendingGuestMergeStatusClient: vi.fn().mockResolvedValue({ canFinalize: false, pending: false }),
+  invalidateQueries: vi.fn().mockResolvedValue(undefined),
+  isAnonymousUser: vi.fn().mockReturnValue(false),
+  replace: vi.fn(),
+  rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+  setPreferredUnit: vi.fn(),
+  signOut: vi.fn().mockResolvedValue({ error: null }),
+  toastError: vi.fn(),
+  toastSuccess: vi.fn(),
+  updateEq: vi.fn().mockResolvedValue({ error: null }),
+  useProfile: vi.fn(),
+  useSearchParams: vi.fn(),
+  useUiStore: vi.fn(),
+  useUser: vi.fn(),
+}))
+
+vi.mock('next/link', () => ({
+  default: ({ children, href, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
+    <a href={href} {...props}>{children}</a>
+  ),
+}))
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: mocks.replace }),
+  useSearchParams: () => mocks.useSearchParams(),
+}))
+
+vi.mock('@/lib/auth/merge-client', () => ({
+  clearPendingGuestMergeClient: mocks.clearPendingGuestMergeClient,
+  finalizePendingGuestMergeClient: mocks.finalizePendingGuestMergeClient,
+  getPendingGuestMergeStatusClient: mocks.getPendingGuestMergeStatusClient,
+}))
+
+vi.mock('@/lib/auth/auth-state', () => ({
+  isAnonymousUser: mocks.isAnonymousUser,
+}))
+
+vi.mock('@/hooks/useUser', () => ({
+  useUser: () => mocks.useUser(),
+}))
+
+vi.mock('@/hooks/useProfile', () => ({
+  useProfile: () => mocks.useProfile(),
+}))
+
+vi.mock('@/hooks/useSupabase', () => ({
+  useSupabase: () => ({
+    auth: { signOut: mocks.signOut },
+    from: () => ({
+      update: () => ({
+        eq: mocks.updateEq,
+      }),
+    }),
+    rpc: mocks.rpc,
+  }),
+}))
+
+vi.mock('@/store/uiStore', () => ({
+  useUiStore: () => mocks.useUiStore(),
+}))
+
+vi.mock('@/lib/query-persistence', () => ({
+  clearAllPersistedQueryCaches: mocks.clearAllPersistedQueryCaches,
+}))
+
+vi.mock('@/components/layout/ThemeToggle', () => ({
+  ThemeToggle: () => <div>theme-toggle</div>,
+}))
+
+vi.mock('sonner', () => ({
+  toast: {
+    error: mocks.toastError,
+    success: mocks.toastSuccess,
+  },
+}))
+
+function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      mutations: { retry: false },
+      queries: { retry: false },
+    },
+  })
+
+  mocks.invalidateQueries.mockImplementation((options?: unknown) => queryClient.invalidateQueries(options as never))
+
+  return function Wrapper({ children }: { children: React.ReactNode }) {
+    return React.createElement(QueryClientProvider, { client: queryClient }, children)
+  }
+}
+
+describe('SettingsPage', () => {
+  beforeEach(() => {
+    mocks.useSearchParams.mockReturnValue({ get: vi.fn().mockReturnValue(null) })
+    mocks.useUser.mockReturnValue({
+      data: {
+        email: 'athlete@plateiq.local',
+        id: 'user-1',
+        user_metadata: {},
+      },
+    })
+    mocks.useProfile.mockReturnValue({
+      data: {
+        id: 'user-1',
+        preferred_unit: 'lbs',
+        strength_profile_age_years: 32,
+        strength_profile_bodyweight_lbs: 181,
+        strength_profile_sex: 'male',
+      },
+    })
+    mocks.useUiStore.mockReturnValue({
+      preferredUnit: 'lbs',
+      setPreferredUnit: mocks.setPreferredUnit,
+    })
+    mocks.rpc.mockClear()
+    mocks.toastSuccess.mockClear()
+    mocks.toastError.mockClear()
+  })
+
+  it('saves strength profile inputs through the update_strength_profile RPC', async () => {
+    const user = userEvent.setup()
+
+    render(<SettingsPage />, { wrapper: createWrapper() })
+
+    expect(screen.getByLabelText('Age')).toHaveValue(32)
+    expect(screen.getByLabelText('Bodyweight (lbs)')).toHaveValue(181)
+
+    await user.clear(screen.getByLabelText('Age'))
+    await user.type(screen.getByLabelText('Age'), '34')
+    await user.clear(screen.getByLabelText('Bodyweight (lbs)'))
+    await user.type(screen.getByLabelText('Bodyweight (lbs)'), '185.5')
+    await user.click(screen.getByRole('button', { name: 'Save Strength Profile' }))
+
+    await waitFor(() => {
+      expect(mocks.rpc).toHaveBeenCalledWith('update_strength_profile', {
+        p_age_years: 34,
+        p_bodyweight_lbs: 185.5,
+        p_sex: 'male',
+      })
+    })
+
+    expect(mocks.toastSuccess).toHaveBeenCalledWith('Strength profile saved.')
+  })
+})

@@ -26,17 +26,23 @@ function createRequest() {
   })
 }
 
-function createSupabaseClient() {
+function createSupabaseClient({
+  user = {
+    id: 'permanent-user',
+    is_anonymous: false,
+  },
+  authError = null,
+}: {
+  user?: { id: string; is_anonymous: boolean } | null
+  authError?: { message: string } | null
+} = {}) {
   return {
     auth: {
       getUser: vi.fn().mockResolvedValue({
         data: {
-          user: {
-            id: 'permanent-user',
-            is_anonymous: false,
-          },
+          user,
         },
-        error: null,
+        error: authError,
       }),
     },
   }
@@ -47,6 +53,46 @@ describe('POST /api/auth/merge/finalize', () => {
     mocks.createClient.mockReset()
     mocks.finalizePendingGuestMerge.mockReset()
     mocks.getExpiredMergeIntentCookieOptions.mockClear()
+  })
+
+  it('rejects cross-origin finalize attempts', async () => {
+    const response = await POST(new Request('http://localhost/api/auth/merge/finalize', {
+      method: 'POST',
+      headers: {
+        origin: 'http://malicious.example',
+      },
+    }))
+
+    expect(response.status).toBe(403)
+    await expect(response.json()).resolves.toEqual({ error: 'Forbidden' })
+    expect(mocks.createClient).not.toHaveBeenCalled()
+  })
+
+  it('requires an authenticated permanent user before finalizing', async () => {
+    mocks.createClient.mockResolvedValue(createSupabaseClient({ user: null }))
+
+    const response = await POST(createRequest())
+
+    expect(response.status).toBe(401)
+    await expect(response.json()).resolves.toEqual({ error: 'Unauthorized' })
+    expect(mocks.finalizePendingGuestMerge).not.toHaveBeenCalled()
+  })
+
+  it('rejects anonymous users before invoking the merge RPC', async () => {
+    mocks.createClient.mockResolvedValue(createSupabaseClient({
+      user: {
+        id: 'guest-user',
+        is_anonymous: true,
+      },
+    }))
+
+    const response = await POST(createRequest())
+
+    expect(response.status).toBe(403)
+    await expect(response.json()).resolves.toEqual({
+      error: 'Guest sessions must sign in to an existing account before finalizing a merge.',
+    })
+    expect(mocks.finalizePendingGuestMerge).not.toHaveBeenCalled()
   })
 
   it('clears the merge cookie after a successful merge', async () => {
@@ -79,6 +125,17 @@ describe('POST /api/auth/merge/finalize', () => {
     const response = await POST(createRequest())
 
     expect(response.status).toBe(409)
+    expect(response.headers.get('set-cookie')).toContain('plateiq-merge-intent=;')
+  })
+
+  it('returns not found when no guest merge is in progress', async () => {
+    mocks.createClient.mockResolvedValue(createSupabaseClient())
+    mocks.finalizePendingGuestMerge.mockResolvedValue({ status: 'none' })
+
+    const response = await POST(createRequest())
+
+    expect(response.status).toBe(404)
+    await expect(response.json()).resolves.toEqual({ error: 'No guest merge is in progress.' })
     expect(response.headers.get('set-cookie')).toContain('plateiq-merge-intent=;')
   })
 })

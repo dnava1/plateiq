@@ -36,7 +36,7 @@ describe('query persistence helpers', () => {
 
   it('builds a user-scoped cache key and buster', () => {
     expect(getPersistedQueryCacheKey('user-123')).toBe('plateiq-query-cache:user-123')
-    expect(getQueryPersistenceBuster('user-123')).toBe('plateiq-query-cache:v2:user-123')
+    expect(getQueryPersistenceBuster('user-123')).toBe('plateiq-query-cache:v3:user-123')
   })
 
   it('stores and restores persisted cache data with the user-scoped key', async () => {

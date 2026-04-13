@@ -1,4 +1,6 @@
 import type { Json } from '@/types/database'
+import { buildStrengthProfile, createEmptyStrengthProfile } from '@/lib/strength-profile'
+import { estimateBenchmarkOneRepMax } from '@/lib/strength-benchmarks'
 import type {
   AnalyticsConsistency,
   AnalyticsData,
@@ -14,6 +16,9 @@ import type {
   DashboardRecentWorkout,
   DashboardTrainingMax,
   DerivedRecentPr,
+  StrengthProfileRawData,
+  StrengthProfileRawLift,
+  StrengthProfileRepMax,
   WeeklyActivitySummary,
   WeeklyVolumeSummary,
 } from '@/types/analytics'
@@ -269,6 +274,118 @@ function parseAnalyticsTmProgressionPoint(value: unknown): AnalyticsTmProgressio
   return { effectiveDate, exerciseId, exerciseName, weightLbs }
 }
 
+function parseNumberRecord(value: unknown) {
+  if (!isRecord(value)) {
+    return {}
+  }
+
+  return Object.entries(value).reduce<Record<string, number>>((accumulator, [key, entry]) => {
+    const numericValue = toNumber(entry)
+
+    if (numericValue !== null && numericValue > 0) {
+      accumulator[key] = numericValue
+    }
+
+    return accumulator
+  }, {})
+}
+
+function parseStrengthProfileRepMax(value: unknown): StrengthProfileRepMax | null {
+  if (!isRecord(value)) return null
+
+  const reps = toNumber(value.reps)
+  const weightLbs = toNumber(value.weight_lbs)
+
+  if (reps === null || weightLbs === null) {
+    return null
+  }
+
+  return { reps, weightLbs }
+}
+
+function parseStrengthProfileRawLift(value: unknown): StrengthProfileRawLift | null {
+  if (!isRecord(value)) return null
+
+  const liftSlug = toString(value.lift_slug)
+  const displayName = toString(value.display_name)
+  const categoryKey = toString(value.category_key)
+  const categoryLabel = toString(value.category_label)
+  const sourceExerciseId = toNumber(value.source_exercise_id)
+  const sourceExerciseName = toString(value.source_exercise_name)
+  const bestDate = toString(value.best_date)
+  const bestReps = toNumber(value.best_reps)
+  const bestExternalWeightLbs = toNumber(value.best_external_weight_lbs)
+  const bestTotalLoadLbs = toNumber(value.best_total_load_lbs)
+  const bestOneRepMaxLbs = toNumber(value.best_one_rm_lbs)
+  const benchmarkOneRepMaxLbs = toNumber(value.benchmark_one_rm_lbs)
+
+  if (
+    liftSlug === null
+    || displayName === null
+    || categoryKey === null
+    || categoryLabel === null
+    || sourceExerciseId === null
+    || sourceExerciseName === null
+    || bestDate === null
+    || bestReps === null
+    || bestExternalWeightLbs === null
+    || bestTotalLoadLbs === null
+    || bestOneRepMaxLbs === null
+    || benchmarkOneRepMaxLbs === null
+  ) {
+    return null
+  }
+
+  return {
+    actualRepMaxes: mapArray(value.actual_rep_maxes, parseStrengthProfileRepMax),
+    benchmarkOneRepMaxLbs,
+    benchmarkRepMaxes: mapArray(value.benchmark_rep_maxes, parseStrengthProfileRepMax),
+    bestDate,
+    bestExternalWeightLbs,
+    bestOneRepMaxLbs,
+    bestReps,
+    bestTotalLoadLbs,
+    categoryKey,
+    categoryLabel,
+    displayName,
+    liftSlug,
+    muscleWeights: parseNumberRecord(value.muscle_weights),
+    sourceExerciseId,
+    sourceExerciseName,
+  }
+}
+
+function parseStrengthProfileRawData(value: unknown): StrengthProfileRawData {
+  if (!isRecord(value)) {
+    return {
+      lifts: [],
+      minimumCategoryCount: 2,
+      minimumLiftCount: 3,
+      profile: {
+        ageYears: null,
+        bodyweightLbs: null,
+        sex: null,
+      },
+    }
+  }
+
+  const rawAgeYears = toNumber(value.profile && isRecord(value.profile) ? value.profile.age_years : null)
+
+  return {
+    lifts: mapArray(value.lifts, parseStrengthProfileRawLift),
+    minimumCategoryCount: toNumber(value.minimum_category_count) ?? 2,
+    minimumLiftCount: toNumber(value.minimum_lift_count) ?? 3,
+    profile: {
+      ageYears: rawAgeYears !== null && Number.isInteger(rawAgeYears) ? rawAgeYears : null,
+      bodyweightLbs: toNumber(value.profile && isRecord(value.profile) ? value.profile.bodyweight_lbs : null),
+      sex: (() => {
+        const sex = toString(value.profile && isRecord(value.profile) ? value.profile.sex : null)
+        return sex === 'male' || sex === 'female' ? sex : null
+      })(),
+    },
+  }
+}
+
 function sortByDate<T extends { date: string }>(entries: T[]) {
   return [...entries].sort((left, right) => left.date.localeCompare(right.date))
 }
@@ -320,11 +437,7 @@ function isWithinRange(date: string, dateFrom?: string | null, dateTo?: string |
 }
 
 export function estimateOneRepMax(weightLbs: number, reps: number) {
-  if (reps <= 1 || reps >= 37) {
-    return weightLbs
-  }
-
-  return (weightLbs * 36) / (37 - reps)
+  return estimateBenchmarkOneRepMax(weightLbs, reps) ?? weightLbs
 }
 
 export function parseDashboardData(value: Json | null): DashboardData {
@@ -349,6 +462,7 @@ export function parseAnalyticsData(value: Json | null): AnalyticsData {
     muscleBalance: mapArray(record.muscle_balance, parseAnalyticsMuscleBalancePoint),
     stallDetection: mapArray(record.stall_detection, parseAnalyticsStallPoint),
     tmProgression: mapArray(record.tm_progression, parseAnalyticsTmProgressionPoint),
+    strengthProfile: buildStrengthProfile(parseStrengthProfileRawData(record.strength_profile)),
   }
 }
 
@@ -602,6 +716,7 @@ export function buildAnalyticsData({
       .filter((entry) => parseDateInput(entry.lastPrDate) < staleThreshold)
       .sort((left, right) => left.lastPrDate.localeCompare(right.lastPrDate)),
     tmProgression: [],
+    strengthProfile: createEmptyStrengthProfile(),
   }
 }
 

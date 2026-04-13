@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createEmptyStrengthProfile } from './strength-profile'
 import { buildAnalyticsInsightSnapshot, generateTrainingInsight, parseTrainingInsightResponse } from './insights'
 import type { AnalyticsData } from '@/types/analytics'
 
@@ -30,6 +31,7 @@ const analyticsFixture: AnalyticsData = {
     { exerciseId: 2, exerciseName: 'Squat', lastPrDate: '2026-02-10', weeksSincePr: 6 },
   ],
   tmProgression: [],
+  strengthProfile: createEmptyStrengthProfile(),
 }
 
 describe('insights', () => {

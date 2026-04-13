@@ -1,4 +1,5 @@
 import type { GeneratedSet } from '@/types/template'
+import { estimateBenchmarkOneRepMax } from '@/lib/strength-benchmarks'
 
 export const ESTIMATED_ONE_REP_MAX_PR_EPSILON_LBS = 0.5
 
@@ -45,11 +46,7 @@ export function formatSetTypeLabel(setType: WorkoutDisplaySet['set_type']) {
 }
 
 export function estimateOneRepMax(weightLbs: number, reps: number) {
-  if (reps <= 1 || reps >= 37) {
-    return weightLbs
-  }
-
-  return (weightLbs * 36) / (37 - reps)
+  return estimateBenchmarkOneRepMax(weightLbs, reps) ?? weightLbs
 }
 
 export function isEstimatedOneRepMaxPr(

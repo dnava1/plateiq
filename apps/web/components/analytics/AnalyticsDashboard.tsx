@@ -14,6 +14,7 @@ import { TmProgressionChart } from '@/components/charts/TmProgressionChart'
 import { VolumeTrendChart } from '@/components/charts/VolumeTrendChart'
 import { AiInsightsPanel } from './AiInsightsPanel'
 import { PlateCalculator } from './PlateCalculator'
+import { StrengthProfilePanel } from './StrengthProfilePanel'
 import {
   Card,
   CardContent,
@@ -29,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { createEmptyStrengthProfile } from '@/lib/strength-profile'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatDate, formatDateAsLocalIso } from '@/lib/utils'
 import type { AnalyticsData } from '@/types/analytics'
@@ -46,6 +48,7 @@ const EMPTY_ANALYTICS: AnalyticsData = {
   muscleBalance: [],
   stallDetection: [],
   tmProgression: [],
+  strengthProfile: createEmptyStrengthProfile(),
 }
 
 const DATE_RANGE_PRESETS: Array<{ label: string; value: string; days: number }> = [
@@ -81,7 +84,9 @@ export function AnalyticsDashboard() {
     [exercises],
   )
   const { data, isLoading } = useAnalytics(selectedExerciseId, dateRange)
-  const analytics = data ?? EMPTY_ANALYTICS
+  const analytics = data
+    ? { ...EMPTY_ANALYTICS, ...data }
+    : EMPTY_ANALYTICS
   const weeklyActivity = useMemo(() => buildWeeklyActivity(analytics.volumeTrend, 12, dateRange.to), [analytics.volumeTrend, dateRange.to])
   const weeklyVolume = useMemo(() => aggregateWeeklyVolume(analytics.volumeTrend), [analytics.volumeTrend])
   const currentWeekVolume = weeklyVolume.length > 0 ? weeklyVolume[weeklyVolume.length - 1].totalVolume : 0
@@ -289,6 +294,8 @@ export function AnalyticsDashboard() {
 
             <TabsContent value="strength" className="mt-4">
               <div className="grid gap-4 xl:grid-cols-2">
+                <StrengthProfilePanel strengthProfile={analytics.strengthProfile} />
+
                 <ChartCard
                   title="Estimated 1RM Trend"
                   description={selectedExerciseName ?? 'Line-level strength progression from the current filter.'}

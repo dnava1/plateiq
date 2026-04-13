@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createEmptyStrengthProfile } from '@/lib/strength-profile'
 import { AnalyticsDashboard } from './AnalyticsDashboard'
 
 const mocks = vi.hoisted(() => ({
@@ -86,6 +87,7 @@ describe('AnalyticsDashboard', () => {
           { exerciseId: 2, exerciseName: 'Squat', lastPrDate: '2026-02-01', weeksSincePr: 6 },
         ],
         tmProgression: [],
+        strengthProfile: createEmptyStrengthProfile(),
       },
       isLoading: false,
     })

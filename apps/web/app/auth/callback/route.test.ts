@@ -22,15 +22,17 @@ vi.mock('@/lib/auth/merge', () => ({
 function createSupabaseClient({
   authSucceeded = true,
   user = { id: 'permanent-user', is_anonymous: false },
+  userError = null,
 }: {
   authSucceeded?: boolean
   user?: { id: string; is_anonymous: boolean } | null
+  userError?: { message: string } | null
 } = {}) {
   return {
     auth: {
       exchangeCodeForSession: vi.fn().mockResolvedValue({ error: authSucceeded ? null : { message: 'bad code' } }),
       verifyOtp: vi.fn().mockResolvedValue({ error: { message: 'unused' } }),
-      getUser: vi.fn().mockResolvedValue({ data: { user } }),
+      getUser: vi.fn().mockResolvedValue({ data: { user }, error: userError }),
     },
   }
 }
@@ -70,6 +72,36 @@ describe('GET /auth/callback', () => {
 
     expect(response.headers.get('location')).toBe('http://localhost/settings?merge=expired')
     expect(response.headers.get('set-cookie')).toContain('plateiq-merge-intent=;')
+  })
+
+  it('redirects merged callbacks to settings and clears the merge cookie', async () => {
+    mocks.createClient.mockResolvedValue(createSupabaseClient())
+    mocks.finalizePendingGuestMerge.mockResolvedValue({ status: 'merged', summary: { merged: true } })
+
+    const response = await GET(new Request('http://localhost/auth/callback?code=good-code&merge=1&next=%2Fsettings%3Fmerged%3D1') as never)
+
+    expect(response.headers.get('location')).toBe('http://localhost/settings?merged=1')
+    expect(response.headers.get('set-cookie')).toContain('plateiq-merge-intent=;')
+  })
+
+  it('clears the merge cookie when auth succeeds but no user is returned', async () => {
+    mocks.createClient.mockResolvedValue(createSupabaseClient({ user: null }))
+    mocks.cancelPendingGuestMerge.mockResolvedValue(false)
+
+    const response = await GET(new Request('http://localhost/auth/callback?code=good-code&merge=1') as never)
+
+    expect(response.headers.get('location')).toBe('http://localhost/login?error=auth_failed')
+    expect(response.headers.get('set-cookie')).toContain('plateiq-merge-intent=;')
+  })
+
+  it('preserves the merge cookie when merge finalization throws during callback recovery', async () => {
+    mocks.createClient.mockResolvedValue(createSupabaseClient())
+    mocks.finalizePendingGuestMerge.mockRejectedValue(new Error('merge failed'))
+
+    const response = await GET(new Request('http://localhost/auth/callback?code=good-code&merge=1&next=%2Fsettings%3Fmerged%3D1') as never)
+
+    expect(response.headers.get('location')).toBe('http://localhost/settings?merge=resume')
+    expect(response.headers.get('set-cookie')).toBeNull()
   })
 
   it('does not finalize merge state on normal auth callbacks', async () => {

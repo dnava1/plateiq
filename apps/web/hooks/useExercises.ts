@@ -8,12 +8,36 @@ import type { Tables } from '@/types/database'
 
 export type Exercise = Tables<'exercises'>
 
+type StrengthLiftSlug = NonNullable<Exercise['strength_lift_slug']>
+
 const EXERCISE_KEY_ALIASES: Record<string, string[]> = {
   bench: ['bench press'],
   close_grip_bench: ['close-grip bench press'],
   incline_bench: ['incline bench press'],
   ohp: ['overhead press'],
   rdl: ['romanian deadlift'],
+}
+
+const STRENGTH_LIFT_SLUG_BY_LOOKUP_KEY: Record<string, StrengthLiftSlug> = {
+  back_squat: 'back_squat',
+  barbell_row: 'pendlay_row',
+  bench: 'bench_press',
+  bench_press: 'bench_press',
+  chin_up: 'chin_up',
+  deadlift: 'deadlift',
+  dip: 'dip',
+  front_squat: 'front_squat',
+  incline_bench: 'incline_bench_press',
+  incline_bench_press: 'incline_bench_press',
+  ohp: 'overhead_press',
+  overhead_press: 'overhead_press',
+  pendlay_row: 'pendlay_row',
+  power_clean: 'power_clean',
+  pull_up: 'pull_up',
+  push_press: 'push_press',
+  snatch_press: 'snatch_press',
+  squat: 'back_squat',
+  sumo_deadlift: 'sumo_deadlift',
 }
 
 function normalizeExerciseLookupKey(value: string) {
@@ -40,6 +64,18 @@ export function getExerciseLookupKeys(value: string) {
   }
 
   return Array.from(lookups)
+}
+
+export function resolveStrengthLiftSlug(value: string) {
+  for (const key of getExerciseLookupKeys(value)) {
+    const liftSlug = STRENGTH_LIFT_SLUG_BY_LOOKUP_KEY[key]
+
+    if (liftSlug) {
+      return liftSlug
+    }
+  }
+
+  return null
 }
 
 export function buildExerciseKeyMap(exercises: Exercise[] | undefined) {
@@ -110,6 +146,7 @@ export function useCreateExercise() {
           ...exercise,
           created_by_user_id: user.id,
           is_main_lift: exercise.category === 'main',
+          strength_lift_slug: resolveStrengthLiftSlug(exercise.name),
         })
         .select()
         .single()

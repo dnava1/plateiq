@@ -5,3 +5,4 @@ export type IntensityType = 'percentage_tm' | 'percentage_1rm' | 'rpe' | 'fixed_
 export type ProgressionStyle = 'linear_per_session' | 'linear_per_week' | 'linear_per_cycle' | 'percentage_cycle' | 'wave' | 'autoregulated' | 'custom'
 export type PreferredUnit = 'lbs' | 'kg'
 export type ProgramLevel = 'beginner' | 'intermediate' | 'advanced'
+export type StrengthProfileSex = 'male' | 'female'

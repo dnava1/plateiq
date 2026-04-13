@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { createEmptyStrengthProfile } from './strength-profile'
 import {
   buildPlateCalculatorSuggestion,
   calculatePlateBreakdown,
@@ -24,10 +25,11 @@ const analyticsFixture: AnalyticsData = {
   muscleBalance: [],
   stallDetection: [],
   tmProgression: [],
+  strengthProfile: createEmptyStrengthProfile(),
 }
 
 describe('calculatePlateBreakdown', () => {
-  it('rounds the target load and returns a symmetric plate stack', () => {
+  it('rounds the target load and returns a balanced plate stack', () => {
     expect(calculatePlateBreakdown(232)).toEqual({
       achievedWeightLbs: 230,
       barbellWeightLbs: 45,

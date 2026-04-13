@@ -20,7 +20,7 @@ describe('OneRepMaxCalculator', () => {
     await user.type(screen.getByLabelText(/weight/i), '225')
     await user.type(screen.getByLabelText(/^reps$/i), '8')
 
-    expect(screen.getByText('279.3 lbs')).toBeInTheDocument()
+    expect(screen.getByText('287.3 lbs')).toBeInTheDocument()
   })
 
   it('ignores fractional rep input', async () => {
@@ -31,7 +31,7 @@ describe('OneRepMaxCalculator', () => {
     await user.type(screen.getByLabelText(/weight/i), '225')
     await user.type(screen.getByLabelText(/^reps$/i), '8.5')
 
-    expect(screen.queryByText('279.3 lbs')).not.toBeInTheDocument()
+    expect(screen.queryByText('287.3 lbs')).not.toBeInTheDocument()
     expect(screen.getByText('Enter weight and reps')).toBeInTheDocument()
   })
 })

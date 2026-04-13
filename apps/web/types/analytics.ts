@@ -1,3 +1,5 @@
+import type { StrengthProfileSex } from './domain'
+
 export interface DashboardProgramSummary {
   id: number
   name: string
@@ -84,6 +86,96 @@ export interface AnalyticsTmProgressionPoint {
   weightLbs: number
 }
 
+export type StrengthProfileStatus = 'missing_profile' | 'insufficient_data' | 'ready'
+export type StrengthProfileMissingField = 'sex' | 'ageYears' | 'bodyweightLbs'
+
+export interface StrengthProfileRepMax {
+  reps: number
+  weightLbs: number
+}
+
+export interface StrengthProfileProfile {
+  sex: StrengthProfileSex | null
+  ageYears: number | null
+  bodyweightLbs: number | null
+}
+
+export interface StrengthProfileRawLift {
+  liftSlug: string
+  displayName: string
+  categoryKey: string
+  categoryLabel: string
+  sourceExerciseId: number
+  sourceExerciseName: string
+  bestDate: string
+  bestReps: number
+  bestExternalWeightLbs: number
+  bestTotalLoadLbs: number
+  bestOneRepMaxLbs: number
+  benchmarkOneRepMaxLbs: number
+  muscleWeights: Record<string, number>
+  actualRepMaxes: StrengthProfileRepMax[]
+  benchmarkRepMaxes: StrengthProfileRepMax[]
+}
+
+export interface StrengthProfileRawData {
+  profile: StrengthProfileProfile
+  minimumLiftCount: number
+  minimumCategoryCount: number
+  lifts: StrengthProfileRawLift[]
+}
+
+export interface StrengthProfileCategoryScore {
+  categoryKey: string
+  categoryLabel: string
+  liftSlug: string
+  liftName: string
+  score: number
+  strengthLabel: string
+}
+
+export interface StrengthProfileHighlight {
+  liftSlug: string
+  displayName: string
+  deviationFromTotalPct: number
+  actualOneRepMaxLbs: number
+  expectedOneRepMaxLbs: number
+}
+
+export interface StrengthProfileMuscleGroup {
+  muscleKey: string
+  title: string
+  score: number
+  strengthLabel: string
+}
+
+export interface StrengthProfileLift extends StrengthProfileRawLift {
+  score: number
+  strengthLabel: string
+  expectedOneRepMaxLbs: number | null
+  expectedRepMaxes: StrengthProfileRepMax[]
+  expectedAtTotalScoreLbs: number | null
+  deviationFromTotalPct: number | null
+}
+
+export interface StrengthProfileData {
+  status: StrengthProfileStatus
+  missingFields: StrengthProfileMissingField[]
+  profile: StrengthProfileProfile
+  availableLiftCount: number
+  availableCategoryCount: number
+  minimumLiftCount: number
+  minimumCategoryCount: number
+  totalScore: number | null
+  totalLabel: string | null
+  symmetryScore: number | null
+  strongestLift: StrengthProfileHighlight | null
+  weakestLift: StrengthProfileHighlight | null
+  categories: StrengthProfileCategoryScore[]
+  lifts: StrengthProfileLift[]
+  muscleGroups: StrengthProfileMuscleGroup[]
+}
+
 export interface AnalyticsData {
   e1rmTrend: AnalyticsE1rmPoint[]
   volumeTrend: AnalyticsVolumePoint[]
@@ -92,6 +184,7 @@ export interface AnalyticsData {
   muscleBalance: AnalyticsMuscleBalancePoint[]
   stallDetection: AnalyticsStallPoint[]
   tmProgression: AnalyticsTmProgressionPoint[]
+  strengthProfile: StrengthProfileData
 }
 
 export interface DerivedRecentPr extends AnalyticsPrPoint {

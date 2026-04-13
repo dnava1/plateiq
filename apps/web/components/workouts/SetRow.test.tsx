@@ -191,7 +191,7 @@ describe('SetRow', () => {
     await waitFor(() => {
       expect(refetchMock).toHaveBeenCalledTimes(1)
       expect(markPrToastShownMock).toHaveBeenCalledWith('44:1:8')
-      expect(toastSuccessMock).toHaveBeenCalledWith('New Squat estimated 1RM PR: 279.3 lbs')
+      expect(toastSuccessMock).toHaveBeenCalledWith('New Squat estimated 1RM PR: 287.3 lbs')
     })
   })
 
