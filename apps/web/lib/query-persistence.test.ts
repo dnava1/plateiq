@@ -4,7 +4,9 @@ import {
   clearAllPersistedQueryCaches,
   clearLegacyPersistedQueryCache,
   createIdbPersister,
+  flushPendingMutations,
   getPersistedQueryCacheKey,
+  getPendingMutationCount,
   getQueryPersistenceBuster,
   resetPersistedQueryState,
 } from './query-persistence'
@@ -84,5 +86,34 @@ describe('query persistence helpers', () => {
       'plateiq-query-cache:user-123',
       'plateiq-query-cache:user-456',
     ])
+  })
+
+  it('counts pending and paused mutations before an auth transition', () => {
+    const queryClient = {
+      getMutationCache: () => ({
+        getAll: () => [
+          { state: { status: 'pending', isPaused: false } },
+          { state: { status: 'success', isPaused: false } },
+          { state: { status: 'idle', isPaused: true } },
+        ],
+      }),
+    } as unknown as QueryClient
+
+    expect(getPendingMutationCount(queryClient)).toBe(2)
+  })
+
+  it('resumes paused mutations before checking whether a merge can proceed', async () => {
+    const resumePausedMutations = vi.fn().mockResolvedValue(undefined)
+    const queryClient = {
+      resumePausedMutations,
+      getMutationCache: () => ({
+        getAll: () => [
+          { state: { status: 'pending', isPaused: false } },
+        ],
+      }),
+    } as unknown as QueryClient
+
+    await expect(flushPendingMutations(queryClient)).resolves.toBe(1)
+    expect(resumePausedMutations).toHaveBeenCalledTimes(1)
   })
 })

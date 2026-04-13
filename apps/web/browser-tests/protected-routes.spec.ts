@@ -1,11 +1,41 @@
 import { test, expect } from '@playwright/test'
-import { getPersistedQueryCacheKeys, loginAsVerificationUser } from './helpers/auth'
+import { continueAsGuest, getPersistedQueryCacheKeys, loginAsVerificationUser } from './helpers/auth'
 
-test('redirects unauthenticated dashboard requests to login', async ({ page }) => {
+const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? ''
+const hasTurnstileGuestGate = Boolean(turnstileSiteKey)
+const hasTurnstileTestKey = turnstileSiteKey === '1x00000000000000000000AA'
+
+test('redirects unauthenticated dashboard requests to continue', async ({ page }) => {
   await page.goto('/dashboard')
 
-  await expect(page).toHaveURL(/\/login(?:\?.*)?$/)
-  await expect(page.getByRole('heading', { name: 'Sign in to PlateIQ' })).toBeVisible()
+  await expect(page).toHaveURL(/\/continue(?:\?.*)?$/)
+  await expect(page.getByRole('heading', { name: /Choose how you want to enter/i })).toBeVisible()
+})
+
+test('supports guest access and returns guests to continue after sign-out', async ({ page }) => {
+  if (hasTurnstileGuestGate && !hasTurnstileTestKey) {
+    await page.goto('/continue')
+
+    await expect(page.getByRole('button', { name: 'Continue as Guest' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Use Email to Sign In' })).toBeVisible()
+    return
+  }
+
+  await continueAsGuest(page)
+
+  await page.goto('/settings')
+  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Guest account' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Upgrade Account' }).first()).toBeVisible()
+
+  await page.getByRole('button', { name: 'Sign Out' }).click()
+
+  await expect(page).toHaveURL(/\/continue(?:\?.*)?$/)
+  await expect(page.getByRole('heading', { name: /Choose how you want to enter/i })).toBeVisible()
+
+  await page.goto('/dashboard')
+  await expect(page).toHaveURL(/\/continue(?:\?.*)?$/)
 })
 
 test.describe('authenticated dashboard and analytics flows', () => {
@@ -94,14 +124,14 @@ test.describe('authenticated dashboard and analytics flows', () => {
     await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
     await page.getByRole('button', { name: 'Sign Out' }).click()
 
-    await expect(page).toHaveURL(/\/login(?:\?.*)?$/)
-    await expect(page.getByRole('heading', { name: 'Sign in to PlateIQ' })).toBeVisible()
+    await expect(page).toHaveURL(/\/continue(?:\?.*)?$/)
+    await expect(page.getByRole('heading', { name: /Choose how you want to enter/i })).toBeVisible()
 
     await expect.poll(async () => {
       return await getPersistedQueryCacheKeys(page)
     }).toEqual([])
 
     await page.goto('/dashboard')
-    await expect(page).toHaveURL(/\/login(?:\?.*)?$/)
+    await expect(page).toHaveURL(/\/continue(?:\?.*)?$/)
   })
 })

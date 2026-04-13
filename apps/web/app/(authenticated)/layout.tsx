@@ -4,6 +4,8 @@ import { Header } from '@/components/layout/Header'
 import { MobileNav } from '@/components/layout/MobileNav'
 import { PreferenceSync } from '@/components/layout/PreferenceSync'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AppLayout({
   children,
 }: {
@@ -15,7 +17,7 @@ export default async function AppLayout({
   } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect('/login')
+    redirect('/continue')
   }
 
   return (

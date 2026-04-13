@@ -29,6 +29,19 @@ export function createIdbPersister(userId: string) {
   }
 }
 
+export function getPendingMutationCount(queryClient: QueryClient) {
+  return queryClient
+    .getMutationCache()
+    .getAll()
+    .filter((mutation) => mutation.state.status === 'pending' || mutation.state.isPaused)
+    .length
+}
+
+export async function flushPendingMutations(queryClient: QueryClient) {
+  await queryClient.resumePausedMutations()
+  return getPendingMutationCount(queryClient)
+}
+
 export async function clearPersistedQueryCache(userId: string) {
   await del(getPersistedQueryCacheKey(userId))
 }

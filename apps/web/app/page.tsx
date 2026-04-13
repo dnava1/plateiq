@@ -19,18 +19,17 @@ export default function HomePage() {
               </div>
               <span className="eyebrow">PlateIQ</span>
             </div>
-            <h1 className="text-5xl font-semibold tracking-[-0.1em] text-foreground md:text-6xl">
+            <h1 className="text-5xl font-semibold -tracking-widest text-foreground md:text-6xl">
               Know the plan before you touch the bar.
             </h1>
             <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-              Keep your current cycle, training maxes, and next session in one calm place so
-              you can get in, lift, and get out.
+              Start with a guest session or a full account, then keep your current cycle, training maxes, and next session in one calm place.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Link href="/login" className={buttonVariants({ size: 'lg', className: 'w-full sm:w-auto' })}>
+            <Link href="/continue" className={buttonVariants({ size: 'lg', className: 'w-full sm:w-auto' })}>
               <ArrowRight data-icon="inline-start" />
-              Open Training Log
+              Continue
             </Link>
             <Link
               href="/programs"

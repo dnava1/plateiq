@@ -1,5 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { MERGE_INTENT_COOKIE_NAME } from '@/lib/auth/merge'
+import { getAuthKind, sanitizeNextPath } from '@/lib/auth/auth-state'
 
 export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -36,21 +38,46 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const isAuthRoute = pathname === '/login'
-  const isCallbackRoute = pathname.startsWith('/auth/callback')
-  const isPublicRoute = pathname === '/'
+  const authKind = getAuthKind(user)
+  const requestedPath = sanitizeNextPath(`${pathname}${request.nextUrl.search}`, '/dashboard')
+  const postAuthPath = sanitizeNextPath(request.nextUrl.searchParams.get('next'), '/dashboard')
+  const pendingMergeIntent = request.cookies.get(MERGE_INTENT_COOKIE_NAME)?.value
 
-  // Redirect unauthenticated users to login (except public + auth routes)
-  if (!user && !isAuthRoute && !isCallbackRoute && !isPublicRoute) {
+  const isContinueRoute = pathname === '/continue'
+  const isAuthRoute = pathname === '/login'
+  const isUpgradeRoute = pathname === '/upgrade'
+  const isCallbackRoute = pathname.startsWith('/auth/callback')
+  const isPasswordSetupRoute = isUpgradeRoute && request.nextUrl.searchParams.get('step') === 'password'
+  const isPublicRoute = pathname === '/' || isContinueRoute || isAuthRoute || isCallbackRoute
+
+  if (authKind === 'signed_out' && !isPublicRoute) {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
+    url.pathname = '/continue'
+    url.searchParams.set('next', requestedPath)
     return NextResponse.redirect(url)
   }
 
-  // Redirect authenticated users away from login
-  if (user && isAuthRoute) {
+  if (authKind === 'anonymous') {
+    if (isAuthRoute) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/upgrade'
+      url.search = ''
+      return NextResponse.redirect(url)
+    }
+
+    if (isContinueRoute) {
+      const url = request.nextUrl.clone()
+      const redirectTarget = new URL(postAuthPath, url)
+      url.pathname = redirectTarget.pathname
+      url.search = redirectTarget.search
+      return NextResponse.redirect(url)
+    }
+  }
+
+  if (authKind === 'permanent' && (isContinueRoute || isAuthRoute || (isUpgradeRoute && !isPasswordSetupRoute && !pendingMergeIntent))) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
+    url.search = ''
     return NextResponse.redirect(url)
   }
 

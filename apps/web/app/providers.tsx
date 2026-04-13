@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { getAuthScope } from '@/lib/auth/auth-state'
 import { useUiStore } from '@/store/uiStore'
 import { createClient } from '@/lib/supabase/client'
 import { analyticsQueryKeys } from '@/hooks/useAnalytics'
@@ -147,7 +148,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         return
       }
 
-      applyAuthScope(data.session?.user?.id ?? null)
+      applyAuthScope(getAuthScope(data.session?.user ?? null))
     }
 
     void resolveInitialScope()
@@ -155,14 +156,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      applyAuthScope(session?.user?.id ?? null)
+      queryClient.invalidateQueries({ queryKey: ['user'] })
+      queryClient.invalidateQueries({ queryKey: ['profile'] })
+      applyAuthScope(getAuthScope(session?.user ?? null))
     })
 
     return () => {
       isActive = false
       subscription.unsubscribe()
     }
-  }, [supabase])
+  }, [queryClient, supabase])
 
   useEffect(() => {
     if (!isAuthReady) {

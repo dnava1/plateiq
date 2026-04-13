@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { NextRequest } from 'next/server'
+import { MERGE_INTENT_COOKIE_NAME } from '@/lib/auth/merge'
 
 const nextServerMocks = vi.hoisted(() => ({
   next: vi.fn(),
@@ -23,17 +24,22 @@ vi.mock('@supabase/ssr', () => ({
 
 import { updateSession } from './middleware'
 
-function createRequest(pathname: string) {
-  const clonedUrl = { pathname }
+function createRequest(pathname: string, mergeCookieValue?: string) {
+  const nextUrl = new URL(`https://plateiq.test${pathname}`)
 
   return {
     cookies: {
       getAll: vi.fn().mockReturnValue([]),
+      get: vi.fn((name: string) => name === MERGE_INTENT_COOKIE_NAME && mergeCookieValue
+        ? { value: mergeCookieValue }
+        : undefined),
       set: vi.fn(),
     },
     nextUrl: {
-      pathname,
-      clone: vi.fn(() => clonedUrl),
+      pathname: nextUrl.pathname,
+      search: nextUrl.search,
+      searchParams: nextUrl.searchParams,
+      clone: vi.fn(() => new URL(nextUrl.toString())),
     },
   } as unknown as NextRequest
 }
@@ -54,7 +60,7 @@ describe('updateSession', () => {
     expect(result).toBe(nextResponse)
   })
 
-  it('redirects unauthenticated protected page requests to login', async () => {
+  it('redirects unauthenticated protected page requests to continue', async () => {
     const nextResponse = { cookies: { set: vi.fn() } }
     const redirectResponse = { kind: 'redirect' }
     nextServerMocks.next.mockReturnValue(nextResponse)
@@ -65,13 +71,134 @@ describe('updateSession', () => {
       },
     })
 
-    const request = createRequest('/dashboard')
+    const request = createRequest('/dashboard?tab=analytics')
     const result = await updateSession(request)
-    const redirectTarget = nextServerMocks.redirect.mock.calls[0]?.[0] as { pathname: string }
+    const redirectTarget = nextServerMocks.redirect.mock.calls[0]?.[0] as URL
 
     expect(supabaseMocks.createServerClient).toHaveBeenCalledOnce()
     expect(nextServerMocks.redirect).toHaveBeenCalledOnce()
-    expect(redirectTarget.pathname).toBe('/login')
+    expect(redirectTarget.pathname).toBe('/continue')
+    expect(redirectTarget.searchParams.get('next')).toBe('/dashboard?tab=analytics')
     expect(result).toBe(redirectResponse)
+  })
+
+  it('allows anonymous users through protected routes', async () => {
+    const nextResponse = { kind: 'next', cookies: { set: vi.fn() } }
+    nextServerMocks.next.mockReturnValue(nextResponse)
+    supabaseMocks.createServerClient.mockReturnValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: 'guest-user',
+              is_anonymous: true,
+            },
+          },
+        }),
+      },
+    })
+
+    const result = await updateSession(createRequest('/dashboard'))
+
+    expect(nextServerMocks.redirect).not.toHaveBeenCalled()
+    expect(result).toBe(nextResponse)
+  })
+
+  it('redirects anonymous users away from login to upgrade', async () => {
+    const nextResponse = { cookies: { set: vi.fn() } }
+    const redirectResponse = { kind: 'redirect' }
+    nextServerMocks.next.mockReturnValue(nextResponse)
+    nextServerMocks.redirect.mockReturnValue(redirectResponse)
+    supabaseMocks.createServerClient.mockReturnValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: 'guest-user',
+              is_anonymous: true,
+            },
+          },
+        }),
+      },
+    })
+
+    const result = await updateSession(createRequest('/login'))
+    const redirectTarget = nextServerMocks.redirect.mock.calls[0]?.[0] as URL
+
+    expect(redirectTarget.pathname).toBe('/upgrade')
+    expect(result).toBe(redirectResponse)
+  })
+
+  it('preserves deep-link query parameters when anonymous users revisit continue', async () => {
+    const nextResponse = { cookies: { set: vi.fn() } }
+    const redirectResponse = { kind: 'redirect' }
+    nextServerMocks.next.mockReturnValue(nextResponse)
+    nextServerMocks.redirect.mockReturnValue(redirectResponse)
+    supabaseMocks.createServerClient.mockReturnValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: 'guest-user',
+              is_anonymous: true,
+            },
+          },
+        }),
+      },
+    })
+
+    const result = await updateSession(createRequest('/continue?next=%2Fdashboard%3Ftab%3Danalytics'))
+    const redirectTarget = nextServerMocks.redirect.mock.calls[0]?.[0] as URL
+
+    expect(redirectTarget.pathname).toBe('/dashboard')
+    expect(redirectTarget.search).toBe('?tab=analytics')
+    expect(result).toBe(redirectResponse)
+  })
+
+  it('redirects permanent users away from continue to the dashboard', async () => {
+    const nextResponse = { cookies: { set: vi.fn() } }
+    const redirectResponse = { kind: 'redirect' }
+    nextServerMocks.next.mockReturnValue(nextResponse)
+    nextServerMocks.redirect.mockReturnValue(redirectResponse)
+    supabaseMocks.createServerClient.mockReturnValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: 'permanent-user',
+              is_anonymous: false,
+            },
+          },
+        }),
+      },
+    })
+
+    const result = await updateSession(createRequest('/continue'))
+    const redirectTarget = nextServerMocks.redirect.mock.calls[0]?.[0] as URL
+
+    expect(redirectTarget.pathname).toBe('/dashboard')
+    expect(result).toBe(redirectResponse)
+  })
+
+  it('allows permanent users into upgrade when a merge intent is still pending', async () => {
+    const nextResponse = { kind: 'next', cookies: { set: vi.fn() } }
+    nextServerMocks.next.mockReturnValue(nextResponse)
+    supabaseMocks.createServerClient.mockReturnValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: 'permanent-user',
+              is_anonymous: false,
+            },
+          },
+        }),
+      },
+    })
+
+    const result = await updateSession(createRequest('/upgrade', 'pending-merge-token'))
+
+    expect(nextServerMocks.redirect).not.toHaveBeenCalled()
+    expect(result).toBe(nextResponse)
   })
 })

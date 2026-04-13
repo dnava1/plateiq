@@ -1,4 +1,7 @@
+import { createClient } from '@supabase/supabase-js'
 import { expect, type Page } from '@playwright/test'
+
+let adminClient: ReturnType<typeof createClient> | null = null
 
 function getRequiredEnv(name: string) {
   const value = process.env[name]
@@ -10,11 +13,63 @@ function getRequiredEnv(name: string) {
   return value
 }
 
+function getAdminClient() {
+  if (adminClient) {
+    return adminClient
+  }
+
+  adminClient = createClient(
+    getRequiredEnv('NEXT_PUBLIC_SUPABASE_URL'),
+    getRequiredEnv('SUPABASE_SECRET_KEY'),
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false,
+      },
+    },
+  )
+
+  return adminClient
+}
+
+function getPlaywrightBaseUrl() {
+  return process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
+}
+
 export async function loginAsVerificationUser(page: Page) {
-  await page.goto('/login')
-  await page.getByLabel('Email').fill(getRequiredEnv('PLAYWRIGHT_VERIFICATION_EMAIL'))
-  await page.getByLabel('Password').fill(getRequiredEnv('PLAYWRIGHT_VERIFICATION_PASSWORD'))
-  await page.getByRole('button', { name: 'Sign In' }).click()
+  const supabase = getAdminClient()
+  const baseUrl = getPlaywrightBaseUrl()
+  const { data, error } = await supabase.auth.admin.generateLink({
+    type: 'magiclink',
+    email: getRequiredEnv('PLAYWRIGHT_VERIFICATION_EMAIL'),
+    options: {
+      redirectTo: `${baseUrl}/auth/callback?next=${encodeURIComponent('/dashboard')}`,
+    },
+  })
+
+  const tokenHash = data.properties?.hashed_token
+  const verificationType = data.properties?.verification_type
+
+  if (error || !tokenHash || !verificationType) {
+    throw new Error(error?.message ?? 'Unable to create a verification login link for Playwright.')
+  }
+
+  const callbackUrl = new URL('/auth/callback', baseUrl)
+  callbackUrl.searchParams.set('token_hash', tokenHash)
+  callbackUrl.searchParams.set('type', verificationType)
+  callbackUrl.searchParams.set('next', '/dashboard')
+
+  await page.goto(callbackUrl.toString())
+
+  await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/)
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+}
+
+export async function continueAsGuest(page: Page) {
+  await page.goto('/continue')
+  await expect(page.getByRole('button', { name: 'Continue as Guest' })).toBeEnabled()
+  await page.getByRole('button', { name: 'Continue as Guest' }).click()
 
   await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/)
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()

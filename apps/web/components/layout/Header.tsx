@@ -2,14 +2,20 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { isAnonymousUser } from '@/lib/auth/auth-state'
 import { useUser } from '@/hooks/useUser'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { Dumbbell } from 'lucide-react'
 import { APP_NAV_ITEMS, isActiveNavPath } from '@/components/layout/navigation'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
 
 function getDisplayName(user: ReturnType<typeof useUser>['data']) {
+  if (isAnonymousUser(user)) {
+    return 'Guest'
+  }
+
   return user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.email ?? 'Athlete'
 }
 
@@ -25,6 +31,7 @@ function getInitials(name: string) {
 export function Header() {
   const pathname = usePathname()
   const { data: user } = useUser()
+  const isGuest = isAnonymousUser(user)
   const displayName = getDisplayName(user)
   const initials = getInitials(displayName)
   const isSettingsActive = isActiveNavPath(pathname, '/settings')
@@ -68,6 +75,19 @@ export function Header() {
         </nav>
 
         <div className="ml-auto flex items-center gap-3">
+          {isGuest && (
+            <Link
+              href="/upgrade"
+              className={buttonVariants({
+                variant: 'outline',
+                size: 'sm',
+                className: 'hidden rounded-full px-3 sm:inline-flex',
+              })}
+            >
+              Upgrade
+            </Link>
+          )}
+
           <ThemeToggle compact />
 
           <Link
@@ -83,7 +103,7 @@ export function Header() {
               <span className="max-w-32 truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">
                 {displayName}
               </span>
-              <span className="text-xs text-muted-foreground">Signed in</span>
+              <span className="text-xs text-muted-foreground">{isGuest ? 'Guest session' : 'Signed in'}</span>
             </div>
 
             <Avatar size="lg" className="ring-2 ring-primary/15 transition-all group-hover:ring-primary/35">

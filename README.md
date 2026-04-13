@@ -37,6 +37,8 @@ plateiq/
 
 See [docs/architecture.md](docs/architecture.md) for the complete system design, data model, API surface, and deployment guide.
 
+Supabase migration files follow the CLI convention: create new files with `supabase migration new descriptive_snake_case_name` so every file stays in the `supabase/migrations/<timestamp>_<name>.sql` format. Do not hand-number migration filenames.
+
 ## Key Features
 
 - **15 Built-in Programs** — Starting Strength, StrongLifts 5×5, GZCLP, Greyskull LP, Phrak's GSLP, Wendler's 5/3/1, Texas Method, Madcow 5×5, nSuns LP, PHUL, Conjugate, Juggernaut, Sheiko, Building the Monolith, Smolov Jr

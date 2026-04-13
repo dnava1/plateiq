@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      auth_user_email_index: {
+        Row: {
+          created_at: string
+          is_anonymous: boolean
+          normalized_email: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          is_anonymous?: boolean
+          normalized_email?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          is_anonymous?: boolean
+          normalized_email?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cycles: {
         Row: {
           auto_progression_applied: boolean
@@ -97,6 +121,51 @@ export type Database = {
           {
             foreignKeyName: "exercises_created_by_user_id_fkey"
             columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_merge_intents: {
+        Row: {
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: number
+          source_user_id: string
+          target_user_id: string
+          token_hash: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: never
+          source_user_id: string
+          target_user_id: string
+          token_hash: string
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: never
+          source_user_id?: string
+          target_user_id?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_merge_intents_source_user_id_fkey"
+            columns: ["source_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_merge_intents_target_user_id_fkey"
+            columns: ["target_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -366,6 +435,10 @@ export type Database = {
     Functions: {
       complete_cycle: {
         Args: { p_cycle_id: number; p_progression?: Json }
+        Returns: Json
+      }
+      merge_guest_account: {
+        Args: { p_source_user_id: string; p_target_user_id: string }
         Returns: Json
       }
       get_analytics_data: {

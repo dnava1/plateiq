@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { defineConfig } from '@playwright/test'
 
-function loadLocalEnvFile(fileName: string) {
+function loadLocalEnvFile(fileName: string, override = false) {
   const filePath = resolve(__dirname, fileName)
 
   if (!existsSync(filePath)) {
@@ -24,7 +24,7 @@ function loadLocalEnvFile(fileName: string) {
     }
 
     const key = trimmed.slice(0, separatorIndex).trim()
-    if (process.env[key] !== undefined) {
+    if (!override && process.env[key] !== undefined) {
       continue
     }
 
@@ -41,6 +41,7 @@ function loadLocalEnvFile(fileName: string) {
 }
 
 loadLocalEnvFile('.env.local')
+loadLocalEnvFile('.env.playwright.local', true)
 
 const playwrightPort = process.env.PLAYWRIGHT_PORT ?? '3100'
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${playwrightPort}`
