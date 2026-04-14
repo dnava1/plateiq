@@ -161,7 +161,7 @@ export const phul: ProgramTemplate = {
   progression: {
     style: 'linear_per_week',
     increment_lbs: { upper: 5, lower: 10 },
-    deload_trigger: 'Stalled progress for 2+ consecutive weeks',
+    deload_trigger: 'Plateaued progress for 2+ consecutive weeks',
     deload_strategy: 'Take a deload week at 60-70% of normal weights',
   },
   source_url: 'https://www.muscleandstrength.com/workouts/phul-workout',

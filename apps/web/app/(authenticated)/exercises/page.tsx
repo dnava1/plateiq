@@ -100,7 +100,7 @@ export default function ExercisesPage() {
                 </Badge>
               </div>
               <p className="page-copy">
-                Keep your movement library tidy, then dial in training maxes for the lifts that drive your progression.
+                Browse and manage your movement library.
               </p>
             </div>
           </div>

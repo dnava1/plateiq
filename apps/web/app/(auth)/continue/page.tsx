@@ -151,10 +151,10 @@ export default function ContinuePage() {
               <div className="flex flex-col gap-2">
                 <span className="eyebrow">PlateIQ</span>
                 <h1 className="text-4xl font-semibold tracking-[-0.08em] text-foreground">
-                  Continue with PlateIQ.
+                    Get Started
                 </h1>
                 <p className="max-w-md text-sm leading-6 text-muted-foreground">
-                  Start with a guest session now, then upgrade or merge the training history later without rebuilding your log.
+                  Start training in seconds.
                 </p>
               </div>
             </div>
@@ -181,7 +181,7 @@ export default function ContinuePage() {
                   <ShieldCheck />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <p className="text-sm font-medium text-foreground">Upgrade when you are ready</p>
+                  <p className="text-sm font-medium text-foreground">Create an account when you&apos;re ready</p>
                   <p className="text-sm leading-6 text-muted-foreground">
                     Link Google, add email and password, or merge this guest history into an existing PlateIQ account later.
                   </p>
@@ -202,12 +202,12 @@ export default function ContinuePage() {
               </div>
               <div className="flex flex-col gap-1">
                 <span className="eyebrow">PlateIQ</span>
-                <span className="text-xl font-semibold tracking-[-0.06em] text-foreground">Continue</span>
+                <span className="text-xl font-semibold tracking-[-0.06em] text-foreground">Get Started</span>
               </div>
             </div>
             <div className="flex flex-col gap-2">
               <h2 className="text-3xl font-semibold tracking-[-0.06em] text-foreground">
-                Choose how you want to enter.
+                Get Started
               </h2>
               <p className="text-sm leading-6 text-muted-foreground">
                 Start with a guest session for the fastest path, or use Google or email if you already have a PlateIQ account.
@@ -240,7 +240,7 @@ export default function ContinuePage() {
                 </Button>
 
                 <p className="text-sm leading-6 text-muted-foreground">
-                  Guest mode keeps your training data on a temporary account immediately, then lets you upgrade or merge it later from settings.
+                  Guest mode keeps your training data on a temporary account immediately, then lets you create a permanent account or merge it later from settings.
                 </p>
               </>
             )}

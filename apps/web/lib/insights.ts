@@ -123,7 +123,7 @@ function buildDataGaps(analytics: AnalyticsData) {
   }
 
   if (analytics.stallDetection.length === 0) {
-    gaps.push('No stalled lifts were flagged in the current filter.')
+    gaps.push('No plateaued lifts were flagged in the current filter.')
   }
 
   if (analytics.muscleBalance.length === 0) {

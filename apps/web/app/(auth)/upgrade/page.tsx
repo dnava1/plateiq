@@ -97,10 +97,10 @@ export default function UpgradePage() {
 
       setFeedback({
         tone: 'status',
-        message: 'Check your email for the verification link, then come back here to finish the upgrade.',
+        message: 'Check your email for the verification link, then come back here to finish creating your account.',
       })
     } catch {
-      setFeedback({ tone: 'error', message: 'Unable to start the email upgrade right now.' })
+      setFeedback({ tone: 'error', message: 'Unable to start account creation by email right now.' })
     } finally {
       setAction(null)
     }
@@ -123,7 +123,7 @@ export default function UpgradePage() {
 
       window.location.assign(nextAfterUpgrade)
     } catch {
-      setFeedback({ tone: 'error', message: 'Unable to finish the account upgrade right now.' })
+      setFeedback({ tone: 'error', message: 'Unable to finish creating your account right now.' })
     } finally {
       setAction(null)
     }
@@ -152,7 +152,7 @@ export default function UpgradePage() {
 
       setFeedback({ tone: 'status', message: 'Redirecting to Google…' })
     } catch {
-      setFeedback({ tone: 'error', message: 'Unable to start the Google upgrade right now.' })
+      setFeedback({ tone: 'error', message: 'Unable to start account creation with Google right now.' })
       setAction(null)
     }
   }
@@ -275,12 +275,12 @@ export default function UpgradePage() {
     return (
       <div className="animate-scale-in rounded-[32px] border border-border/70 bg-background/82 p-8 shadow-[0_36px_110px_-52px_rgba(0,0,0,0.92)] backdrop-blur-xl">
         <div className="flex flex-col gap-4">
-          <h1 className="text-2xl font-semibold tracking-[-0.06em] text-foreground">Upgrade unavailable</h1>
+          <h1 className="text-2xl font-semibold tracking-[-0.06em] text-foreground">Create Account unavailable</h1>
           <p className="text-sm leading-6 text-muted-foreground">
-            You need an active guest session before you can upgrade or merge it into a permanent account.
+            You need an active guest session before you can create a permanent account or merge it into an existing one.
           </p>
           <Link href="/continue" className={buttonVariants({ size: 'lg', className: 'w-full sm:w-auto' })}>
-            Return to Continue
+            Return to Get Started
           </Link>
         </div>
       </div>
@@ -293,7 +293,7 @@ export default function UpgradePage() {
         <div className="flex flex-col gap-4">
           <h1 className="text-2xl font-semibold tracking-[-0.06em] text-foreground">Finish this merge from settings</h1>
           <p className="text-sm leading-6 text-muted-foreground">
-            Guest-only upgrade actions are unavailable on a permanent account. Use the merge recovery panel in settings to resume or cancel the pending guest merge safely.
+            Guest-only account creation actions are unavailable on a permanent account. Use the merge recovery panel in settings to resume or cancel the pending guest merge safely.
           </p>
           <Link href="/settings?merge=resume" className={buttonVariants({ size: 'lg', className: 'w-full sm:w-auto' })}>
             Return to Settings
@@ -309,7 +309,7 @@ export default function UpgradePage() {
         <section className="hidden flex-col justify-between gap-8 border-r border-border/70 bg-card/72 p-10 lg:flex">
           <div className="flex flex-col gap-5">
             <Badge variant="outline" className="w-fit rounded-full px-3">
-              Upgrade later, not never
+              Secure your progress
             </Badge>
             <div className="flex flex-col gap-4">
               <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/12 text-primary ring-1 ring-primary/25">
@@ -318,12 +318,12 @@ export default function UpgradePage() {
               <div className="flex flex-col gap-2">
                 <span className="eyebrow">PlateIQ</span>
                 <h1 className="text-4xl font-semibold tracking-[-0.08em] text-foreground">
-                  {showPasswordStep ? 'Finish your account setup.' : 'Upgrade this guest session.'}
+                  {showPasswordStep ? 'Finish creating your account.' : 'Create Account'}
                 </h1>
                 <p className="max-w-md text-sm leading-6 text-muted-foreground">
                   {showPasswordStep
-                    ? 'Your email has been verified. Set a password to finish turning this guest session into a permanent PlateIQ account.'
-                    : 'Create a new permanent account on top of this session, or merge the saved training data into an account you already use.'}
+                    ? 'Your email has been verified. Set a password to finish creating your permanent PlateIQ account.'
+                    : 'Create a permanent account or merge into an existing one without losing your saved training data.'}
                 </p>
               </div>
             </div>
@@ -363,7 +363,7 @@ export default function UpgradePage() {
         <section className="flex flex-col gap-6 px-6 py-8 sm:px-8 lg:px-10">
           <div className="flex flex-col gap-3">
             <Badge variant="outline" className="w-fit rounded-full px-3 lg:hidden">
-              Upgrade later, not never
+              Secure your progress
             </Badge>
             <div className="flex items-center gap-3 lg:hidden">
               <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/12 text-primary ring-1 ring-primary/25">
@@ -371,17 +371,17 @@ export default function UpgradePage() {
               </div>
               <div className="flex flex-col gap-1">
                 <span className="eyebrow">PlateIQ</span>
-                <span className="text-xl font-semibold tracking-[-0.06em] text-foreground">Upgrade</span>
+                <span className="text-xl font-semibold tracking-[-0.06em] text-foreground">Create Account</span>
               </div>
             </div>
             <div className="flex flex-col gap-2">
               <h2 className="text-3xl font-semibold tracking-[-0.06em] text-foreground">
-                {showPasswordStep ? 'Finish account setup' : 'Turn this guest session into a permanent account'}
+                {showPasswordStep ? 'Finish account setup' : 'Create Account'}
               </h2>
               <p className="text-sm leading-6 text-muted-foreground">
                 {showPasswordStep
                   ? `Set a password for ${emailOnAccount ?? 'this account'} so you can sign in again later.`
-                  : 'Choose a new permanent account path, or merge the current guest data into an account that already exists.'}
+                  : 'Create a permanent account or merge into an existing one while keeping this guest training history.'}
               </p>
             </div>
           </div>
@@ -415,7 +415,7 @@ export default function UpgradePage() {
                   </div>
                 ) : (
                   <div className="rounded-2xl border border-border/70 bg-background/60 px-3 py-2 text-sm text-muted-foreground">
-                    Verify the email link first, then return here to finish the upgrade.
+                    Verify the email link first, then return here to finish creating your account.
                   </div>
                 )}
 
@@ -436,7 +436,7 @@ export default function UpgradePage() {
                   </div>
 
                   <Button type="submit" size="lg" disabled={isPending || !emailOnAccount}>
-                    {action === 'upgrade-password' ? 'Saving password…' : 'Finish Upgrade'}
+                    {action === 'upgrade-password' ? 'Saving password…' : 'Create Account'}
                   </Button>
                 </form>
               </CardContent>
@@ -504,7 +504,7 @@ export default function UpgradePage() {
                     </div>
 
                     <Button type="submit" size="lg" disabled={isPending}>
-                      {action === 'upgrade-email' ? 'Sending verification email…' : 'Continue with Email'}
+                      {action === 'upgrade-email' ? 'Sending verification email…' : 'Create Account with Email'}
                     </Button>
 
                     <p className="text-xs leading-5 text-muted-foreground">

@@ -23,13 +23,13 @@ export default function HomePage() {
               Know the plan before you touch the bar.
             </h1>
             <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-              Start with a guest session or a full account, then keep your current cycle, training maxes, and next session in one calm place.
+              Track your program, log your lifts, and see what&apos;s next.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Link href="/continue" className={buttonVariants({ size: 'lg', className: 'w-full sm:w-auto' })}>
               <ArrowRight data-icon="inline-start" />
-              Continue
+              Get Started
             </Link>
             <Link
               href="/programs"

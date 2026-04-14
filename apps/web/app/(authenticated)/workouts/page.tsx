@@ -17,7 +17,6 @@ import {
 } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ActiveWorkoutPanel } from '@/components/workouts/ActiveWorkoutPanel'
-import { OneRepMaxCalculator } from '@/components/workouts/OneRepMaxCalculator'
 import { WorkoutLauncher } from '@/components/workouts/WorkoutLauncher'
 
 export default function WorkoutsPage() {
@@ -38,9 +37,6 @@ export default function WorkoutsPage() {
           <span className="eyebrow">Gym Mode</span>
           <div className="flex flex-col gap-2">
             <h1 className="page-title">Workouts</h1>
-            <p className="page-copy">
-              Launch the current session, log sets one by one, and keep moving even when your connection drops out.
-            </p>
           </div>
         </div>
       </section>
@@ -88,8 +84,6 @@ export default function WorkoutsPage() {
         ) : (
           <WorkoutLauncher program={activeProgram} />
         )}
-
-        <OneRepMaxCalculator />
       </div>
     </div>
   )

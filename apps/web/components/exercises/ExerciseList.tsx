@@ -74,11 +74,6 @@ export function ExerciseList({ exercises, trainingMaxes, unit, onSetTm }: Exerci
                   <Badge variant="outline" className="capitalize">
                     {exercise.movement_pattern.replace('_', ' ')}
                   </Badge>
-                  {exercise.created_by_user_id ? (
-                    <Badge variant="outline">Custom</Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-muted-foreground">System</Badge>
-                  )}
                 </div>
               </div>
               <div className="flex items-center gap-3">

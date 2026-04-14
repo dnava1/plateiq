@@ -113,14 +113,12 @@ export function ExerciseLibraryField({
             {filteredExercises.map((exercise) => {
               const isSelected = selectedExercise?.id === exercise.id
               const movementLabel = MOVEMENT_PATTERN_LABELS[exercise.movement_pattern as MovementPattern] ?? exercise.movement_pattern
-              const sourceLabel = exercise.created_by_user_id ? 'custom' : 'library'
-
               return (
                 <button
                   key={exercise.id}
                   type="button"
                   role="option"
-                  aria-label={`${exercise.name} ${exercise.is_main_lift ? 'main lift' : 'accessory'} ${movementLabel} ${sourceLabel}`}
+                  aria-label={`${exercise.name} ${exercise.is_main_lift ? 'main lift' : 'accessory'} ${movementLabel}`}
                   aria-selected={isSelected}
                   onClick={() => handleSelect(exercise)}
                   className={cn(
@@ -136,9 +134,6 @@ export function ExerciseLibraryField({
                       </Badge>
                       <Badge variant="outline" className="capitalize">
                         {movementLabel}
-                      </Badge>
-                      <Badge variant="outline" className="text-muted-foreground">
-                        {exercise.created_by_user_id ? 'Custom' : 'Library'}
                       </Badge>
                     </div>
                   </div>

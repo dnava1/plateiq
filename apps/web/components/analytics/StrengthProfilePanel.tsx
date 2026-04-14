@@ -26,6 +26,7 @@ import {
   STRENGTH_REP_RANGE,
   SUPPORTED_STRENGTH_LIFT_NAMES,
 } from '@/lib/strength-profile'
+import { getBenchmarkStrengthColorClass } from '@/lib/strength-benchmarks'
 import { formatWeight } from '@/lib/utils'
 import type { StrengthProfileData, StrengthProfileLift } from '@/types/analytics'
 
@@ -136,7 +137,11 @@ export function StrengthProfilePanel({ strengthProfile }: StrengthProfilePanelPr
               <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-foreground">
                 {strengthProfile.totalScore !== null ? strengthProfile.totalScore.toFixed(1) : '—'}
               </p>
-              <p className="mt-1 text-sm text-muted-foreground">{summaryStatusCopy}</p>
+              {strengthProfile.totalLabel && !isPartialProfile ? (
+                <span className={`mt-2 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${getBenchmarkStrengthColorClass(strengthProfile.totalLabel)}`}>{strengthProfile.totalLabel}</span>
+              ) : (
+                <p className="mt-1 text-sm text-muted-foreground">{summaryStatusCopy}</p>
+              )}
             </div>
 
             <div className="rounded-[22px] border border-border/70 bg-background/45 p-4">
@@ -181,9 +186,9 @@ export function StrengthProfilePanel({ strengthProfile }: StrengthProfilePanelPr
             </div>
             <div className="flex flex-wrap gap-2">
               {strengthProfile.categories.map((category) => (
-                <Badge key={category.categoryKey} variant="outline" className="rounded-full px-3 py-1 text-xs">
+                <span key={category.categoryKey} className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${getBenchmarkStrengthColorClass(category.strengthLabel)}`}>
                   {category.categoryLabel} {category.score.toFixed(1)} · {category.strengthLabel}
-                </Badge>
+                </span>
               ))}
             </div>
           </div>
@@ -201,7 +206,7 @@ export function StrengthProfilePanel({ strengthProfile }: StrengthProfilePanelPr
                       <p className="text-base font-semibold tracking-[-0.04em] text-foreground">{lift.displayName}</p>
                       <p className="text-sm text-muted-foreground">{lift.categoryLabel} · best from {lift.sourceExerciseName}</p>
                     </div>
-                    <Badge variant="outline" className="rounded-full px-3 py-1 text-xs">{lift.strengthLabel}</Badge>
+                    <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${getBenchmarkStrengthColorClass(lift.strengthLabel)}`}>{lift.strengthLabel}</span>
                   </div>
 
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -247,7 +252,7 @@ export function StrengthProfilePanel({ strengthProfile }: StrengthProfilePanelPr
                 <div key={muscleGroup.muscleKey} className="rounded-[20px] border border-border/70 bg-background/45 p-4">
                   <p className="text-sm font-medium text-foreground">{muscleGroup.title}</p>
                   <p className="mt-2 text-xl font-semibold tracking-[-0.05em] text-foreground">{muscleGroup.score.toFixed(1)}</p>
-                  <p className="text-sm text-muted-foreground">{muscleGroup.strengthLabel}</p>
+                  <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${getBenchmarkStrengthColorClass(muscleGroup.strengthLabel)}`}>{muscleGroup.strengthLabel}</span>
                 </div>
               ))}
             </div>

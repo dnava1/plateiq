@@ -13,7 +13,6 @@ import { PrTimelineChart } from '@/components/charts/PrTimelineChart'
 import { TmProgressionChart } from '@/components/charts/TmProgressionChart'
 import { VolumeTrendChart } from '@/components/charts/VolumeTrendChart'
 import { AiInsightsPanel } from './AiInsightsPanel'
-import { PlateCalculator } from './PlateCalculator'
 import { StrengthProfilePanel } from './StrengthProfilePanel'
 import {
   Card,
@@ -124,9 +123,6 @@ export function AnalyticsDashboard() {
           <span className="eyebrow">Insights</span>
           <div className="flex flex-col gap-2">
             <h1 className="page-title">Analytics</h1>
-            <p className="page-copy">
-              Filter the training history, inspect trend lines, and load the bar from the same analytics snapshot.
-            </p>
           </div>
         </div>
       </section>
@@ -136,7 +132,7 @@ export function AnalyticsDashboard() {
           <CardHeader className="gap-2">
             <CardTitle className="text-base">Filters</CardTitle>
             <CardDescription>
-              Narrow the analytics snapshot by date window and exercise without leaving the page.
+              Filter by date range and exercise.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 pt-0 lg:grid-cols-[minmax(0,18rem)_minmax(0,18rem)_1fr] lg:items-end">
@@ -199,7 +195,7 @@ export function AnalyticsDashboard() {
           </CardContent>
         </Card>
 
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
+        <div className="flex flex-col gap-6">
           <Tabs value={tab} onValueChange={setTab} className="min-w-0">
             <TabsList className="rounded-2xl border border-border/70 bg-card/72 p-1">
               <TabsTrigger value="overview" className="rounded-lg">Overview</TabsTrigger>
@@ -264,9 +260,9 @@ export function AnalyticsDashboard() {
                 </ChartCard>
 
                 <ChartCard
-                  title="Stall Watch"
+                  title="Plateau Watch"
                   description="Main lifts that have not produced a fresh PR in the last four weeks."
-                  emptyMessage="No stalls detected in the current snapshot."
+                  emptyMessage="No plateaus detected in the current snapshot."
                   isEmpty={analytics.stallDetection.length === 0}
                   isLoading={isLoading}
                   className="xl:col-span-2"
@@ -418,8 +414,6 @@ export function AnalyticsDashboard() {
               />
             </TabsContent>
           </Tabs>
-
-          <PlateCalculator analytics={analytics} exerciseId={selectedExerciseId} exerciseName={selectedExerciseName} />
         </div>
       </div>
     </div>

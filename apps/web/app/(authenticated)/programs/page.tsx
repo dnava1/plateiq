@@ -39,7 +39,7 @@ export default function ProgramsPage() {
               </Badge>
             </div>
             <p className="page-copy">
-              Choose a template, pick a variation, or build your own training split from the ground up.
+              Pick a template or build a custom split.
             </p>
           </div>
         </div>

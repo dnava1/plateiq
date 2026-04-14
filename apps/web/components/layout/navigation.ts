@@ -3,7 +3,6 @@ import {
   Clipboard,
   Dumbbell,
   LayoutDashboard,
-  Settings,
   Timer,
   type LucideIcon,
 } from 'lucide-react'
@@ -20,7 +19,6 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
   { href: '/workouts', label: 'Workouts', icon: Timer },
   { href: '/programs', label: 'Programs', icon: Clipboard },
   { href: '/exercises', label: 'Exercises', icon: Dumbbell },
-  { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
 export function isActiveNavPath(pathname: string, href: string) {

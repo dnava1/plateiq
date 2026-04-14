@@ -130,7 +130,7 @@ export function AiInsightsPanel({
               <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-foreground">{recentPrCount}</p>
             </div>
             <div className="rounded-[20px] border border-border/70 bg-background/45 p-4">
-              <span className="eyebrow">Stalls Flagged</span>
+              <span className="eyebrow">Plateaus Flagged</span>
               <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-foreground">{stallCount}</p>
             </div>
           </div>

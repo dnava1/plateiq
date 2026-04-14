@@ -163,8 +163,8 @@ describe('ExerciseLibraryField', () => {
     await user.type(screen.getByLabelText('Exercise'), 'bench')
     const [libraryBench, customBench] = screen.getAllByRole('option', { name: /Bench Press/i })
 
-    expect(libraryBench).toHaveAccessibleName(/Bench Press.*Library/i)
-    expect(customBench).toHaveAccessibleName(/Bench Press.*Custom/i)
+    expect(libraryBench).toHaveAccessibleName(/Bench Press/i)
+    expect(customBench).toHaveAccessibleName(/Bench Press/i)
 
     await user.click(customBench)
 

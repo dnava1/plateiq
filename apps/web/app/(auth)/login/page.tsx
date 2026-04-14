@@ -228,7 +228,7 @@ export default function LoginPage() {
                 Sign in to PlateIQ
               </h2>
               <p className="text-sm leading-6 text-muted-foreground">
-                Use the account you already created. If you want to start as a guest or make a first account, begin at continue.
+                Sign in with your email, or get started as a guest.
               </p>
             </div>
           </div>
@@ -350,7 +350,7 @@ export default function LoginPage() {
           <p className="text-center text-sm text-muted-foreground">
             Need guest mode or first-time setup?{' '}
             <Link href={continueHref} className="font-medium text-primary underline-offset-4 hover:underline">
-              Start at continue
+              Get Started
             </Link>
           </p>
         </section>

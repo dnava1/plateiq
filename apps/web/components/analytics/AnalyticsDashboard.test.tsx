@@ -50,10 +50,6 @@ vi.mock('@/components/charts/TmProgressionChart', () => ({
   TmProgressionChart: () => <div>tm-progression-chart</div>,
 }))
 
-vi.mock('./PlateCalculator', () => ({
-  PlateCalculator: () => <div>plate-calculator</div>,
-}))
-
 describe('AnalyticsDashboard', () => {
   beforeEach(() => {
     mocks.usePreferredUnit.mockReturnValue('lbs')
@@ -103,7 +99,6 @@ describe('AnalyticsDashboard', () => {
     expect(screen.getByRole('tab', { name: 'Strength' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Volume' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'AI Insights' })).toBeInTheDocument()
-    expect(screen.getByText('plate-calculator')).toBeInTheDocument()
   })
 
   it('shows TM progression guidance on the strength tab and a readiness state on the AI tab', async () => {

@@ -192,9 +192,6 @@ export function DashboardOverview() {
           <span className="eyebrow">Overview</span>
           <div className="flex flex-col gap-2">
             <h1 className="page-title">Dashboard</h1>
-            <p className="page-copy">
-              Keep the next session, recent PRs, cycle momentum, and current working numbers in one place.
-            </p>
           </div>
         </div>
       </section>

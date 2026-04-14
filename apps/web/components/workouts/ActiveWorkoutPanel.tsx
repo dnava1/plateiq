@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { CompleteWorkoutButton } from './CompleteWorkoutButton'
 import { OfflineSyncBanner } from './OfflineSyncBanner'
+import { PlateBreakdownInline } from './PlateBreakdownInline'
 import { SetRow } from './SetRow'
 import type { WorkoutDisplaySet } from './types'
 
@@ -139,6 +140,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
 
       {groupedSets.map(([exerciseName, sets]) => {
         const exerciseCompletedCount = sets.filter((set) => set.repsActual !== null).length
+        const distinctWeightsLbs = [...new Set(sets.map((set) => set.weight_lbs).filter((w) => w > 0))]
 
         return (
           <Card key={exerciseName} className="surface-panel">
@@ -160,6 +162,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
                   userId={user?.id ?? ''}
                 />
               ))}
+              <PlateBreakdownInline weightsLbs={distinctWeightsLbs} />
             </CardContent>
           </Card>
         )
@@ -168,7 +171,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
       {displaySets.length > 0 && completedCount === displaySets.length ? (
         <div className="flex items-center gap-2 rounded-[22px] border border-border/70 bg-card/60 px-4 py-3 text-sm text-muted-foreground">
           <CircleCheckBig className="text-emerald-600 dark:text-emerald-400" />
-          All prescribed sets are logged. Add notes if needed, then finish the workout.
+          All prescribed sets are logged. Ready to finish the workout.
         </div>
       ) : null}
 

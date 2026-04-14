@@ -9,7 +9,6 @@ import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { Dumbbell } from 'lucide-react'
 import { APP_NAV_ITEMS, isActiveNavPath } from '@/components/layout/navigation'
-import { ThemeToggle } from '@/components/layout/ThemeToggle'
 
 function getDisplayName(user: ReturnType<typeof useUser>['data']) {
   if (isAnonymousUser(user)) {
@@ -84,11 +83,9 @@ export function Header() {
                 className: 'hidden rounded-full px-3 sm:inline-flex',
               })}
             >
-              Upgrade
+              Create Account
             </Link>
           )}
-
-          <ThemeToggle compact />
 
           <Link
             href="/settings"

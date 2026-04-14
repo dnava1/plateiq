@@ -396,6 +396,23 @@ export function getBenchmarkStrengthLabel(score: number | null) {
   return threshold?.label ?? 'Subpar'
 }
 
+const STRENGTH_LEVEL_COLORS: Record<string, string> = {
+  'World class': 'border-red-500/40 bg-red-500/10 text-red-600 dark:text-red-400',
+  'Elite': 'border-orange-500/40 bg-orange-500/10 text-orange-600 dark:text-orange-400',
+  'Exceptional': 'border-yellow-500/40 bg-yellow-500/10 text-yellow-600 dark:text-yellow-400',
+  'Advanced': 'border-green-500/40 bg-green-500/10 text-green-600 dark:text-green-400',
+  'Proficient': 'border-teal-500/40 bg-teal-500/10 text-teal-600 dark:text-teal-400',
+  'Intermediate': 'border-blue-500/40 bg-blue-500/10 text-blue-600 dark:text-blue-400',
+  'Novice': 'border-indigo-500/40 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',
+  'Untrained': 'border-violet-500/40 bg-violet-500/10 text-violet-600 dark:text-violet-400',
+  'Subpar': 'border-pink-500/40 bg-pink-500/10 text-pink-600 dark:text-pink-400',
+}
+
+export function getBenchmarkStrengthColorClass(label: string | null) {
+  if (!label) return STRENGTH_LEVEL_COLORS['Subpar']
+  return STRENGTH_LEVEL_COLORS[label] ?? STRENGTH_LEVEL_COLORS['Subpar']
+}
+
 export function calculateSingleLiftStrengthScore(
   unitSystem: BenchmarkUnitSystem,
   sex: BenchmarkSex,

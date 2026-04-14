@@ -386,7 +386,7 @@ export default function SettingsPage() {
           <div className="flex flex-col gap-2">
             <h1 className="page-title">Settings</h1>
             <p className="page-copy">
-              Keep your account details visible, tune units quickly, and manage the session without clutter.
+              Account, units, and preferences.
             </p>
           </div>
         </div>
@@ -448,14 +448,14 @@ export default function SettingsPage() {
                 <span className="eyebrow">Account</span>
                 <h2 className="text-2xl font-semibold tracking-[-0.06em] text-foreground">{displayName}</h2>
                 <p className="text-sm text-muted-foreground">
-                  {isGuest ? 'Training data is tied to a temporary guest account until you upgrade it.' : user?.email ?? '—'}
+                  {isGuest ? 'Training data is tied to a temporary guest account until you create a permanent account.' : user?.email ?? '—'}
                 </p>
               </div>
             </div>
 
             {isGuest && (
               <Link href="/upgrade" className={buttonVariants({ size: 'lg', className: 'w-full sm:w-auto' })}>
-                Upgrade Account
+                Create Account
               </Link>
             )}
           </CardContent>
@@ -464,14 +464,14 @@ export default function SettingsPage() {
         {isGuest && (
           <Card className="border-primary/20 bg-primary/5 shadow-[0_24px_80px_-42px_rgba(0,0,0,0.85)]">
             <CardHeader>
-              <CardTitle>Upgrade this guest session</CardTitle>
+              <CardTitle>Create your account</CardTitle>
               <CardDescription>
                 Link Google, add email and password, or merge this training history into an account you already use.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Link href="/upgrade" className={buttonVariants({ size: 'lg', className: 'w-full sm:w-auto' })}>
-                Open Upgrade Flow
+                Create Account
               </Link>
             </CardContent>
           </Card>
@@ -542,20 +542,22 @@ export default function SettingsPage() {
           onSave={handleStrengthProfileSave}
         />
 
-        <Card className="border-destructive/20 bg-destructive/5 shadow-[0_24px_80px_-42px_rgba(0,0,0,0.85)]">
-          <CardHeader>
-            <CardTitle>Danger Zone</CardTitle>
-            <CardDescription>
-              End the current session on this device and return to continue.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button variant="destructive" onClick={handleLogout} disabled={isSigningOut}>
-              <LogOut data-icon="inline-start" />
-              {isSigningOut ? 'Signing Out…' : 'Sign Out'}
-            </Button>
-          </CardContent>
-        </Card>
+        {!isGuest && (
+          <Card className="border-destructive/20 bg-destructive/5 shadow-[0_24px_80px_-42px_rgba(0,0,0,0.85)]">
+            <CardHeader>
+              <CardTitle>Danger Zone</CardTitle>
+              <CardDescription>
+                End the current session on this device and return to Get Started.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="destructive" onClick={handleLogout} disabled={isSigningOut}>
+                <LogOut data-icon="inline-start" />
+                {isSigningOut ? 'Signing Out…' : 'Sign Out'}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   )
