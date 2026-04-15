@@ -3,17 +3,12 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import LoginPage from './page'
 
-const { clearPendingGuestMergeClientMock, signInWithPasswordMock } = vi.hoisted(() => ({
-  clearPendingGuestMergeClientMock: vi.fn(async () => undefined),
+const { signInWithPasswordMock } = vi.hoisted(() => ({
   signInWithPasswordMock: vi.fn(),
 }))
 
 vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
-}))
-
-vi.mock('@/lib/auth/merge-client', () => ({
-  clearPendingGuestMergeClient: clearPendingGuestMergeClientMock,
 }))
 
 vi.mock('@/lib/auth/captcha', async () => {
@@ -44,7 +39,6 @@ vi.mock('@/components/auth/TurnstileWidget', () => ({
 
 describe('LoginPage', () => {
   beforeEach(() => {
-    clearPendingGuestMergeClientMock.mockClear()
     signInWithPasswordMock.mockReset()
   })
 

@@ -102,14 +102,6 @@ function buildAnalyticsPayload(state: StrengthProfileState) {
 }
 
 async function installStrengthProfileRoutes(page: Page, state: StrengthProfileState) {
-  await page.route('**/api/auth/merge/status', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ pending: false, canFinalize: false }),
-    })
-  })
-
   await page.route('**/rest/v1/profiles*', async (route) => {
     if (route.request().method() !== 'GET') {
       await route.continue()

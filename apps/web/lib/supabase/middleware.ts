@@ -1,6 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { MERGE_INTENT_COOKIE_NAME } from '@/lib/auth/merge'
 import { getAuthKind, sanitizeNextPath } from '@/lib/auth/auth-state'
 
 export async function updateSession(request: NextRequest) {
@@ -41,14 +40,14 @@ export async function updateSession(request: NextRequest) {
   const authKind = getAuthKind(user)
   const requestedPath = sanitizeNextPath(`${pathname}${request.nextUrl.search}`, '/dashboard')
   const postAuthPath = sanitizeNextPath(request.nextUrl.searchParams.get('next'), '/dashboard')
-  const pendingMergeIntent = request.cookies.get(MERGE_INTENT_COOKIE_NAME)?.value
 
   const isContinueRoute = pathname === '/continue'
   const isAuthRoute = pathname === '/login'
+  const isCreateAccountRoute = pathname === '/create-account'
   const isUpgradeRoute = pathname === '/upgrade'
   const isCallbackRoute = pathname.startsWith('/auth/callback')
   const isPasswordSetupRoute = isUpgradeRoute && request.nextUrl.searchParams.get('step') === 'password'
-  const isPublicRoute = pathname === '/' || isContinueRoute || isAuthRoute || isCallbackRoute
+  const isPublicRoute = pathname === '/' || isContinueRoute || isAuthRoute || isCreateAccountRoute || isCallbackRoute
 
   if (authKind === 'signed_out' && !isPublicRoute) {
     const url = request.nextUrl.clone()
@@ -72,9 +71,16 @@ export async function updateSession(request: NextRequest) {
       url.search = redirectTarget.search
       return NextResponse.redirect(url)
     }
+
+    if (isCreateAccountRoute) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/upgrade'
+      url.search = ''
+      return NextResponse.redirect(url)
+    }
   }
 
-  if (authKind === 'permanent' && (isContinueRoute || isAuthRoute || (isUpgradeRoute && !isPasswordSetupRoute && !pendingMergeIntent))) {
+  if (authKind === 'permanent' && (isContinueRoute || isAuthRoute || isCreateAccountRoute || (isUpgradeRoute && !isPasswordSetupRoute))) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     url.search = ''

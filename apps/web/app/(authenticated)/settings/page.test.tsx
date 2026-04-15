@@ -7,9 +7,6 @@ import SettingsPage from './page'
 
 const mocks = vi.hoisted(() => ({
   clearAllPersistedQueryCaches: vi.fn().mockResolvedValue(undefined),
-  clearPendingGuestMergeClient: vi.fn().mockResolvedValue(undefined),
-  finalizePendingGuestMergeClient: vi.fn().mockResolvedValue(undefined),
-  getPendingGuestMergeStatusClient: vi.fn().mockResolvedValue({ canFinalize: false, pending: false }),
   invalidateQueries: vi.fn().mockResolvedValue(undefined),
   isAnonymousUser: vi.fn().mockReturnValue(false),
   replace: vi.fn(),
@@ -34,12 +31,6 @@ vi.mock('next/link', () => ({
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: mocks.replace }),
   useSearchParams: () => mocks.useSearchParams(),
-}))
-
-vi.mock('@/lib/auth/merge-client', () => ({
-  clearPendingGuestMergeClient: mocks.clearPendingGuestMergeClient,
-  finalizePendingGuestMergeClient: mocks.finalizePendingGuestMergeClient,
-  getPendingGuestMergeStatusClient: mocks.getPendingGuestMergeStatusClient,
 }))
 
 vi.mock('@/lib/auth/auth-state', () => ({
@@ -151,5 +142,22 @@ describe('SettingsPage', () => {
     })
 
     expect(mocks.toastSuccess).toHaveBeenCalledWith('Strength profile saved.')
+  })
+
+  it('shows a single consolidated guest account card', () => {
+    mocks.isAnonymousUser.mockReturnValue(true)
+    mocks.useUser.mockReturnValue({
+      data: {
+        email: null,
+        id: 'guest-user',
+        user_metadata: {},
+      },
+    })
+
+    render(<SettingsPage />, { wrapper: createWrapper() })
+
+    expect(screen.getByText('Training data is tied to a temporary guest account. Create a permanent account to avoid losing your data.')).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'Create Account' })).toHaveLength(1)
+    expect(screen.queryByText('Create your account')).not.toBeInTheDocument()
   })
 })

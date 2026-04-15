@@ -3,14 +3,9 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { LogOut, Ruler } from 'lucide-react'
 import { toast } from 'sonner'
-import {
-  clearPendingGuestMergeClient,
-  finalizePendingGuestMergeClient,
-  getPendingGuestMergeStatusClient,
-} from '@/lib/auth/merge-client'
 import { isAnonymousUser } from '@/lib/auth/auth-state'
 import { useProfile } from '@/hooks/useProfile'
 import { useUser } from '@/hooks/useUser'
@@ -204,7 +199,6 @@ export default function SettingsPage() {
   const [isSigningOut, setIsSigningOut] = useState(false)
   const { preferredUnit, setPreferredUnit } = useUiStore()
   const isGuest = isAnonymousUser(user)
-  const mergeRecoveryQueryKey = ['pending-guest-merge-status', user?.id ?? 'anonymous'] as const
 
   const updateUnit = useMutation({
     mutationFn: async (unit: PreferredUnit) => {
@@ -275,8 +269,6 @@ export default function SettingsPage() {
   const handleLogout = async () => {
     setIsSigningOut(true)
 
-    await clearPendingGuestMergeClient().catch(() => undefined)
-
     const { error } = await supabase.auth.signOut({ scope: 'local' })
     if (error) {
       toast.error(error.message)
@@ -299,84 +291,7 @@ export default function SettingsPage() {
     .slice(0, 2)
     .map((part: string) => part[0]?.toUpperCase())
     .join('') || 'PI'
-  const merged = searchParams.get('merged') === '1'
   const upgraded = searchParams.get('upgraded') === '1'
-  const mergeState = searchParams.get('merge')
-  const mergeFailed = mergeState === 'failed' || mergeState === 'resume'
-  const mergeExpired = mergeState === 'expired'
-  const mergeRecoveryQuery = useQuery({
-    queryKey: mergeRecoveryQueryKey,
-    enabled: Boolean(user) && !isGuest,
-    retry: false,
-    staleTime: 30_000,
-    queryFn: async () => {
-      try {
-        const status = await getPendingGuestMergeStatusClient()
-
-        return {
-          loaded: true,
-          pending: status.pending,
-          canFinalize: status.canFinalize,
-        }
-      } catch (error) {
-        console.error('failed to load guest merge recovery status', {
-          message: error instanceof Error ? error.message : String(error),
-          userId: user?.id,
-        })
-
-        throw error
-      }
-    },
-  })
-  const effectiveMergeRecovery = !user || isGuest
-    ? {
-        loaded: true,
-        pending: false,
-        canFinalize: false,
-      }
-    : mergeRecoveryQuery.isError
-      ? {
-          loaded: true,
-          pending: false,
-          canFinalize: false,
-        }
-      : mergeRecoveryQuery.data ?? {
-          loaded: false,
-          pending: false,
-          canFinalize: false,
-        }
-
-  const resumeMerge = useMutation({
-    mutationFn: finalizePendingGuestMergeClient,
-    onSuccess: async () => {
-      queryClient.setQueryData(mergeRecoveryQueryKey, {
-        loaded: true,
-        pending: false,
-        canFinalize: false,
-      })
-      await queryClient.invalidateQueries({ queryKey: ['user'] })
-      await queryClient.invalidateQueries({ queryKey: ['profile'] })
-      router.replace('/settings?merged=1')
-    },
-    onError: (error: Error) => {
-      toast.error(error.message)
-    },
-  })
-
-  const cancelMerge = useMutation({
-    mutationFn: clearPendingGuestMergeClient,
-    onSuccess: () => {
-      queryClient.setQueryData(mergeRecoveryQueryKey, {
-        loaded: true,
-        pending: false,
-        canFinalize: false,
-      })
-      router.replace('/settings')
-    },
-    onError: (error: Error) => {
-      toast.error(error.message)
-    },
-  })
 
   return (
     <div className="page-shell max-w-5xl">
@@ -393,46 +308,10 @@ export default function SettingsPage() {
       </section>
 
       <div className="flex w-full max-w-3xl flex-col gap-6">
-        {(merged || upgraded || mergeFailed || mergeExpired) && (
-          <div className={(mergeFailed || mergeExpired)
-            ? 'rounded-3xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive'
-            : 'rounded-3xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground'}>
-            {mergeExpired
-              ? 'The guest merge request expired before it finished. Start it again from the guest account if you still need to move that data.'
-              : mergeFailed
-                ? 'The guest merge did not finish cleanly. If the recovery panel appears below, you can retry it safely from this account.'
-              : merged
-                ? 'Your guest training history was merged into this account.'
-                : 'This guest session is now a permanent account.'}
+        {upgraded && (
+          <div className="rounded-3xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
+            This guest session is now a permanent account.
           </div>
-        )}
-
-        {!isGuest && effectiveMergeRecovery.loaded && effectiveMergeRecovery.pending && (
-          <Card className="border-primary/20 bg-primary/5 shadow-[0_24px_80px_-42px_rgba(0,0,0,0.85)]">
-            <CardHeader>
-              <CardTitle>{effectiveMergeRecovery.canFinalize ? 'Finish the pending guest merge' : 'Pending guest merge detected'}</CardTitle>
-              <CardDescription>
-                {effectiveMergeRecovery.canFinalize
-                  ? 'The browser still has a guest merge prepared for this account. Finish it now or cancel it before you sign out.'
-                  : 'This browser still has a guest merge prepared for a different account. Sign into the intended account to finish it, or cancel it here.'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3 sm:flex-row">
-              {effectiveMergeRecovery.canFinalize && (
-                <Button size="lg" onClick={() => resumeMerge.mutate()} disabled={resumeMerge.isPending || cancelMerge.isPending}>
-                  {resumeMerge.isPending ? 'Finishing Merge…' : 'Resume Merge'}
-                </Button>
-              )}
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => cancelMerge.mutate()}
-                disabled={resumeMerge.isPending || cancelMerge.isPending}
-              >
-                {cancelMerge.isPending ? 'Cancelling…' : 'Cancel Pending Merge'}
-              </Button>
-            </CardContent>
-          </Card>
         )}
 
         <Card className="surface-panel">
@@ -448,7 +327,9 @@ export default function SettingsPage() {
                 <span className="eyebrow">Account</span>
                 <h2 className="text-2xl font-semibold tracking-[-0.06em] text-foreground">{displayName}</h2>
                 <p className="text-sm text-muted-foreground">
-                  {isGuest ? 'Training data is tied to a temporary guest account until you create a permanent account.' : user?.email ?? '—'}
+                  {isGuest
+                    ? 'Training data is tied to a temporary guest account. Create a permanent account to avoid losing your data.'
+                    : user?.email ?? '—'}
                 </p>
               </div>
             </div>
@@ -460,22 +341,6 @@ export default function SettingsPage() {
             )}
           </CardContent>
         </Card>
-
-        {isGuest && (
-          <Card className="border-primary/20 bg-primary/5 shadow-[0_24px_80px_-42px_rgba(0,0,0,0.85)]">
-            <CardHeader>
-              <CardTitle>Create your account</CardTitle>
-              <CardDescription>
-                Link Google, add email and password, or merge this training history into an account you already use.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/upgrade" className={buttonVariants({ size: 'lg', className: 'w-full sm:w-auto' })}>
-                Create Account
-              </Link>
-            </CardContent>
-          </Card>
-        )}
 
         <Card className="surface-panel">
           <CardHeader>

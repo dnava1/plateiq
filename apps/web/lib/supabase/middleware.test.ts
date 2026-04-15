@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { NextRequest } from 'next/server'
-import { MERGE_INTENT_COOKIE_NAME } from '@/lib/auth/merge'
 
 const nextServerMocks = vi.hoisted(() => ({
   next: vi.fn(),
@@ -24,15 +23,13 @@ vi.mock('@supabase/ssr', () => ({
 
 import { updateSession } from './middleware'
 
-function createRequest(pathname: string, mergeCookieValue?: string) {
+function createRequest(pathname: string) {
   const nextUrl = new URL(`https://plateiq.test${pathname}`)
 
   return {
     cookies: {
       getAll: vi.fn().mockReturnValue([]),
-      get: vi.fn((name: string) => name === MERGE_INTENT_COOKIE_NAME && mergeCookieValue
-        ? { value: mergeCookieValue }
-        : undefined),
+      get: vi.fn().mockReturnValue(undefined),
       set: vi.fn(),
     },
     nextUrl: {
@@ -129,6 +126,31 @@ describe('updateSession', () => {
     expect(result).toBe(redirectResponse)
   })
 
+  it('redirects anonymous users away from create-account to upgrade', async () => {
+    const nextResponse = { cookies: { set: vi.fn() } }
+    const redirectResponse = { kind: 'redirect' }
+    nextServerMocks.next.mockReturnValue(nextResponse)
+    nextServerMocks.redirect.mockReturnValue(redirectResponse)
+    supabaseMocks.createServerClient.mockReturnValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: 'guest-user',
+              is_anonymous: true,
+            },
+          },
+        }),
+      },
+    })
+
+    const result = await updateSession(createRequest('/create-account'))
+    const redirectTarget = nextServerMocks.redirect.mock.calls[0]?.[0] as URL
+
+    expect(redirectTarget.pathname).toBe('/upgrade')
+    expect(result).toBe(redirectResponse)
+  })
+
   it('preserves deep-link query parameters when anonymous users revisit continue', async () => {
     const nextResponse = { cookies: { set: vi.fn() } }
     const redirectResponse = { kind: 'redirect' }
@@ -180,7 +202,7 @@ describe('updateSession', () => {
     expect(result).toBe(redirectResponse)
   })
 
-  it('allows permanent users into upgrade when a merge intent is still pending', async () => {
+  it('allows permanent users into the password setup step on upgrade', async () => {
     const nextResponse = { kind: 'next', cookies: { set: vi.fn() } }
     nextServerMocks.next.mockReturnValue(nextResponse)
     supabaseMocks.createServerClient.mockReturnValue({
@@ -196,7 +218,7 @@ describe('updateSession', () => {
       },
     })
 
-    const result = await updateSession(createRequest('/upgrade', 'pending-merge-token'))
+    const result = await updateSession(createRequest('/upgrade?step=password'))
 
     expect(nextServerMocks.redirect).not.toHaveBeenCalled()
     expect(result).toBe(nextResponse)

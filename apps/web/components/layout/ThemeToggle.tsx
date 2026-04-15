@@ -13,12 +13,17 @@ interface ThemeToggleProps {
 
 function useResolvedTheme() {
   const theme = useUiStore((s) => s.theme)
-  const [systemDark, setSystemDark] = useState(false)
+  const [systemDark, setSystemDark] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false
+    }
+
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+  })
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    setSystemDark(mq.matches)
     const handler = (e: MediaQueryListEvent) => setSystemDark(e.matches)
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)

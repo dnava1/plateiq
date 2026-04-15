@@ -1,26 +1,26 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import UpgradePage from './page'
 
 const {
-  finalizePendingGuestMergeClientMock,
-  flushPendingMutationsMock,
-  prepareGuestMergeClientMock,
-  signInWithPasswordMock,
+  linkIdentityMock,
+  updateUserMock,
+  useSearchParamsMock,
 } = vi.hoisted(() => ({
-  finalizePendingGuestMergeClientMock: vi.fn(async () => undefined),
-  flushPendingMutationsMock: vi.fn(async () => 0),
-  prepareGuestMergeClientMock: vi.fn(async () => undefined),
-  signInWithPasswordMock: vi.fn(),
+  linkIdentityMock: vi.fn(),
+  updateUserMock: vi.fn(),
+  useSearchParamsMock: vi.fn(),
+}))
+
+vi.mock('next/link', () => ({
+  default: ({ children, href, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
+    <a href={href} {...props}>{children}</a>
+  ),
 }))
 
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(),
-}))
-
-vi.mock('@tanstack/react-query', () => ({
-  useQueryClient: () => ({}),
+  useSearchParams: () => useSearchParamsMock(),
 }))
 
 vi.mock('@/hooks/useUser', () => ({
@@ -34,78 +34,64 @@ vi.mock('@/hooks/useUser', () => ({
   }),
 }))
 
-vi.mock('@/lib/query-persistence', () => ({
-  flushPendingMutations: flushPendingMutationsMock,
-}))
-
-vi.mock('@/lib/auth/captcha', async () => {
-  const actual = await vi.importActual<typeof import('@/lib/auth/captcha')>('@/lib/auth/captcha')
-
-  return {
-    ...actual,
-    turnstileSiteKey: 'test-turnstile-site-key',
-  }
-})
-
-vi.mock('@/lib/auth/merge-client', () => ({
-  clearPendingGuestMergeClient: vi.fn(async () => undefined),
-  finalizePendingGuestMergeClient: finalizePendingGuestMergeClientMock,
-  prepareGuestMergeClient: prepareGuestMergeClientMock,
-}))
-
 vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
     auth: {
-      linkIdentity: vi.fn(),
-      signInWithOAuth: vi.fn(),
-      signInWithPassword: signInWithPasswordMock,
-      updateUser: vi.fn(),
+      linkIdentity: linkIdentityMock,
+      updateUser: updateUserMock,
     },
   }),
 }))
 
-vi.mock('@/components/auth/TurnstileWidget', () => ({
-  TurnstileWidget: ({ onTokenChange }: { onTokenChange: (token: string | null) => void }) => (
-    <button type="button" onClick={() => onTokenChange('fresh-token')}>
-      Solve challenge
-    </button>
-  ),
-}))
-
 describe('UpgradePage', () => {
   beforeEach(() => {
-    finalizePendingGuestMergeClientMock.mockClear()
-    flushPendingMutationsMock.mockClear()
-    prepareGuestMergeClientMock.mockClear()
-    signInWithPasswordMock.mockReset()
+    useSearchParamsMock.mockReturnValue(new URLSearchParams())
+    linkIdentityMock.mockReset()
+    updateUserMock.mockReset()
   })
 
-  it('invalidates the merge sign-in gate after a structured captcha rejection', async () => {
+  it('starts email account creation and shows the sign-in fallback link', async () => {
     const user = userEvent.setup()
-    signInWithPasswordMock.mockResolvedValue({
-      error: {
-        code: 'captcha_failed',
-        message: 'Different captcha failure wording',
-        status: 400,
-      },
-    })
+    updateUserMock.mockResolvedValue({ error: null })
+    const origin = window.location.origin
 
     render(<UpgradePage />)
 
-    await user.type(screen.getByLabelText('Existing account email'), 'copilot.verify@example.com')
+    await user.type(screen.getByLabelText('Email'), 'copilot.verify@example.com')
     await user.type(screen.getByLabelText('Password'), 'secret-pass')
-    fireEvent.click(screen.getByRole('button', { name: 'Solve challenge', hidden: true }))
-
-    const mergeButton = screen.getByRole('button', { name: 'Merge into Existing Account' })
-    expect(mergeButton).toBeEnabled()
-
-    await user.click(mergeButton)
+    await user.click(screen.getByRole('button', { name: 'Create Account with Email' }))
 
     await waitFor(() => {
-      expect(screen.getByText('The last verification token was rejected. It has been reset. If Cloudflare asks for another challenge, complete it and try again.')).toBeInTheDocument()
+      expect(updateUserMock).toHaveBeenCalledWith(
+        { email: 'copilot.verify@example.com', password: 'secret-pass' },
+        {
+          emailRedirectTo: `${origin}/auth/callback?next=%2Fsettings%3Fupgraded%3D1`,
+        },
+      )
     })
 
-    expect(screen.getByText('Human verification expired or was already used. It has been reset. If Cloudflare asks for another challenge, complete it and retry the merge sign-in.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Merge into Existing Account' })).toBeDisabled()
+    expect(screen.getByText('Check your email to confirm your account.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login')
+  })
+
+  it('starts Google account creation from the guest session', async () => {
+    const user = userEvent.setup()
+    linkIdentityMock.mockResolvedValue({ error: null })
+    const origin = window.location.origin
+
+    render(<UpgradePage />)
+
+    await user.click(screen.getByRole('button', { name: 'Continue with Google' }))
+
+    await waitFor(() => {
+      expect(linkIdentityMock).toHaveBeenCalledWith({
+        provider: 'google',
+        options: {
+          redirectTo: `${origin}/auth/callback?next=%2Fsettings%3Fupgraded%3D1`,
+        },
+      })
+    })
+
+    expect(screen.getByRole('button', { name: 'Redirecting to Google…' })).toBeInTheDocument()
   })
 })

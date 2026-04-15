@@ -4,18 +4,13 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ContinuePage from './page'
 
-const { autoRefreshOnResetMock, clearPendingGuestMergeClientMock, signInAnonymouslyMock } = vi.hoisted(() => ({
+const { autoRefreshOnResetMock, signInAnonymouslyMock } = vi.hoisted(() => ({
   autoRefreshOnResetMock: vi.fn(() => true),
-  clearPendingGuestMergeClientMock: vi.fn(async () => undefined),
   signInAnonymouslyMock: vi.fn(),
 }))
 
 vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
-}))
-
-vi.mock('@/lib/auth/merge-client', () => ({
-  clearPendingGuestMergeClient: clearPendingGuestMergeClientMock,
 }))
 
 vi.mock('@/lib/auth/captcha', async () => {
@@ -62,7 +57,6 @@ describe('ContinuePage', () => {
   beforeEach(() => {
     autoRefreshOnResetMock.mockReset()
     autoRefreshOnResetMock.mockReturnValue(true)
-    clearPendingGuestMergeClientMock.mockClear()
     signInAnonymouslyMock.mockReset()
   })
 

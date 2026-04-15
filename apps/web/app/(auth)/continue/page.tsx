@@ -3,14 +3,13 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { ArrowRight, Dumbbell, Mail, ShieldCheck, UserRound } from 'lucide-react'
+import { ArrowRight, Dumbbell, ShieldCheck, UserRound } from 'lucide-react'
 import { AuthTurnstileGate } from '@/components/auth/AuthTurnstileGate'
 import { isCaptchaRejectionError, isInvalidCaptchaResponseError, turnstileSiteKey } from '@/lib/auth/captcha'
-import { clearPendingGuestMergeClient } from '@/lib/auth/merge-client'
 import { sanitizeNextPath } from '@/lib/auth/auth-state'
 import { createClient } from '@/lib/supabase/client'
 import { Badge } from '@/components/ui/badge'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 
@@ -48,6 +47,7 @@ export default function ContinuePage() {
     }
   }, [feedback])
 
+  const createAccountHref = next === '/dashboard' ? '/create-account' : `/create-account?next=${encodeURIComponent(next)}`
   const loginHref = next === '/dashboard' ? '/login' : `/login?next=${encodeURIComponent(next)}`
 
   const handleGuestContinue = async (
@@ -68,8 +68,6 @@ export default function ContinuePage() {
     setFeedback(null)
 
     try {
-      await clearPendingGuestMergeClient().catch(() => undefined)
-
       const supabase = createClient()
       const { error } = await supabase.auth.signInAnonymously({
         options: {
@@ -111,8 +109,6 @@ export default function ContinuePage() {
     setFeedback(null)
 
     try {
-      await clearPendingGuestMergeClient().catch(() => undefined)
-
       const supabase = createClient()
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -183,7 +179,7 @@ export default function ContinuePage() {
                 <div className="flex flex-col gap-1">
                   <p className="text-sm font-medium text-foreground">Create an account when you&apos;re ready</p>
                   <p className="text-sm leading-6 text-muted-foreground">
-                    Link Google, add email and password, or merge this guest history into an existing PlateIQ account later.
+                    Link Google or add email and password to keep your training data.
                   </p>
                 </div>
               </CardContent>
@@ -210,7 +206,7 @@ export default function ContinuePage() {
                 Get Started
               </h2>
               <p className="text-sm leading-6 text-muted-foreground">
-                Start with a guest session for the fastest path, or use Google or email if you already have a PlateIQ account.
+                Start with a guest session for the fastest path, or continue with Google.
               </p>
             </div>
           </div>
@@ -240,7 +236,7 @@ export default function ContinuePage() {
                 </Button>
 
                 <p className="text-sm leading-6 text-muted-foreground">
-                  Guest mode keeps your training data on a temporary account immediately, then lets you create a permanent account or merge it later from settings.
+                  Guest mode keeps your training data on a temporary account immediately, then lets you create a permanent account later from settings.
                 </p>
               </>
             )}
@@ -283,19 +279,17 @@ export default function ContinuePage() {
             <ArrowRight />
           </Button>
 
+          <Link href={createAccountHref} className="text-center text-sm text-muted-foreground">
+            Need email instead?{' '}
+            <span className="font-medium text-primary underline-offset-4 hover:underline">Create Account</span>
+          </Link>
+
           <Link
             href={loginHref}
-            className={buttonVariants({
-              variant: 'outline',
-              size: 'lg',
-              className: 'w-full justify-between rounded-2xl border-border/70 bg-card/70 px-4 text-foreground hover:bg-muted/60',
-            })}
+            className="text-center text-sm text-muted-foreground"
           >
-            <span className="flex items-center gap-3">
-              <Mail />
-              <span>Use Email to Sign In</span>
-            </span>
-            <ArrowRight />
+            Already have an account?{' '}
+            <span className="font-medium text-primary underline-offset-4 hover:underline">Sign in</span>
           </Link>
 
           {feedback && (
