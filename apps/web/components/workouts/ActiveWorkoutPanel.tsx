@@ -113,7 +113,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
   if (!activeWorkoutId || !template || effectiveDayIndex < 0) {
     return (
       <Card className="surface-panel">
-        <CardContent className="flex items-center gap-3 pt-4 text-sm text-muted-foreground">
+        <CardContent className="flex items-center gap-3 text-sm text-muted-foreground">
           <AlertCircle />
           The active workout context is missing. Return to the launcher and start the session again.
         </CardContent>

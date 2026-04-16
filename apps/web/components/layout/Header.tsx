@@ -78,12 +78,11 @@ export function Header() {
             <Link
               href="/upgrade"
               className={buttonVariants({
-                variant: 'outline',
                 size: 'sm',
                 className: 'hidden rounded-full px-3 sm:inline-flex',
               })}
             >
-              Create Account
+              Sign In with Google
             </Link>
           )}
 

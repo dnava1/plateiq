@@ -17,7 +17,6 @@ const mocks = vi.hoisted(() => ({
   toastSuccess: vi.fn(),
   updateEq: vi.fn().mockResolvedValue({ error: null }),
   useProfile: vi.fn(),
-  useSearchParams: vi.fn(),
   useUiStore: vi.fn(),
   useUser: vi.fn(),
 }))
@@ -30,7 +29,6 @@ vi.mock('next/link', () => ({
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: mocks.replace }),
-  useSearchParams: () => mocks.useSearchParams(),
 }))
 
 vi.mock('@/lib/auth/auth-state', () => ({
@@ -93,7 +91,6 @@ function createWrapper() {
 
 describe('SettingsPage', () => {
   beforeEach(() => {
-    mocks.useSearchParams.mockReturnValue({ get: vi.fn().mockReturnValue(null) })
     mocks.useUser.mockReturnValue({
       data: {
         email: 'athlete@plateiq.local',
@@ -115,6 +112,9 @@ describe('SettingsPage', () => {
       setPreferredUnit: mocks.setPreferredUnit,
     })
     mocks.rpc.mockClear()
+    mocks.signOut.mockClear()
+    mocks.clearAllPersistedQueryCaches.mockClear()
+    mocks.replace.mockClear()
     mocks.toastSuccess.mockClear()
     mocks.toastError.mockClear()
   })
@@ -124,6 +124,7 @@ describe('SettingsPage', () => {
 
     render(<SettingsPage />, { wrapper: createWrapper() })
 
+    expect(screen.getByText('Saved values stay tied to your account.')).toBeInTheDocument()
     expect(screen.getByLabelText('Age')).toHaveValue(32)
     expect(screen.getByLabelText('Bodyweight (lbs)')).toHaveValue(181)
 
@@ -156,8 +157,34 @@ describe('SettingsPage', () => {
 
     render(<SettingsPage />, { wrapper: createWrapper() })
 
-    expect(screen.getByText('Training data is tied to a temporary guest account. Create a permanent account to avoid losing your data.')).toBeInTheDocument()
-    expect(screen.getAllByRole('link', { name: 'Create Account' })).toHaveLength(1)
+    expect(screen.getByText('This guest account is temporary and can be lost. Sign in with Google to keep your data.')).toBeInTheDocument()
+  expect(screen.queryByText('This guest session is now a permanent account.')).not.toBeInTheDocument()
+    expect(screen.queryByText('GA')).not.toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'Sign In with Google' })).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'Sign Out' })).toBeInTheDocument()
     expect(screen.queryByText('Create your account')).not.toBeInTheDocument()
+  })
+
+  it('lets guests sign out and returns them to continue', async () => {
+    const user = userEvent.setup()
+    mocks.isAnonymousUser.mockReturnValue(true)
+    mocks.useUser.mockReturnValue({
+      data: {
+        email: null,
+        id: 'guest-user',
+        user_metadata: {},
+      },
+    })
+
+    render(<SettingsPage />, { wrapper: createWrapper() })
+
+    await user.click(screen.getByRole('button', { name: 'Sign Out' }))
+
+    await waitFor(() => {
+      expect(mocks.signOut).toHaveBeenCalledWith({ scope: 'local' })
+    })
+
+    expect(mocks.clearAllPersistedQueryCaches).toHaveBeenCalledOnce()
+    expect(mocks.replace).toHaveBeenCalledWith('/continue')
   })
 })

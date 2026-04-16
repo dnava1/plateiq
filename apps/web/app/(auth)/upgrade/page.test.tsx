@@ -1,16 +1,20 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import UpgradePage from './page'
 
 const {
   linkIdentityMock,
-  updateUserMock,
+  signInWithOAuthMock,
+  signOutMock,
   useSearchParamsMock,
+  useUserMock,
 } = vi.hoisted(() => ({
   linkIdentityMock: vi.fn(),
-  updateUserMock: vi.fn(),
+  signInWithOAuthMock: vi.fn(),
+  signOutMock: vi.fn(),
   useSearchParamsMock: vi.fn(),
+  useUserMock: vi.fn(),
 }))
 
 vi.mock('next/link', () => ({
@@ -24,54 +28,122 @@ vi.mock('next/navigation', () => ({
 }))
 
 vi.mock('@/hooks/useUser', () => ({
-  useUser: () => ({
-    data: {
-      id: 'guest-user',
-      is_anonymous: true,
-      email: 'guest@example.com',
-    },
-    isLoading: false,
-  }),
+  useUser: () => useUserMock(),
 }))
 
 vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
     auth: {
       linkIdentity: linkIdentityMock,
-      updateUser: updateUserMock,
+      signInWithOAuth: signInWithOAuthMock,
+      signOut: signOutMock,
     },
   }),
 }))
 
 describe('UpgradePage', () => {
   beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn())
+    window.history.replaceState({}, '', '/upgrade')
     useSearchParamsMock.mockReturnValue(new URLSearchParams())
+    useUserMock.mockReturnValue({
+      data: {
+        id: 'guest-user',
+        is_anonymous: true,
+        email: 'guest@example.com',
+      },
+      isLoading: false,
+    })
     linkIdentityMock.mockReset()
-    updateUserMock.mockReset()
+    signInWithOAuthMock.mockReset()
+    signOutMock.mockReset()
   })
 
-  it('starts email account creation and shows the sign-in fallback link', async () => {
-    const user = userEvent.setup()
-    updateUserMock.mockResolvedValue({ error: null })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('shows Google connection failure feedback from the callback redirect', () => {
+    useSearchParamsMock.mockReturnValue(new URLSearchParams('error=auth_failed'))
+
+    render(<UpgradePage />)
+
+    expect(screen.getByText('We could not complete that Google sign-in. Try again.')).toBeInTheDocument()
+  })
+
+  it('keeps the upgrade CTA visible while account data resolves', () => {
+    useUserMock.mockReturnValue({
+      data: null,
+      isLoading: true,
+    })
+
+    render(<UpgradePage />)
+
+    expect(screen.queryByText('Loading account details…')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sign In with Google' })).toBeDisabled()
+  })
+
+  it('retries as a normal Google sign-in when the provider reports identity_already_exists', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true })
+    vi.stubGlobal('fetch', fetchMock)
+    signOutMock.mockResolvedValue({ error: null })
+    signInWithOAuthMock.mockResolvedValue({ data: { url: 'https://accounts.google.com/o/oauth2/auth?test=1' }, error: null })
+    useSearchParamsMock.mockReturnValue(new URLSearchParams('upgrade_mode=existing_google'))
+    window.history.replaceState({}, '', '/upgrade?upgrade_mode=existing_google')
     const origin = window.location.origin
 
     render(<UpgradePage />)
 
-    await user.type(screen.getByLabelText('Email'), 'copilot.verify@example.com')
-    await user.type(screen.getByLabelText('Password'), 'secret-pass')
-    await user.click(screen.getByRole('button', { name: 'Create Account with Email' }))
+    expect(screen.queryByText('We could not complete that Google sign-in. Try again.')).not.toBeInTheDocument()
 
     await waitFor(() => {
-      expect(updateUserMock).toHaveBeenCalledWith(
-        { email: 'copilot.verify@example.com', password: 'secret-pass' },
-        {
-          emailRedirectTo: `${origin}/auth/callback?next=%2Fsettings%3Fupgraded%3D1`,
-        },
-      )
+      expect(fetchMock).toHaveBeenCalledWith('/api/auth/upgrade/discard', {
+        method: 'POST',
+      })
     })
 
-    expect(screen.getByText('Check your email to confirm your account.')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login')
+    await waitFor(() => {
+      expect(signInWithOAuthMock).toHaveBeenCalledWith({
+        provider: 'google',
+        options: {
+          redirectTo: `${origin}/auth/callback?next=%2Fsettings&upgrade_mode=existing_google`,
+          skipBrowserRedirect: true,
+        },
+      })
+    })
+
+    await waitFor(() => {
+      expect(signOutMock).toHaveBeenCalledWith({ scope: 'local' })
+    })
+
+    expect(screen.getByRole('button', { name: 'Redirecting to Google…' })).toBeInTheDocument()
+  })
+
+  it('clears the prepared cleanup cookie when existing-account retry cannot start', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: true })
+    vi.stubGlobal('fetch', fetchMock)
+    signInWithOAuthMock.mockResolvedValue({ data: { url: 'https://accounts.google.com/o/oauth2/auth?test=1' }, error: null })
+    signOutMock.mockResolvedValue({ error: { message: 'sign out failed' } })
+    useSearchParamsMock.mockReturnValue(new URLSearchParams('upgrade_mode=existing_google'))
+    window.history.replaceState({}, '', '/upgrade?upgrade_mode=existing_google')
+
+    render(<UpgradePage />)
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/auth/upgrade/discard', {
+        method: 'POST',
+      })
+    })
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/auth/upgrade/discard', {
+        method: 'DELETE',
+      })
+    })
+
+    expect(screen.getByText('Unable to switch to your existing Google account right now.')).toBeInTheDocument()
   })
 
   it('starts Google account creation from the guest session', async () => {
@@ -81,13 +153,13 @@ describe('UpgradePage', () => {
 
     render(<UpgradePage />)
 
-    await user.click(screen.getByRole('button', { name: 'Continue with Google' }))
+    await user.click(screen.getByRole('button', { name: 'Sign In with Google' }))
 
     await waitFor(() => {
       expect(linkIdentityMock).toHaveBeenCalledWith({
         provider: 'google',
         options: {
-          redirectTo: `${origin}/auth/callback?next=%2Fsettings%3Fupgraded%3D1`,
+          redirectTo: `${origin}/auth/callback?next=%2Fsettings`,
         },
       })
     })

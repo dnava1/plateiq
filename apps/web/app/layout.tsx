@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'PlateIQ — Strength Program Tracker',
+  title: 'Strength Tracker | PlateIQ',
   description:
     'Track any strength program with analytics and AI insights. Supports 15+ programs including 5/3/1, Starting Strength, nSuns, and more.',
   manifest: '/manifest.json',

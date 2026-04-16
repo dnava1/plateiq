@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { LogOut, Ruler } from 'lucide-react'
 import { toast } from 'sonner'
@@ -115,7 +115,7 @@ function StrengthProfileCard({
       <CardHeader>
         <CardTitle>Strength Profile</CardTitle>
         <CardDescription>
-          Set the athlete details PlateIQ uses for strength standards, symmetry, and muscle-balance scoring.
+          Set the parameters used for strength standards, symmetry, and muscle balance.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4 pt-0">
@@ -176,7 +176,7 @@ function StrengthProfileCard({
               && profile?.strength_profile_age_years !== undefined
               && profile?.strength_profile_bodyweight_lbs !== null
               && profile?.strength_profile_bodyweight_lbs !== undefined
-              ? `Saved profile: ${profile.strength_profile_sex}, age ${profile.strength_profile_age_years}, ${formatStrengthProfileWeight(profile.strength_profile_bodyweight_lbs, preferredUnit)} ${preferredUnit}.`
+                ? 'Saved values stay tied to your account.'
               : 'Complete all three fields to unlock strength standards in Analytics.'}
           </div>
 
@@ -191,7 +191,6 @@ function StrengthProfileCard({
 
 export default function SettingsPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const supabase = useSupabase()
   const { data: user } = useUser()
   const { data: profile } = useProfile()
@@ -291,7 +290,6 @@ export default function SettingsPage() {
     .slice(0, 2)
     .map((part: string) => part[0]?.toUpperCase())
     .join('') || 'PI'
-  const upgraded = searchParams.get('upgraded') === '1'
 
   return (
     <div className="page-shell max-w-5xl">
@@ -308,27 +306,23 @@ export default function SettingsPage() {
       </section>
 
       <div className="flex w-full max-w-3xl flex-col gap-6">
-        {upgraded && (
-          <div className="rounded-3xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
-            This guest session is now a permanent account.
-          </div>
-        )}
-
         <Card className="surface-panel">
-          <CardContent className="flex flex-col gap-4 pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
-              <Avatar size="lg">
-                {user?.user_metadata?.avatar_url && (
-                  <AvatarImage src={user.user_metadata.avatar_url as string} alt={displayName} />
-                )}
-                <AvatarFallback>{initials}</AvatarFallback>
-              </Avatar>
+              {!isGuest && (
+                <Avatar size="lg">
+                  {user?.user_metadata?.avatar_url && (
+                    <AvatarImage src={user.user_metadata.avatar_url as string} alt={displayName} />
+                  )}
+                  <AvatarFallback>{initials}</AvatarFallback>
+                </Avatar>
+              )}
               <div className="flex flex-col gap-1">
                 <span className="eyebrow">Account</span>
                 <h2 className="text-2xl font-semibold tracking-[-0.06em] text-foreground">{displayName}</h2>
                 <p className="text-sm text-muted-foreground">
                   {isGuest
-                    ? 'Training data is tied to a temporary guest account. Create a permanent account to avoid losing your data.'
+                    ? 'This guest account is temporary and can be lost. Sign in with Google to keep your data.'
                     : user?.email ?? '—'}
                 </p>
               </div>
@@ -336,7 +330,7 @@ export default function SettingsPage() {
 
             {isGuest && (
               <Link href="/upgrade" className={buttonVariants({ size: 'lg', className: 'w-full sm:w-auto' })}>
-                Create Account
+                Sign In with Google
               </Link>
             )}
           </CardContent>
@@ -358,7 +352,7 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle>Weight Unit</CardTitle>
             <CardDescription>
-              Choose the unit system PlateIQ should prefer across training maxes and progression.
+                Choose the unit system used across the app.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
@@ -407,22 +401,22 @@ export default function SettingsPage() {
           onSave={handleStrengthProfileSave}
         />
 
-        {!isGuest && (
-          <Card className="border-destructive/20 bg-destructive/5 shadow-[0_24px_80px_-42px_rgba(0,0,0,0.85)]">
-            <CardHeader>
-              <CardTitle>Danger Zone</CardTitle>
-              <CardDescription>
-                End the current session on this device and return to Get Started.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="destructive" onClick={handleLogout} disabled={isSigningOut}>
-                <LogOut data-icon="inline-start" />
-                {isSigningOut ? 'Signing Out…' : 'Sign Out'}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+        <Card className="border-destructive/20 bg-destructive/5 shadow-[0_24px_80px_-42px_rgba(0,0,0,0.85)]">
+          <CardHeader>
+            <CardTitle>{isGuest ? 'End Guest Session' : 'Danger Zone'}</CardTitle>
+            <CardDescription>
+              {isGuest
+                ? 'End this temporary session on this device and return to Get Started.'
+                : 'End the current session on this device and return to Get Started.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="destructive" onClick={handleLogout} disabled={isSigningOut}>
+              <LogOut data-icon="inline-start" />
+              {isSigningOut ? 'Signing Out…' : 'Sign Out'}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

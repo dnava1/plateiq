@@ -9,30 +9,26 @@ test('redirects unauthenticated dashboard requests to continue', async ({ page }
   await page.goto('/dashboard')
 
   await expect(page).toHaveURL(/\/continue(?:\?.*)?$/)
-  await expect(page.getByRole('heading', { name: /Choose how you want to enter/i })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Continue as Guest' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible()
+  await expect(page.locator('a[href="/login"], a[href="/create-account"]')).toHaveCount(0)
 })
 
 test('supports guest access and returns guests to continue after sign-out', async ({ page }) => {
-  if (hasTurnstileGuestGate && !hasTurnstileTestKey) {
-    await page.goto('/continue')
-
-    await expect(page.getByRole('button', { name: 'Continue as Guest' })).toBeDisabled()
-    await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Use Email to Sign In' })).toBeVisible()
-    return
-  }
+  test.skip(hasTurnstileGuestGate && !hasTurnstileTestKey, 'Guest end-to-end coverage requires the Turnstile test key or no guest gate.')
 
   await continueAsGuest(page)
 
   await page.goto('/settings')
   await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Guest account' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Upgrade Account' }).first()).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Sign In with Google' }).first()).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Sign Out' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Sign Out' }).click()
 
   await expect(page).toHaveURL(/\/continue(?:\?.*)?$/)
-  await expect(page.getByRole('heading', { name: /Choose how you want to enter/i })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Continue as Guest' })).toBeVisible()
 
   await page.goto('/dashboard')
   await expect(page).toHaveURL(/\/continue(?:\?.*)?$/)
@@ -125,7 +121,7 @@ test.describe('authenticated dashboard and analytics flows', () => {
     await page.getByRole('button', { name: 'Sign Out' }).click()
 
     await expect(page).toHaveURL(/\/continue(?:\?.*)?$/)
-    await expect(page.getByRole('heading', { name: /Choose how you want to enter/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Continue as Guest' })).toBeVisible()
 
     await expect.poll(async () => {
       return await getPersistedQueryCacheKeys(page)

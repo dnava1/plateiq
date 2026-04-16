@@ -64,7 +64,7 @@ export function ExerciseList({ exercises, trainingMaxes, unit, onSetTm }: Exerci
             size="sm"
             className="border-border/70 bg-card/78"
           >
-            <CardContent className="flex items-center justify-between gap-4 pt-3">
+            <CardContent className="flex items-center justify-between gap-4">
               <div className="flex min-w-0 flex-col gap-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium text-foreground">{exercise.name}</span>

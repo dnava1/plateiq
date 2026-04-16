@@ -4,13 +4,14 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ContinuePage from './page'
 
-const { autoRefreshOnResetMock, signInAnonymouslyMock } = vi.hoisted(() => ({
+const { autoRefreshOnResetMock, signInAnonymouslyMock, useSearchParamsMock } = vi.hoisted(() => ({
   autoRefreshOnResetMock: vi.fn(() => true),
   signInAnonymouslyMock: vi.fn(),
+  useSearchParamsMock: vi.fn(() => new URLSearchParams()),
 }))
 
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => useSearchParamsMock(),
 }))
 
 vi.mock('@/lib/auth/captcha', async () => {
@@ -58,6 +59,34 @@ describe('ContinuePage', () => {
     autoRefreshOnResetMock.mockReset()
     autoRefreshOnResetMock.mockReturnValue(true)
     signInAnonymouslyMock.mockReset()
+    useSearchParamsMock.mockReturnValue(new URLSearchParams())
+  })
+
+  it('keeps the button in loading state after a successful guest sign-in', async () => {
+    const user = userEvent.setup()
+    signInAnonymouslyMock.mockResolvedValue({ error: null })
+
+    render(<ContinuePage />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Solve challenge', hidden: true }))
+    await user.click(screen.getByRole('button', { name: 'Continue as Guest' }))
+
+    await waitFor(() => {
+      expect(signInAnonymouslyMock).toHaveBeenCalled()
+    })
+
+    // After a successful sign-in the button must stay in its loading label
+    // until navigation completes — it should never flash back to the idle text.
+    expect(screen.getByRole('button', { name: 'Starting guest session…' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Continue as Guest' })).not.toBeInTheDocument()
+  })
+
+  it('shows Google sign-in failure feedback from the callback redirect', () => {
+    useSearchParamsMock.mockReturnValue(new URLSearchParams('error=auth_failed'))
+
+    render(<ContinuePage />)
+
+    expect(screen.getByText('We could not complete that Google sign-in attempt. Try guest mode or Google again.')).toBeInTheDocument()
   })
 
   it('invalidates the guest gate after a structured captcha rejection', async () => {

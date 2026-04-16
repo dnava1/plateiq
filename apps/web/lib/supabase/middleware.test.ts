@@ -101,32 +101,26 @@ describe('updateSession', () => {
     expect(result).toBe(nextResponse)
   })
 
-  it('redirects anonymous users away from login to upgrade', async () => {
+  it('redirects signed-out users from removed login to continue', async () => {
     const nextResponse = { cookies: { set: vi.fn() } }
     const redirectResponse = { kind: 'redirect' }
     nextServerMocks.next.mockReturnValue(nextResponse)
     nextServerMocks.redirect.mockReturnValue(redirectResponse)
     supabaseMocks.createServerClient.mockReturnValue({
       auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: {
-            user: {
-              id: 'guest-user',
-              is_anonymous: true,
-            },
-          },
-        }),
+        getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
       },
     })
 
-    const result = await updateSession(createRequest('/login'))
+    const result = await updateSession(createRequest('/login?next=%2Fanalytics'))
     const redirectTarget = nextServerMocks.redirect.mock.calls[0]?.[0] as URL
 
-    expect(redirectTarget.pathname).toBe('/upgrade')
+    expect(redirectTarget.pathname).toBe('/continue')
+    expect(redirectTarget.searchParams.get('next')).toBe('/analytics')
     expect(result).toBe(redirectResponse)
   })
 
-  it('redirects anonymous users away from create-account to upgrade', async () => {
+  it('redirects anonymous users away from removed auth routes to upgrade', async () => {
     const nextResponse = { cookies: { set: vi.fn() } }
     const redirectResponse = { kind: 'redirect' }
     nextServerMocks.next.mockReturnValue(nextResponse)
@@ -202,9 +196,11 @@ describe('updateSession', () => {
     expect(result).toBe(redirectResponse)
   })
 
-  it('allows permanent users into the password setup step on upgrade', async () => {
-    const nextResponse = { kind: 'next', cookies: { set: vi.fn() } }
+  it('redirects permanent users away from upgrade to the dashboard', async () => {
+    const nextResponse = { cookies: { set: vi.fn() } }
+    const redirectResponse = { kind: 'redirect' }
     nextServerMocks.next.mockReturnValue(nextResponse)
+    nextServerMocks.redirect.mockReturnValue(redirectResponse)
     supabaseMocks.createServerClient.mockReturnValue({
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -218,9 +214,10 @@ describe('updateSession', () => {
       },
     })
 
-    const result = await updateSession(createRequest('/upgrade?step=password'))
+    const result = await updateSession(createRequest('/upgrade'))
+    const redirectTarget = nextServerMocks.redirect.mock.calls[0]?.[0] as URL
 
-    expect(nextServerMocks.redirect).not.toHaveBeenCalled()
-    expect(result).toBe(nextResponse)
+    expect(redirectTarget.pathname).toBe('/dashboard')
+    expect(result).toBe(redirectResponse)
   })
 })

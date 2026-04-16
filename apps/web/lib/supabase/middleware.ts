@@ -41,13 +41,34 @@ export async function updateSession(request: NextRequest) {
   const requestedPath = sanitizeNextPath(`${pathname}${request.nextUrl.search}`, '/dashboard')
   const postAuthPath = sanitizeNextPath(request.nextUrl.searchParams.get('next'), '/dashboard')
 
+  const isRemovedAuthRoute = pathname === '/login' || pathname === '/create-account'
   const isContinueRoute = pathname === '/continue'
-  const isAuthRoute = pathname === '/login'
-  const isCreateAccountRoute = pathname === '/create-account'
   const isUpgradeRoute = pathname === '/upgrade'
   const isCallbackRoute = pathname.startsWith('/auth/callback')
-  const isPasswordSetupRoute = isUpgradeRoute && request.nextUrl.searchParams.get('step') === 'password'
-  const isPublicRoute = pathname === '/' || isContinueRoute || isAuthRoute || isCreateAccountRoute || isCallbackRoute
+  const isPublicRoute = pathname === '/' || isContinueRoute || isCallbackRoute
+
+  if (isRemovedAuthRoute) {
+    const url = request.nextUrl.clone()
+    url.search = ''
+
+    if (authKind === 'anonymous') {
+      url.pathname = '/upgrade'
+      return NextResponse.redirect(url)
+    }
+
+    if (authKind === 'permanent') {
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
+
+    url.pathname = '/continue'
+
+    if (postAuthPath !== '/dashboard') {
+      url.searchParams.set('next', postAuthPath)
+    }
+
+    return NextResponse.redirect(url)
+  }
 
   if (authKind === 'signed_out' && !isPublicRoute) {
     const url = request.nextUrl.clone()
@@ -57,13 +78,6 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (authKind === 'anonymous') {
-    if (isAuthRoute) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/upgrade'
-      url.search = ''
-      return NextResponse.redirect(url)
-    }
-
     if (isContinueRoute) {
       const url = request.nextUrl.clone()
       const redirectTarget = new URL(postAuthPath, url)
@@ -71,16 +85,9 @@ export async function updateSession(request: NextRequest) {
       url.search = redirectTarget.search
       return NextResponse.redirect(url)
     }
-
-    if (isCreateAccountRoute) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/upgrade'
-      url.search = ''
-      return NextResponse.redirect(url)
-    }
   }
 
-  if (authKind === 'permanent' && (isContinueRoute || isAuthRoute || isCreateAccountRoute || (isUpgradeRoute && !isPasswordSetupRoute))) {
+  if (authKind === 'permanent' && (isContinueRoute || isUpgradeRoute)) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     url.search = ''
