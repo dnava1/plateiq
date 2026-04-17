@@ -1,9 +1,10 @@
 import * as React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PreferenceSync } from '@/components/layout/PreferenceSync'
+import type { ProfilePreferences } from '@/hooks/useProfile'
 import SettingsPage from './page'
 
 const mocks = vi.hoisted(() => ({
@@ -164,6 +165,122 @@ describe('SettingsPage', () => {
     })
 
     expect(mocks.toastSuccess).not.toHaveBeenCalled()
+  })
+
+  it('hydrates the saved strength profile values after the profile query resolves on refresh even if a second render happens before the sync frame', async () => {
+    const profileState: {
+      data: ProfilePreferences | null | undefined
+      isLoading: boolean
+    } = {
+      data: undefined,
+      isLoading: true,
+    }
+    const animationFrameCallbacks: Array<FrameRequestCallback | null> = []
+
+    const requestAnimationFrameSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback: FrameRequestCallback) => {
+      animationFrameCallbacks.push(callback)
+      return animationFrameCallbacks.length
+    })
+    const cancelAnimationFrameSpy = vi.spyOn(window, 'cancelAnimationFrame').mockImplementation((id: number) => {
+      animationFrameCallbacks[id - 1] = null
+    })
+
+    mocks.useProfile.mockImplementation(() => profileState)
+
+    const view = render(<SettingsPage />, { wrapper: createWrapper() })
+
+    expect(screen.getByLabelText('Age')).toHaveValue(null)
+    expect(screen.getByLabelText('Bodyweight (lbs)')).toHaveValue(null)
+
+    profileState.data = {
+      id: 'user-1',
+      preferred_unit: 'lbs',
+      weight_rounding_lbs: 5,
+      strength_profile_age_years: 32,
+      strength_profile_bodyweight_lbs: 181,
+      strength_profile_sex: 'male',
+    }
+    profileState.isLoading = false
+
+    view.rerender(<SettingsPage />)
+    view.rerender(<SettingsPage />)
+
+    await new Promise((resolve) => setTimeout(resolve, 350))
+
+    expect(mocks.rpc).not.toHaveBeenCalledWith('update_strength_profile', {
+      p_age_years: null,
+      p_bodyweight_lbs: null,
+      p_sex: null,
+    })
+
+    await act(async () => {
+      for (const callback of animationFrameCallbacks) {
+        callback?.(performance.now())
+      }
+    })
+
+    try {
+      await waitFor(() => {
+        expect(screen.getByLabelText('Age')).toHaveValue(32)
+        expect(screen.getByLabelText('Bodyweight (lbs)')).toHaveValue(181)
+        expect(screen.getByRole('combobox', { name: 'Sex' })).toHaveTextContent('male')
+      })
+    } finally {
+      requestAnimationFrameSpy.mockRestore()
+      cancelAnimationFrameSpy.mockRestore()
+    }
+  })
+
+  it('does not overwrite an in-progress strength profile edit when the server snapshot refetches', async () => {
+    const user = userEvent.setup()
+    const profileState: {
+      data: ProfilePreferences | null | undefined
+      isLoading: boolean
+    } = {
+      data: {
+        id: 'user-1',
+        preferred_unit: 'lbs',
+        weight_rounding_lbs: 5,
+        strength_profile_age_years: 32,
+        strength_profile_bodyweight_lbs: 181,
+        strength_profile_sex: 'male',
+      },
+      isLoading: false,
+    }
+
+    mocks.useProfile.mockImplementation(() => profileState)
+
+    const view = render(<SettingsPage />, { wrapper: createWrapper() })
+
+    await user.clear(screen.getByLabelText('Age'))
+    await user.type(screen.getByLabelText('Age'), '34')
+
+    await waitFor(() => {
+      expect(mocks.rpc).toHaveBeenCalledWith('update_strength_profile', {
+        p_age_years: 34,
+        p_bodyweight_lbs: 181,
+        p_sex: 'male',
+      })
+    })
+
+    await user.clear(screen.getByLabelText('Bodyweight (lbs)'))
+    await user.type(screen.getByLabelText('Bodyweight (lbs)'), '18')
+
+    profileState.data = {
+      id: 'user-1',
+      preferred_unit: 'lbs',
+      weight_rounding_lbs: 5,
+      strength_profile_age_years: 34,
+      strength_profile_bodyweight_lbs: 181,
+      strength_profile_sex: 'male',
+    }
+
+    view.rerender(<SettingsPage />)
+
+    await new Promise((resolve) => setTimeout(resolve, 25))
+
+    expect(screen.getByLabelText('Age')).toHaveValue(34)
+    expect(screen.getByLabelText('Bodyweight (lbs)')).toHaveValue(18)
   })
 
   it('keeps the unit controls disabled until auth and profile hydration complete', () => {

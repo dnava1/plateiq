@@ -99,6 +99,12 @@ function createStrengthProfileValues(profile: StrengthProfileSnapshot): Strength
   }
 }
 
+function areStrengthProfileDraftsEqual(left: StrengthProfileDraft, right: StrengthProfileDraft) {
+  return left.ageYears === right.ageYears
+    && left.bodyweight === right.bodyweight
+    && left.sex === right.sex
+}
+
 function createStrengthProfileValuesKey(values: StrengthProfileValues) {
   return [
     values.sex ?? 'none',
@@ -172,6 +178,8 @@ function StrengthProfileCard({
       }
   const valuesKey = createStrengthProfileValuesKey(values)
   const lastSubmittedValuesKeyRef = useRef(profileValuesKey)
+  const lastSyncedProfileDraftRef = useRef(profileDraft)
+  const pendingProfileSyncValuesKeyRef = useRef<string | null>(null)
   const requestSave = useEffectEvent((nextValues: StrengthProfileValues) => {
     onSave(nextValues)
   })
@@ -235,6 +243,36 @@ function StrengthProfileCard({
   }, [profileValuesKey])
 
   useEffect(() => {
+    if (areStrengthProfileDraftsEqual(draft, profileDraft)) {
+      lastSyncedProfileDraftRef.current = profileDraft
+      pendingProfileSyncValuesKeyRef.current = null
+      return
+    }
+
+    if (!areStrengthProfileDraftsEqual(draft, lastSyncedProfileDraftRef.current)) {
+      pendingProfileSyncValuesKeyRef.current = null
+      return
+    }
+
+    pendingProfileSyncValuesKeyRef.current = profileValuesKey
+
+    const animationFrameId = window.requestAnimationFrame(() => {
+      setDraft(profileDraft)
+      setVisibleErrors({})
+      lastSyncedProfileDraftRef.current = profileDraft
+      pendingProfileSyncValuesKeyRef.current = null
+    })
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId)
+
+      if (pendingProfileSyncValuesKeyRef.current === profileValuesKey) {
+        pendingProfileSyncValuesKeyRef.current = null
+      }
+    }
+  }, [draft, profileDraft, profileValuesKey])
+
+  useEffect(() => {
     return () => {
       clearValidationTimeout('ageYears')
       clearValidationTimeout('bodyweight')
@@ -252,6 +290,10 @@ function StrengthProfileCard({
 
   useEffect(() => {
     if (errors.ageYears || errors.bodyweight) {
+      return
+    }
+
+    if (pendingProfileSyncValuesKeyRef.current !== null) {
       return
     }
 

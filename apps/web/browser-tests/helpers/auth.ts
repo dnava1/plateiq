@@ -1,7 +1,8 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { expect, type Page } from '@playwright/test'
+import type { Database } from '@/types/database'
 
-let adminClient: ReturnType<typeof createClient> | null = null
+let adminClient: SupabaseClient<Database> | null = null
 
 function getRequiredEnv(name: string) {
   const value = process.env[name]
@@ -18,7 +19,7 @@ function getAdminClient() {
     return adminClient
   }
 
-  adminClient = createClient(
+  adminClient = createClient<Database>(
     getRequiredEnv('NEXT_PUBLIC_SUPABASE_URL'),
     getRequiredEnv('SUPABASE_SECRET_KEY'),
     {
@@ -35,6 +36,65 @@ function getAdminClient() {
 
 function getPlaywrightBaseUrl() {
   return process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
+}
+
+async function getVerificationUserId() {
+  const supabase = getAdminClient()
+  const targetEmail = getRequiredEnv('PLAYWRIGHT_VERIFICATION_EMAIL').toLowerCase()
+  let page = 1
+
+  while (true) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 200 })
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    const user = data.users.find((candidate) => candidate.email?.toLowerCase() === targetEmail)
+
+    if (user) {
+      return user.id
+    }
+
+    if (data.users.length < 200) {
+      break
+    }
+
+    page += 1
+  }
+
+  throw new Error(`Unable to find the Playwright verification user for ${targetEmail}.`)
+}
+
+export async function seedVerificationUserSettings({
+  preferredUnit,
+  strengthProfileAgeYears,
+  strengthProfileBodyweightLbs,
+  strengthProfileSex,
+  weightRoundingLbs,
+}: {
+  preferredUnit: 'lbs' | 'kg'
+  strengthProfileAgeYears: number
+  strengthProfileBodyweightLbs: number
+  strengthProfileSex: 'male' | 'female'
+  weightRoundingLbs: number
+}) {
+  const supabase = getAdminClient()
+  const userId = await getVerificationUserId()
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      preferred_unit: preferredUnit,
+      strength_profile_age_years: strengthProfileAgeYears,
+      strength_profile_bodyweight_lbs: strengthProfileBodyweightLbs,
+      strength_profile_sex: strengthProfileSex,
+      weight_rounding_lbs: weightRoundingLbs,
+    })
+    .eq('id', userId)
+
+  if (error) {
+    throw new Error(error.message)
+  }
 }
 
 export async function loginAsVerificationUser(page: Page) {
