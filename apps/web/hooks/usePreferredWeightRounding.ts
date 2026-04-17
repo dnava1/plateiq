@@ -1,7 +1,10 @@
 'use client'
 
-import { useUiStore } from '@/store/uiStore'
+import { getDefaultWeightRoundingLbs } from '@/lib/utils'
+import { usePreferredUnit } from './usePreferredUnit'
 
 export function usePreferredWeightRounding() {
-  return useUiStore((state) => state.weightRoundingLbs)
+  const preferredUnit = usePreferredUnit()
+
+  return getDefaultWeightRoundingLbs(preferredUnit)
 }

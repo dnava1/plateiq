@@ -3,8 +3,10 @@ import { createEmptyStrengthProfile } from './strength-profile'
 import {
   buildPlateCalculatorSuggestion,
   calculatePlateBreakdown,
+  STANDARD_PLATE_OPTIONS_KG_LBS,
 } from './plate-calculator'
 import type { AnalyticsData } from '@/types/analytics'
+import { displayToLbs, lbsToDisplay } from './utils'
 
 const analyticsFixture: AnalyticsData = {
   e1rmTrend: [
@@ -47,6 +49,61 @@ describe('calculatePlateBreakdown', () => {
   it('supports explicit round-down and round-up behavior', () => {
     expect(calculatePlateBreakdown(239.8, { roundingLbs: 5, roundingMode: 'down' }).roundedTargetWeightLbs).toBe(235)
     expect(calculatePlateBreakdown(239.8, { roundingLbs: 5, roundingMode: 'up' }).roundedTargetWeightLbs).toBe(240)
+  })
+
+  it('supports 2.5 lb rounding with 1.25 lb change plates for pound users', () => {
+    const breakdown = calculatePlateBreakdown(47.5, {
+      roundingLbs: 2.5,
+    })
+
+    expect(breakdown.roundedTargetWeightLbs).toBe(47.5)
+    expect(breakdown.remainderLbs).toBe(0)
+    expect(breakdown.platesPerSide).toEqual([
+      { countPerSide: 1, weightLbs: 1.25 },
+    ])
+  })
+
+  it('supports metric barbells and metric plate sizes without inventing pound plates', () => {
+    const breakdown = calculatePlateBreakdown(displayToLbs(45, 'kg'), {
+      barbellWeightLbs: displayToLbs(20, 'kg'),
+      plateOptionsLbs: STANDARD_PLATE_OPTIONS_KG_LBS,
+      roundingLbs: displayToLbs(2.5, 'kg'),
+    })
+
+    expect(lbsToDisplay(breakdown.roundedTargetWeightLbs, 'kg', 2)).toBe(45)
+    expect(breakdown.platesPerSide).toEqual([
+      { countPerSide: 1, weightLbs: displayToLbs(10, 'kg') },
+      { countPerSide: 1, weightLbs: displayToLbs(2.5, 'kg') },
+    ])
+  })
+
+  it('supports 1 kg rounding with 0.5 kg change plates for metric users', () => {
+    const breakdown = calculatePlateBreakdown(displayToLbs(41, 'kg'), {
+      barbellWeightLbs: displayToLbs(20, 'kg'),
+      plateOptionsLbs: STANDARD_PLATE_OPTIONS_KG_LBS,
+      roundingLbs: displayToLbs(1, 'kg'),
+    })
+
+    expect(lbsToDisplay(breakdown.roundedTargetWeightLbs, 'kg', 2)).toBe(41)
+    expect(breakdown.remainderLbs).toBe(0)
+    expect(breakdown.platesPerSide).toEqual([
+      { countPerSide: 1, weightLbs: displayToLbs(10, 'kg') },
+      { countPerSide: 1, weightLbs: displayToLbs(0.5, 'kg') },
+    ])
+  })
+
+  it('finds an exact low-load metric stack instead of underloading with a greedy pass', () => {
+    const breakdown = calculatePlateBreakdown(displayToLbs(23, 'kg'), {
+      barbellWeightLbs: displayToLbs(20, 'kg'),
+      plateOptionsLbs: STANDARD_PLATE_OPTIONS_KG_LBS,
+      roundingLbs: displayToLbs(1, 'kg'),
+    })
+
+    expect(lbsToDisplay(breakdown.roundedTargetWeightLbs, 'kg', 2)).toBe(23)
+    expect(breakdown.remainderLbs).toBe(0)
+    expect(breakdown.platesPerSide).toEqual([
+      { countPerSide: 3, weightLbs: displayToLbs(0.5, 'kg') },
+    ])
   })
 })
 

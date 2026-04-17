@@ -4,8 +4,13 @@ import { useMemo, useState } from 'react'
 import { Disc3 } from 'lucide-react'
 import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
-import { calculatePlateBreakdown, DEFAULT_BARBELL_WEIGHT_LBS } from '@/lib/plate-calculator'
-import { displayToLbs, formatUnit, formatWeight, lbsToDisplay } from '@/lib/utils'
+import type { PreferredUnit } from '@/types/domain'
+import {
+  calculatePlateBreakdown,
+  DEFAULT_BARBELL_WEIGHT_LBS,
+  getStandardPlateOptionsLbs,
+} from '@/lib/plate-calculator'
+import { displayToLbs, formatUnit, formatWeight, lbsToDisplay, snapWeightRoundingLbsToUnit } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 
 interface PlateBreakdownInlineProps {
@@ -13,19 +18,29 @@ interface PlateBreakdownInlineProps {
   weightsLbs: number[]
 }
 
+function formatPlateWeight(weightLbs: number, unit: PreferredUnit) {
+  return lbsToDisplay(weightLbs, unit, 2)
+}
+
 export function PlateBreakdownInline({ weightsLbs }: PlateBreakdownInlineProps) {
   const [open, setOpen] = useState(false)
   const preferredUnit = usePreferredUnit()
   const weightRoundingLbs = usePreferredWeightRounding()
+  const plateRoundingLbs = snapWeightRoundingLbsToUnit(weightRoundingLbs, preferredUnit)
   const barbellWeightLbs = preferredUnit === 'kg' ? displayToLbs(20, 'kg') : DEFAULT_BARBELL_WEIGHT_LBS
+  const plateOptionsLbs = useMemo(() => getStandardPlateOptionsLbs(preferredUnit), [preferredUnit])
 
   const breakdowns = useMemo(
     () =>
       weightsLbs.map((w) => ({
         weightLbs: w,
-        breakdown: calculatePlateBreakdown(w, { barbellWeightLbs }),
+        breakdown: calculatePlateBreakdown(w, {
+          barbellWeightLbs,
+          plateOptionsLbs,
+          roundingLbs: plateRoundingLbs,
+        }),
       })),
-    [weightsLbs, barbellWeightLbs],
+    [weightsLbs, barbellWeightLbs, plateOptionsLbs, plateRoundingLbs],
   )
 
   if (weightsLbs.length === 0 || weightsLbs.every((w) => w <= barbellWeightLbs)) return null
@@ -45,13 +60,13 @@ export function PlateBreakdownInline({ weightsLbs }: PlateBreakdownInlineProps) 
           {breakdowns.map(({ weightLbs, breakdown }) => (
             <div key={weightLbs} className="flex flex-wrap items-center gap-1.5 text-xs">
               <span className="font-medium text-foreground">
-                {formatWeight(weightLbs, preferredUnit, weightRoundingLbs)}
+                {formatWeight(weightLbs, preferredUnit, plateRoundingLbs)}
               </span>
               <span className="text-muted-foreground">→</span>
               {breakdown.platesPerSide.length > 0 ? (
                 breakdown.platesPerSide.map((entry) => (
                   <Badge key={entry.weightLbs} variant="outline" className="rounded-full px-2 py-0.5 text-[0.65rem]">
-                    {entry.countPerSide}×{lbsToDisplay(entry.weightLbs, preferredUnit)}{formatUnit(preferredUnit)}
+                    {entry.countPerSide}×{formatPlateWeight(entry.weightLbs, preferredUnit)}{formatUnit(preferredUnit)}
                   </Badge>
                 ))
               ) : (

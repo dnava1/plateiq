@@ -22,7 +22,7 @@ import {
   getBenchmarkStrengthLabel,
   toBenchmarkSex,
 } from '@/lib/strength-benchmarks'
-import { DEFAULT_WEIGHT_ROUNDING_LBS, roundToNearest } from '@/lib/utils'
+import { DEFAULT_WEIGHT_ROUNDING_LBS, roundToIncrement } from '@/lib/utils'
 
 const MAX_STRENGTH_REPS = 10
 
@@ -73,7 +73,7 @@ function roundStrengthProfileWeight(weightLbs: number, roundingLbs: number = DEF
     return weightLbs
   }
 
-  return roundToNearest(weightLbs, roundingLbs)
+  return roundToIncrement(weightLbs, roundingLbs, 'down')
 }
 
 function resolveMissingFields(profile: StrengthProfileRawData['profile']): StrengthProfileMissingField[] {
@@ -263,7 +263,7 @@ export function buildStrengthProfile(
       lift.displayName,
     )
     const expectedOneRepMaxLbs = isPositiveNumber(expectedOneRepMax)
-      ? roundStrengthProfileWeight(expectedOneRepMax)
+      ? roundStrengthProfileWeight(expectedOneRepMax, weightRoundingLbs)
       : null
     const deviationFromTotalPct = expectedOneRepMaxLbs !== null && expectedOneRepMaxLbs > 0
       ? roundToSingleDecimal(((lift.bestOneRepMaxLbs - expectedOneRepMaxLbs) * 100) / expectedOneRepMaxLbs)

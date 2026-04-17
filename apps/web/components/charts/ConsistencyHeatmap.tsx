@@ -1,8 +1,9 @@
 'use client'
 
+import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { cn } from '@/lib/utils'
 import type { WeeklyActivitySummary } from '@/types/analytics'
-import { formatShortDate } from './chart-utils'
+import { formatDisplayLoad, formatShortDate } from './chart-utils'
 
 interface ConsistencyHeatmapProps {
   compact?: boolean
@@ -35,6 +36,7 @@ function getBucketClassName(bucket: number) {
 }
 
 export function ConsistencyHeatmap({ compact = false, data }: ConsistencyHeatmapProps) {
+  const preferredUnit = usePreferredUnit()
   const maxVolume = Math.max(...data.map((entry) => entry.totalVolume), 0)
 
   return (
@@ -50,7 +52,7 @@ export function ConsistencyHeatmap({ compact = false, data }: ConsistencyHeatmap
                 compact ? 'h-9' : 'h-12',
                 getBucketClassName(bucket),
               )}
-              title={`${formatShortDate(entry.weekStart)}: ${entry.isActive ? 'active week' : 'rest week'}${entry.totalVolume > 0 ? ` · ${Math.round(entry.totalVolume)} lbs` : ''}`}
+              title={`${formatShortDate(entry.weekStart)}: ${entry.isActive ? 'active week' : 'rest week'}${entry.totalVolume > 0 ? ` · ${formatDisplayLoad(entry.totalVolume, preferredUnit)}` : ''}`}
             />
             {!compact ? (
               <span className="text-center text-[10px] text-muted-foreground">{formatShortDate(entry.weekStart)}</span>

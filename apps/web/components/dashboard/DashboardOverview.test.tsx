@@ -42,9 +42,10 @@ vi.mock('@/hooks/useWorkouts', () => ({
 }))
 
 vi.mock('@/components/charts/ChartCard', () => ({
-  ChartCard: ({ title, children, isEmpty, emptyMessage }: { title: string; children: React.ReactNode; isEmpty?: boolean; emptyMessage?: string }) => (
+  ChartCard: ({ title, description, children, isEmpty, emptyMessage }: { title: string; description?: string; children: React.ReactNode; isEmpty?: boolean; emptyMessage?: string }) => (
     <section>
       <h2>{title}</h2>
+      {description ? <p>{description}</p> : null}
       {isEmpty ? <p>{emptyMessage}</p> : children}
     </section>
   ),
@@ -175,5 +176,115 @@ describe('DashboardOverview', () => {
     expect(screen.getByText(/over the prior best/i)).toBeInTheDocument()
     expect(screen.getByText('Completed')).toBeInTheDocument()
     expect(screen.getByText('In progress')).toBeInTheDocument()
+  })
+
+  it('formats volume pace copy in kilograms when kg is selected', () => {
+    mocks.usePreferredUnit.mockReturnValue('kg')
+    mocks.useActiveProgram.mockReturnValue({
+      data: {
+        id: 12,
+        name: '5/3/1 Beefcake',
+        config: { variation_key: 'bbb' },
+      },
+      isLoading: false,
+    })
+    mocks.resolveWorkoutProgram.mockReturnValue({
+      isCustom: false,
+      template: {
+        cycle_length_weeks: 2,
+        days_per_week: 2,
+        days: [{ label: 'Day A' }, { label: 'Day B' }],
+        variation_options: [{ key: 'bbb', name: 'Boring But Big' }],
+      },
+    })
+    mocks.useDashboard.mockReturnValue({
+      data: {
+        activeProgram: { id: 12, name: '5/3/1 Beefcake', templateKey: 'wendler_531' },
+        currentCycle: { id: 3, cycleNumber: 2 },
+        currentTms: [],
+        recentWorkouts: [],
+      },
+      isLoading: false,
+    })
+    mocks.useAnalytics.mockReturnValue({
+      data: {
+        e1rmTrend: [],
+        volumeTrend: [
+          { weekStart: '2026-03-30', exerciseId: 1, exerciseName: 'Bench Press', totalVolume: 3400, totalSets: 6 },
+          { weekStart: '2026-04-06', exerciseId: 2, exerciseName: 'Squat', totalVolume: 4200, totalSets: 7 },
+        ],
+        prHistory: [],
+        consistency: {
+          totalSessions: 4,
+          weeksActive: 2,
+          firstSession: '2026-03-20',
+          lastSession: '2026-04-05',
+        },
+        muscleBalance: [],
+        stallDetection: [],
+        tmProgression: [],
+        strengthProfile: createEmptyStrengthProfile(),
+      },
+      isLoading: false,
+    })
+
+    render(<DashboardOverview />)
+
+    expect(screen.getByText('This week 1905.1 kg vs 1542.2 kg recent average.')).toBeInTheDocument()
+  })
+
+  it('formats recent PR deltas in kilograms when kg is selected', () => {
+    mocks.usePreferredUnit.mockReturnValue('kg')
+    mocks.useActiveProgram.mockReturnValue({
+      data: {
+        id: 12,
+        name: '5/3/1 Beefcake',
+        config: { variation_key: 'bbb' },
+      },
+      isLoading: false,
+    })
+    mocks.resolveWorkoutProgram.mockReturnValue({
+      isCustom: false,
+      template: {
+        cycle_length_weeks: 2,
+        days_per_week: 2,
+        days: [{ label: 'Day A' }, { label: 'Day B' }],
+        variation_options: [{ key: 'bbb', name: 'Boring But Big' }],
+      },
+    })
+    mocks.useDashboard.mockReturnValue({
+      data: {
+        activeProgram: { id: 12, name: '5/3/1 Beefcake', templateKey: 'wendler_531' },
+        currentCycle: { id: 3, cycleNumber: 2 },
+        currentTms: [],
+        recentWorkouts: [],
+      },
+      isLoading: false,
+    })
+    mocks.useAnalytics.mockReturnValue({
+      data: {
+        e1rmTrend: [],
+        volumeTrend: [],
+        prHistory: [
+          { date: '2026-03-20', exerciseId: 1, exerciseName: 'Bench Press', weight: 200, reps: 6, e1rm: 238.5 },
+          { date: '2026-04-05', exerciseId: 1, exerciseName: 'Bench Press', weight: 205, reps: 6, e1rm: 246 },
+        ],
+        consistency: {
+          totalSessions: 4,
+          weeksActive: 2,
+          firstSession: '2026-03-20',
+          lastSession: '2026-04-05',
+        },
+        muscleBalance: [],
+        stallDetection: [],
+        tmProgression: [],
+        strengthProfile: createEmptyStrengthProfile(),
+      },
+      isLoading: false,
+    })
+
+    render(<DashboardOverview />)
+
+    expect(screen.getByText(/\+2.5 kg over the prior best/i)).toBeInTheDocument()
   })
 })

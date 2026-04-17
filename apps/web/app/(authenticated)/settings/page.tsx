@@ -13,7 +13,7 @@ import { useSupabase } from '@/hooks/useSupabase'
 import { analyticsQueryKeys } from '@/hooks/useAnalytics'
 import { useUiStore } from '@/store/uiStore'
 import { clearAllPersistedQueryCaches } from '@/lib/query-persistence'
-import { DEFAULT_WEIGHT_ROUNDING_LBS, displayToLbs, getRoundingOptions, lbsToDisplay, parseWeightRoundingLbs, snapWeightRoundingLbsToUnit } from '@/lib/utils'
+import { displayToLbs, lbsToDisplay } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
@@ -35,7 +35,7 @@ import {
 } from '@/components/ui/select'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
-import type { PreferredUnit, StrengthProfileSex, WeightRoundingLbs } from '@/types/domain'
+import type { PreferredUnit, StrengthProfileSex } from '@/types/domain'
 import type { ProfilePreferences } from '@/hooks/useProfile'
 
 function subscribeToClientRender(onStoreChange: () => void) {
@@ -418,7 +418,7 @@ export default function SettingsPage() {
   const queryClient = useQueryClient()
   const hasMounted = useSyncExternalStore(subscribeToClientRender, () => true, () => false)
   const [isSigningOut, setIsSigningOut] = useState(false)
-  const { preferredUnit, setPreferredUnit, setWeightRoundingLbs, weightRoundingLbs } = useUiStore()
+  const { preferredUnit, setPreferredUnit } = useUiStore()
   const isGuest = isAnonymousUser(user)
 
   const syncOptimisticProfilePreferences = async (
@@ -440,23 +440,16 @@ export default function SettingsPage() {
 
   const updateUnit = useMutation({
     mutationKey: profilePreferenceMutationKeys.unit(),
-    mutationFn: async ({
-      rounding,
-      unit,
-    }: {
-      rounding: WeightRoundingLbs
-      unit: PreferredUnit
-    }) => {
+    mutationFn: async (unit: PreferredUnit) => {
       const { error } = await supabase
         .from('profiles')
-        .update({ preferred_unit: unit, weight_rounding_lbs: rounding })
+        .update({ preferred_unit: unit })
         .eq('id', user?.id ?? '')
       if (error) throw error
     },
-    onMutate: async ({ rounding, unit }) => syncOptimisticProfilePreferences((currentProfile) => ({
+    onMutate: async (unit) => syncOptimisticProfilePreferences((currentProfile) => ({
       ...currentProfile,
       preferred_unit: unit,
-      weight_rounding_lbs: rounding,
     })),
     onError: (_error, _variables, context) => {
       queryClient.setQueryData(['profile'], context?.previousProfile ?? null)
@@ -496,31 +489,8 @@ export default function SettingsPage() {
     },
   })
 
-  const updateWeightRounding = useMutation({
-    mutationKey: profilePreferenceMutationKeys.rounding(),
-    mutationFn: async (rounding: WeightRoundingLbs) => {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ weight_rounding_lbs: rounding })
-        .eq('id', user?.id ?? '')
-      if (error) throw error
-    },
-    onMutate: async (rounding) => syncOptimisticProfilePreferences((currentProfile) => ({
-      ...currentProfile,
-      weight_rounding_lbs: rounding,
-    })),
-    onError: (_error, _rounding, context) => {
-      queryClient.setQueryData(['profile'], context?.previousProfile ?? null)
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['profile'] })
-      await queryClient.invalidateQueries({ queryKey: analyticsQueryKeys.all() })
-    },
-  })
-
-  const isPreferenceUpdatePending = updateUnit.isPending || updateWeightRounding.isPending
+  const isPreferenceUpdatePending = updateUnit.isPending
   const renderedPreferredUnit = hasMounted ? preferredUnit : 'lbs'
-  const renderedWeightRoundingLbs = hasMounted ? weightRoundingLbs : DEFAULT_WEIGHT_ROUNDING_LBS
   const arePreferencesHydrated = !isUserLoading && (user == null || !isProfileLoading)
   const isPreferenceControlDisabled = !hasMounted || !arePreferencesHydrated || isPreferenceUpdatePending
 
@@ -528,17 +498,13 @@ export default function SettingsPage() {
     if (unit === preferredUnit || isPreferenceControlDisabled) return
 
     const previousUnit = preferredUnit
-    const previousRounding = weightRoundingLbs
-    const snappedRounding = snapWeightRoundingLbsToUnit(profile?.weight_rounding_lbs ?? weightRoundingLbs, unit)
 
     setPreferredUnit(unit)
-    setWeightRoundingLbs(snappedRounding)
 
     if (user) {
-      updateUnit.mutate({ rounding: snappedRounding, unit }, {
+      updateUnit.mutate(unit, {
         onError: (error: Error) => {
           setPreferredUnit(previousUnit)
-          setWeightRoundingLbs(previousRounding)
           toast.error(error.message)
         },
       })
@@ -555,22 +521,6 @@ export default function SettingsPage() {
       bodyweightLbs: values.bodyweightLbs,
       sex: values.sex,
     })
-  }
-
-  const handleWeightRoundingChange = (rounding: WeightRoundingLbs) => {
-    if (rounding === weightRoundingLbs || isPreferenceControlDisabled) return
-
-    const previousRounding = weightRoundingLbs
-    setWeightRoundingLbs(rounding)
-
-    if (user) {
-      updateWeightRounding.mutate(rounding, {
-        onError: (error: Error) => {
-          setWeightRoundingLbs(previousRounding)
-          toast.error(error.message)
-        },
-      })
-    }
   }
 
   const handleLogout = async () => {
@@ -598,7 +548,6 @@ export default function SettingsPage() {
     .slice(0, 2)
     .map((part: string) => part[0]?.toUpperCase())
     .join('') || 'PI'
-  const roundingOptions = getRoundingOptions(renderedPreferredUnit, renderedWeightRoundingLbs)
 
   return (
     <div className="page-shell max-w-5xl">
@@ -661,7 +610,7 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle>Weight Unit</CardTitle>
             <CardDescription>
-                Choose the unit system used across the app.
+              Choose the unit system used across the app. Loads round down to 5 lbs or 2.5 kg automatically.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
@@ -691,53 +640,6 @@ export default function SettingsPage() {
               <p className="text-sm text-muted-foreground">
                 <Ruler className="mr-1 inline-block size-3.5" />
                 Saving preference…
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="surface-panel">
-          <CardHeader>
-            <CardTitle>Weight Rounding</CardTitle>
-            <CardDescription>
-              Applies to prescribed loads, training maxes, estimated 1RM, and weight displays across the app.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="weight-rounding">Rounding increment ({renderedPreferredUnit})</Label>
-              <Select
-                value={String(renderedWeightRoundingLbs)}
-                onValueChange={(value) => {
-                  if (value === null) {
-                    return
-                  }
-
-                  const nextRounding = parseWeightRoundingLbs(value)
-
-                  if (nextRounding !== null) {
-                    handleWeightRoundingChange(nextRounding)
-                  }
-                }}
-                items={roundingOptions.map((option) => ({ value: String(option.value), label: option.label }))}
-              >
-                <SelectTrigger id="weight-rounding" className="h-9 w-full max-w-xs" disabled={isPreferenceControlDisabled}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {roundingOptions.map((option) => (
-                      <SelectItem key={option.value} value={String(option.value)}>{option.label}</SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {updateWeightRounding.isPending && (
-              <p className="text-sm text-muted-foreground">
-                <Ruler className="mr-1 inline-block size-3.5" />
-                Saving rounding preference…
               </p>
             )}
           </CardContent>

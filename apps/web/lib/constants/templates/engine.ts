@@ -4,7 +4,36 @@ import type {
   GeneratedSet,
   ExerciseBlock,
 } from '@/types/template'
-import { roundToNearest } from '@/lib/utils'
+import { roundToIncrement } from '@/lib/utils'
+
+const GENERATED_BLOCK_ID_DELIMITER = '-'
+
+function normalizeBlockIdPart(value: string | number | undefined) {
+  return String(value ?? 'unknown')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, GENERATED_BLOCK_ID_DELIMITER)
+    .replace(/^-+|-+$/g, '')
+}
+
+function buildGeneratedBlockId(
+  block: ExerciseBlock,
+  dayIndex: number,
+  blockIndex: number,
+  scope: string,
+) {
+  if (block.block_id) {
+    return block.block_id
+  }
+
+  return [
+    `day-${dayIndex + 1}`,
+    scope,
+    `block-${blockIndex + 1}`,
+    block.role,
+    normalizeBlockIdPart(block.exercise_key ?? block.exercise_id),
+  ].join(GENERATED_BLOCK_ID_DELIMITER)
+}
 
 export function resolveWeight(
   prescription: SetPrescription,
@@ -17,13 +46,13 @@ export function resolveWeight(
     case 'percentage_tm': {
       const tm = trainingMaxes.get(exerciseKey)
       if (!tm) return 0
-      return roundToNearest(tm * prescription.intensity, preferredRounding)
+      return roundToIncrement(tm * prescription.intensity, preferredRounding, 'down')
     }
     case 'percentage_1rm': {
       const tm = trainingMaxes.get(exerciseKey)
       if (!tm) return 0
       // Assume TM is stored, use it as proxy for 1RM % (user's TM/1RM ratio varies)
-      return roundToNearest(tm * prescription.intensity, preferredRounding)
+      return roundToIncrement(tm * prescription.intensity, preferredRounding, 'down')
     }
     case 'fixed_weight':
       return prescription.intensity
@@ -33,7 +62,7 @@ export function resolveWeight(
       return 0 // RPE-based: user determines weight
     case 'percentage_work_set': {
       if (percentageWorkSetBase <= 0) return 0
-      return roundToNearest(percentageWorkSetBase * prescription.intensity, preferredRounding)
+      return roundToIncrement(percentageWorkSetBase * prescription.intensity, preferredRounding, 'down')
     }
     default:
       return 0
@@ -57,6 +86,8 @@ function parseReps(reps: number | string): { prescribed: number; max?: number; i
 
 function expandBlock(
   block: ExerciseBlock,
+  blockId: string,
+  blockOrder: number,
   exerciseKey: string,
   exerciseId: number | undefined,
   trainingMaxes: Map<string, number>,
@@ -80,8 +111,12 @@ function expandBlock(
 
     for (let i = 0; i < prescription.sets; i++) {
       sets.push({
+        block_id: blockId,
+        block_order: blockOrder,
+        block_role: block.role,
         exercise_key: exerciseKey,
         exercise_id: exerciseId,
+        execution_group: block.execution_group,
         set_order: order++,
         set_type: actualIsAmrap ? 'amrap' : (block.role === 'primary' ? 'main' : block.role) as GeneratedSet['set_type'],
         weight_lbs: weight,
@@ -89,6 +124,7 @@ function expandBlock(
         reps_prescribed_max: max,
         is_amrap: actualIsAmrap,
         intensity_type: prescription.intensity_type,
+        rest_seconds: prescription.rest_seconds,
         rpe: prescription.intensity_type === 'rpe' ? prescription.intensity : undefined,
         notes: block.notes,
       })
@@ -111,6 +147,7 @@ export function generateWorkoutPlan(
 
   const allSets: GeneratedSet[] = []
   let setOrder = 1
+  let blockOrder = 1
 
   // Get week scheme modifier if applicable (e.g., 5/3/1 wave loading)
   const weekScheme = template.week_schemes?.[weekNumber]
@@ -140,13 +177,16 @@ export function generateWorkoutPlan(
         preferredRounding,
       )
     : 0
-  
-  for (const block of adjustedDayBlocks) {
+
+  for (const [index, block] of adjustedDayBlocks.entries()) {
     const exerciseKey = block.exercise_key ?? primaryExerciseKey ?? 'unknown'
     const exerciseId = block.exercise_id ?? primaryExerciseId
+    const blockId = buildGeneratedBlockId(block, dayIndex, index, 'base')
 
     const blockSets = expandBlock(
       block,
+      blockId,
+      blockOrder,
       exerciseKey,
       exerciseId,
       trainingMaxes,
@@ -156,17 +196,21 @@ export function generateWorkoutPlan(
     )
     allSets.push(...blockSets)
     setOrder += blockSets.length
+    blockOrder += 1
   }
 
   // Expand selected variations
   if (template.variation_options) {
     for (const variation of template.variation_options) {
       if (selectedVariations.includes(variation.key)) {
-        for (const block of variation.blocks) {
+        for (const [index, block] of variation.blocks.entries()) {
           const exerciseKey = block.exercise_key ?? primaryExerciseKey ?? 'unknown'
           const exerciseId = block.exercise_id ?? primaryExerciseId
+          const blockId = buildGeneratedBlockId(block, dayIndex, index, `variation-${variation.key}`)
           const blockSets = expandBlock(
             block,
+            blockId,
+            blockOrder,
             exerciseKey,
             exerciseId,
             trainingMaxes,
@@ -176,6 +220,7 @@ export function generateWorkoutPlan(
           )
           allSets.push(...blockSets)
           setOrder += blockSets.length
+          blockOrder += 1
         }
       }
     }

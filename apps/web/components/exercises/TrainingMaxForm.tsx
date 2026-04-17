@@ -18,7 +18,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { displayToLbs, formatUnit, formatWeight, lbsToDisplay, roundToNearest } from '@/lib/utils'
+import { displayToLbs, formatUnit, formatWeight, lbsToDisplay, roundToIncrement } from '@/lib/utils'
 import { toast } from 'sonner'
 import type { PreferredUnit } from '@/types/domain'
 
@@ -29,6 +29,39 @@ interface TrainingMaxFormProps {
   exerciseName: string
   currentTm?: number
   unit: PreferredUnit
+}
+
+type ResolveTrainingMaxWeightParams = {
+  currentTm?: number
+  initialDisplayWeight: number
+  inputType: 'tm' | '1rm'
+  submittedDisplayWeight: number
+  submittedWeightLbs: number
+  tmPercentage?: number
+  weightRoundingLbs: number
+}
+
+export function resolveTrainingMaxWeightLbs({
+  currentTm,
+  initialDisplayWeight,
+  inputType,
+  submittedDisplayWeight,
+  submittedWeightLbs,
+  tmPercentage,
+  weightRoundingLbs,
+}: ResolveTrainingMaxWeightParams) {
+  const roundTrainingMaxLbs = (valueLbs: number) => roundToIncrement(valueLbs, weightRoundingLbs, 'down')
+  const unchangedCurrentTm = inputType === 'tm'
+    && typeof currentTm === 'number'
+    && submittedDisplayWeight === initialDisplayWeight
+
+  if (unchangedCurrentTm) {
+    return currentTm
+  }
+
+  return inputType === '1rm'
+    ? roundTrainingMaxLbs(submittedWeightLbs * (tmPercentage ?? 0.9))
+    : roundTrainingMaxLbs(submittedWeightLbs)
 }
 
 export function TrainingMaxForm({
@@ -42,6 +75,7 @@ export function TrainingMaxForm({
   const [inputType, setInputType] = useState<'tm' | '1rm'>('tm')
   const setTrainingMax = useSetTrainingMax()
   const weightRoundingLbs = usePreferredWeightRounding()
+  const roundTrainingMaxLbs = (valueLbs: number) => roundToIncrement(valueLbs, weightRoundingLbs, 'down')
 
   const {
     clearErrors,
@@ -73,20 +107,20 @@ export function TrainingMaxForm({
   const enteredWeightLbs = displayToLbs(weight || 0, unit)
   const initialDisplayWeight = lbsToDisplay(currentTm ?? 0, unit)
   const calculatedTmLbs = inputType === '1rm' && weight
-    ? roundToNearest(enteredWeightLbs * (tmPercentage ?? 0.9), weightRoundingLbs)
+    ? roundTrainingMaxLbs(enteredWeightLbs * (tmPercentage ?? 0.9))
     : enteredWeightLbs
 
   const onSubmit = (data: SetTrainingMaxInput) => {
     const weightLbs = displayToLbs(data.weightLbs, unit)
-    const unchangedCurrentTm = inputType === 'tm'
-      && typeof currentTm === 'number'
-      && data.weightLbs === initialDisplayWeight
-
-    const finalWeight = unchangedCurrentTm
-      ? currentTm
-      : inputType === '1rm'
-        ? roundToNearest(weightLbs * (data.tmPercentage ?? 0.9), weightRoundingLbs)
-        : weightLbs
+    const finalWeight = resolveTrainingMaxWeightLbs({
+      currentTm,
+      initialDisplayWeight,
+      inputType,
+      submittedDisplayWeight: data.weightLbs,
+      submittedWeightLbs: weightLbs,
+      tmPercentage: data.tmPercentage,
+      weightRoundingLbs,
+    })
 
     if (finalWeight > 2000) {
       setError('weightLbs', {

@@ -15,7 +15,7 @@ import {
   YAxis,
 } from 'recharts'
 import type { AnalyticsE1rmPoint } from '@/types/analytics'
-import { CHART_COLORS, formatCompactNumber, formatShortDate } from './chart-utils'
+import { CHART_COLORS, formatCompactRoundedWeight, formatShortDate } from './chart-utils'
 
 interface E1rmTrendChartProps {
   compact?: boolean
@@ -77,7 +77,7 @@ export function E1rmTrendChart({ compact = false, data, exerciseId }: E1rmTrendC
         <LineChart data={rows} margin={compact ? { top: 8, right: 8, bottom: 8, left: 8 } : { top: 8, right: 12, bottom: 8, left: 0 }}>
           {!compact ? <CartesianGrid strokeDasharray="3 3" className="opacity-30" /> : null}
           <XAxis dataKey="label" hide={compact} minTickGap={20} tickLine={false} axisLine={false} />
-          <YAxis hide={compact} tickFormatter={formatCompactNumber} width={48} tickLine={false} axisLine={false} />
+          <YAxis hide={compact} tickFormatter={(value) => formatCompactRoundedWeight(Number(value), preferredUnit, weightRoundingLbs)} width={48} tickLine={false} axisLine={false} />
           <Tooltip
             formatter={(value) => {
               const numericValue = Array.isArray(value)

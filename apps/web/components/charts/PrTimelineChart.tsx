@@ -15,7 +15,7 @@ import {
   YAxis,
 } from 'recharts'
 import type { AnalyticsPrPoint } from '@/types/analytics'
-import { CHART_COLORS, formatCompactNumber, formatShortDate } from './chart-utils'
+import { CHART_COLORS, formatCompactRoundedWeight, formatShortDate } from './chart-utils'
 
 interface PrTimelineChartProps {
   data: AnalyticsPrPoint[]
@@ -75,7 +75,7 @@ export function PrTimelineChart({ data, exerciseId }: PrTimelineChartProps) {
             axisLine={false}
             minTickGap={20}
           />
-          <YAxis type="number" dataKey="e1rm" tickFormatter={formatCompactNumber} width={48} tickLine={false} axisLine={false} />
+          <YAxis type="number" dataKey="e1rm" tickFormatter={(value) => formatCompactRoundedWeight(Number(value), preferredUnit, weightRoundingLbs)} width={48} tickLine={false} axisLine={false} />
           <Tooltip
             cursor={{ strokeDasharray: '3 3' }}
             content={({ active, payload }) => {

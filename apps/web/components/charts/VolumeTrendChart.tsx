@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import {
   Bar,
   BarChart,
@@ -13,7 +14,7 @@ import {
 } from 'recharts'
 import { aggregateWeeklyVolume } from '@/lib/analytics'
 import type { AnalyticsVolumePoint } from '@/types/analytics'
-import { CHART_COLORS, formatCompactNumber, formatShortDate } from './chart-utils'
+import { CHART_COLORS, formatCompactDisplayLoad, formatDisplayLoad, formatShortDate } from './chart-utils'
 
 interface VolumeTrendChartProps {
   compact?: boolean
@@ -22,6 +23,7 @@ interface VolumeTrendChartProps {
 }
 
 export function VolumeTrendChart({ compact = false, data, exerciseId }: VolumeTrendChartProps) {
+  const preferredUnit = usePreferredUnit()
   const chartData = useMemo(() => {
     const filteredPoints = exerciseId
       ? data.filter((point) => point.exerciseId === exerciseId)
@@ -89,7 +91,7 @@ export function VolumeTrendChart({ compact = false, data, exerciseId }: VolumeTr
         <BarChart data={chartData.rows} margin={compact ? { top: 8, right: 8, bottom: 8, left: 8 } : { top: 8, right: 12, bottom: 8, left: 0 }}>
           {!compact ? <CartesianGrid strokeDasharray="3 3" className="opacity-30" /> : null}
           <XAxis dataKey="label" hide={compact} tickLine={false} axisLine={false} minTickGap={16} />
-          <YAxis hide={compact} tickFormatter={formatCompactNumber} width={48} tickLine={false} axisLine={false} />
+          <YAxis hide={compact} tickFormatter={(value) => formatCompactDisplayLoad(Number(value), preferredUnit)} width={48} tickLine={false} axisLine={false} />
           <Tooltip
             formatter={(value) => {
               const numericValue = Array.isArray(value)
@@ -97,7 +99,7 @@ export function VolumeTrendChart({ compact = false, data, exerciseId }: VolumeTr
                 : typeof value === 'number'
                   ? value
                   : Number(value ?? 0)
-              return [`${Math.round(numericValue)} lbs`, 'Volume']
+              return [formatDisplayLoad(numericValue, preferredUnit), 'Volume']
             }}
             labelFormatter={(_label, payload) => {
               const point = payload?.[0]?.payload as { weekStart?: string } | undefined

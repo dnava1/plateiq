@@ -10,11 +10,18 @@ export interface SetPrescription {
   rest_seconds?: number
 }
 
+export interface ExecutionGroupMetadata {
+  key: string
+  label?: string
+  type: 'superset' | 'circuit'
+}
+
 export interface ExerciseBlock {
   block_id?: string
   role: 'primary' | 'variation' | 'accessory'
   exercise_id?: number
   exercise_key?: string // 'squat' | 'bench' | null (user picks)
+  execution_group?: ExecutionGroupMetadata
   sets: SetPrescription[]
   notes?: string
 }
@@ -68,8 +75,12 @@ export interface ProgramTemplate {
 }
 
 export interface GeneratedSet {
+  block_id: string
+  block_order: number
+  block_role: ExerciseBlock['role']
   exercise_key: string
   exercise_id?: number
+  execution_group?: ExecutionGroupMetadata
   set_order: number
   set_type: 'warmup' | 'main' | 'amrap' | 'variation' | 'accessory'
   weight_lbs: number
@@ -77,6 +88,7 @@ export interface GeneratedSet {
   reps_prescribed_max?: number
   is_amrap: boolean
   intensity_type: IntensityType
+  rest_seconds?: number
   rpe?: number
   notes?: string
 }

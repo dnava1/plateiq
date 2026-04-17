@@ -40,12 +40,22 @@ export const buildingTheMonolith: ProgramTemplate = {
         },
         {
           role: 'variation',
+          execution_group: {
+            key: 'day-1-press-chin',
+            label: 'Press + Chin Superset',
+            type: 'superset',
+          },
           exercise_key: 'ohp',
           sets: [{ sets: 5, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' }],
           notes: 'OHP 5×5 at FSL (65% OHP TM)',
         },
         {
           role: 'accessory',
+          execution_group: {
+            key: 'day-1-press-chin',
+            label: 'Press + Chin Superset',
+            type: 'superset',
+          },
           exercise_key: 'chin_up',
           sets: [{ sets: 5, reps: 10, intensity: 0, intensity_type: 'bodyweight' }],
           notes: '50 chins per session × 2 sessions = 100/week — superset with OHP',

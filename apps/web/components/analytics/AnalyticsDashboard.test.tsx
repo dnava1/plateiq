@@ -115,4 +115,20 @@ describe('AnalyticsDashboard', () => {
 
     expect(screen.getByText('ai-insights-panel')).toBeInTheDocument()
   })
+
+  it('formats analytics summaries in kilograms when kg is selected', async () => {
+    const user = userEvent.setup()
+    mocks.usePreferredUnit.mockReturnValue('kg')
+
+    render(<AnalyticsDashboard />)
+
+    await user.click(screen.getByRole('tab', { name: 'Strength' }))
+
+    expect(screen.getByText('110 kg')).toBeInTheDocument()
+    expect(screen.getByText('92.5 kg × 6')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('tab', { name: 'Volume' }))
+
+    expect(screen.getByText('1451.5 kg')).toBeInTheDocument()
+  })
 })

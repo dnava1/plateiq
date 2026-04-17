@@ -1,11 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   cn,
+  DEFAULT_WEIGHT_ROUNDING_KG_LBS,
   displayToLbs,
   formatDate,
   formatDateAsLocalIso,
   formatDaysPerWeek,
   formatExerciseKey,
+  getDefaultWeightRoundingLbs,
   formatRounding,
   formatUnit,
   formatWeekCycle,
@@ -16,6 +18,7 @@ import {
   parseWeightRoundingLbs,
   roundToIncrement,
   roundToNearest,
+  roundWeightForDisplay,
   snapWeightRoundingLbsToUnit,
 } from './utils'
 
@@ -84,6 +87,10 @@ describe('lbsToDisplay', () => {
   it('converts lbs to kg for display', () => {
     expect(lbsToDisplay(225, 'kg')).toBe(102.1)
   })
+
+  it('supports higher precision when a caller needs exact metric plate sizes', () => {
+    expect(lbsToDisplay(displayToLbs(1.25, 'kg'), 'kg', 2)).toBe(1.25)
+  })
 })
 
 describe('displayToLbs', () => {
@@ -110,6 +117,16 @@ describe('formatRounding', () => {
 
   it('formats canonical rounding in kg', () => {
     expect(formatRounding(5, 'kg')).toBe('2.3 kg')
+  })
+})
+
+describe('getDefaultWeightRoundingLbs', () => {
+  it('returns the fixed pound default in lbs mode', () => {
+    expect(getDefaultWeightRoundingLbs('lbs')).toBe(5)
+  })
+
+  it('returns the fixed 2.5 kg default in kg mode', () => {
+    expect(getDefaultWeightRoundingLbs('kg')).toBe(DEFAULT_WEIGHT_ROUNDING_KG_LBS)
   })
 })
 
@@ -183,6 +200,13 @@ describe('parseWeightRoundingLbs', () => {
   it('rejects unsupported rounding values', () => {
     expect(parseWeightRoundingLbs('3')).toBeNull()
     expect(parseWeightRoundingLbs('')).toBeNull()
+  })
+})
+
+describe('roundWeightForDisplay', () => {
+  it('rounds down to the active increment instead of to nearest', () => {
+    expect(roundWeightForDisplay(138, 5)).toBe(135)
+    expect(roundWeightForDisplay(displayToLbs(43.1, 'kg'), DEFAULT_WEIGHT_ROUNDING_KG_LBS)).toBeCloseTo(displayToLbs(42.5, 'kg'), 3)
   })
 })
 

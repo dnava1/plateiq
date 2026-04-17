@@ -53,11 +53,18 @@ const setPrescriptionSchema = z.object({
   rest_seconds: z.number().int().min(0).max(600).optional(),
 })
 
+const executionGroupSchema = z.object({
+  key: z.string().trim().min(1),
+  label: z.string().trim().max(MAX_DAY_LABEL_LENGTH).optional(),
+  type: z.enum(['superset', 'circuit']),
+})
+
 const exerciseBlockSchema = z.object({
   block_id: z.string().min(1).optional(),
   role: z.enum(['primary', 'variation', 'accessory']),
   exercise_id: z.number().int().positive().optional(),
   exercise_key: z.string().trim().min(1, EXERCISE_NAME_ERROR_MESSAGE).optional(),
+  execution_group: executionGroupSchema.optional(),
   sets: z.array(setPrescriptionSchema).min(1),
   notes: z.string().trim().max(MAX_NOTES_LENGTH).optional(),
 })

@@ -3,10 +3,11 @@
 import { useState } from 'react'
 import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
-import { displayToLbs, formatUnit, formatWeight, lbsToDisplay } from '@/lib/utils'
+import { displayToLbs, formatUnit, formatWeight, lbsToDisplay, roundWeightForDisplay } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { estimateOneRepMax } from './types'
 
 interface SetEntryProps {
   allowZeroWeight?: boolean
@@ -15,7 +16,7 @@ interface SetEntryProps {
   isPending?: boolean
   onCancel: () => void
   onSubmit: (values: { reps: number; weightLbs: number }) => void
-  suggestedWeightLbs: number
+  showEstimatedOneRepMax?: boolean
 }
 
 function parseLoggedReps(value: string) {
@@ -43,16 +44,19 @@ export function SetEntry({
   isPending,
   onCancel,
   onSubmit,
-  suggestedWeightLbs,
+  showEstimatedOneRepMax = false,
 }: SetEntryProps) {
   const preferredUnit = usePreferredUnit()
   const weightRoundingLbs = usePreferredWeightRounding()
-  const [weightValue, setWeightValue] = useState(() => String(lbsToDisplay(defaultWeightLbs, preferredUnit)))
+  const [weightValue, setWeightValue] = useState(() => String(lbsToDisplay(roundWeightForDisplay(defaultWeightLbs, weightRoundingLbs), preferredUnit)))
   const [repsValue, setRepsValue] = useState(() => String(defaultReps ?? ''))
 
   const enteredWeight = parseLoggedWeight(weightValue, allowZeroWeight)
   const enteredReps = parseLoggedReps(repsValue)
   const weightLbs = enteredWeight !== null ? displayToLbs(enteredWeight, preferredUnit) : null
+  const estimatedOneRepMax = showEstimatedOneRepMax && enteredReps !== null && weightLbs !== null
+    ? estimateOneRepMax(weightLbs, enteredReps)
+    : null
 
   return (
     <div className="flex flex-col gap-3 rounded-[20px] border border-border/70 bg-background/55 p-3 animate-fade-in motion-reduce:animate-none">
@@ -86,9 +90,11 @@ export function SetEntry({
         </div>
       </div>
 
-      <p className="text-sm text-muted-foreground">
-        Suggested load: <span className="font-medium text-foreground">{formatWeight(suggestedWeightLbs, preferredUnit, weightRoundingLbs)}</span>
-      </p>
+      {estimatedOneRepMax ? (
+        <p className="text-sm text-muted-foreground">
+          Estimated 1RM: <span className="font-medium text-foreground">{formatWeight(estimatedOneRepMax, preferredUnit, weightRoundingLbs)}</span>
+        </p>
+      ) : null}
 
       <div className="flex gap-2">
         <Button type="button" variant="outline" size="sm" className="flex-1" onClick={onCancel}>

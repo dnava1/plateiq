@@ -9,6 +9,7 @@ const {
   markPrToastShownMock,
   mutateMock,
   refetchMock,
+  startRestTimerMock,
   toastErrorMock,
   toastSuccessMock,
 } = vi.hoisted(() => {
@@ -28,6 +29,7 @@ const {
     markPrToastShownMock: vi.fn(),
     mutateMock: vi.fn(),
     refetchMock: vi.fn(async () => ({ data: historicalAmrapState.data })),
+    startRestTimerMock: vi.fn(),
     toastErrorMock: vi.fn(),
     toastSuccessMock: vi.fn(),
   }
@@ -51,11 +53,13 @@ vi.mock('@/hooks/useWorkouts', () => ({
 vi.mock('@/store/workoutSessionStore', () => ({
   useWorkoutSessionStore: (
     selector: (state: {
+      startRestTimer: (timer: { durationSeconds: number; label?: string | null; sourceSetOrder?: number | null; workoutId?: number | null }) => void
       hasShownPrToast: (toastKey: string) => boolean
       markPrToastShown: (toastKey: string) => void
     }) => unknown,
   ) =>
     selector({
+      startRestTimer: startRestTimerMock,
       hasShownPrToast: hasShownPrToastMock,
       markPrToastShown: markPrToastShownMock,
     }),
@@ -73,12 +77,17 @@ const baseSet = {
   exercise_id: 2,
   set_order: 1,
   set_type: 'main' as const,
+  block_id: 'squat-main',
+  block_order: 1,
+  block_role: 'primary' as const,
   prescribedWeightLbs: 225,
   weight_lbs: 225,
   reps_prescribed: 5,
   reps_prescribed_max: undefined,
   is_amrap: false,
   intensity_type: 'percentage_tm' as const,
+  execution_group: undefined,
+  rest_seconds: 180,
   rpe: undefined,
   notes: undefined,
   exerciseId: 2,
@@ -96,6 +105,7 @@ describe('SetRow', () => {
     markPrToastShownMock.mockReset()
     mutateMock.mockReset()
     refetchMock.mockClear()
+    startRestTimerMock.mockReset()
     toastErrorMock.mockReset()
     toastSuccessMock.mockReset()
   })
@@ -120,9 +130,15 @@ describe('SetRow', () => {
       />,
     )
 
-    await user.click(screen.getByRole('button', { name: /^log$/i }))
+    await user.click(screen.getByRole('button', { name: /log planned/i }))
 
     expect(onSyncStateChange).toHaveBeenCalledWith({ status: 'dirty' })
+    expect(startRestTimerMock).toHaveBeenCalledWith({
+      durationSeconds: 180,
+      label: 'Squat',
+      sourceSetOrder: 1,
+      workoutId: 44,
+    })
     expect(mutateMock).toHaveBeenCalledTimes(1)
     expect(mutateMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -139,6 +155,89 @@ describe('SetRow', () => {
         onSuccess: expect.any(Function),
       }),
     )
+  })
+
+  it('does not auto-start rest when the row disables grouped-step rest timing', async () => {
+    const user = userEvent.setup()
+
+    render(<SetRow autoStartRestTimer={false} set={baseSet} userId="user-1" />)
+
+    await user.click(screen.getByRole('button', { name: /log planned/i }))
+
+    expect(startRestTimerMock).not.toHaveBeenCalled()
+  })
+
+  it('allows adjusted logging for a main set', async () => {
+    const user = userEvent.setup()
+
+    render(<SetRow set={baseSet} userId="user-1" />)
+
+    await user.click(screen.getByRole('button', { name: /^adjust$/i }))
+    await user.clear(screen.getByLabelText(/load \(lbs\)/i))
+    await user.type(screen.getByLabelText(/load \(lbs\)/i), '205')
+    await user.clear(screen.getByLabelText(/reps achieved/i))
+    await user.type(screen.getByLabelText(/reps achieved/i), '6')
+    await user.click(screen.getByRole('button', { name: /save set/i }))
+
+    expect(mutateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        repsActual: 6,
+        weightLbs: 205,
+      }),
+      expect.any(Object),
+    )
+  })
+
+  it('shows planned versus logged output after an adjusted set is saved', () => {
+    render(
+      <SetRow
+        set={{
+          ...baseSet,
+          repsActual: 6,
+          weight_lbs: 215,
+        }}
+        userId="user-1"
+      />,
+    )
+
+    expect(screen.getByText('Planned 225 lbs × 5 reps')).toBeInTheDocument()
+    expect(screen.getByText('Logged 215 lbs × 6 reps')).toBeInTheDocument()
+    expect(screen.getByText('Logged with adjustments')).toBeInTheDocument()
+  })
+
+  it('treats rounded-equivalent completed loads as planned work', () => {
+    render(
+      <SetRow
+        set={{
+          ...baseSet,
+          prescribedWeightLbs: 222.6,
+          repsActual: 5,
+          weight_lbs: 223.1,
+        }}
+        userId="user-1"
+      />,
+    )
+
+    expect(screen.getByText('Logged as planned')).toBeInTheDocument()
+    expect(screen.queryByText('Logged with adjustments')).not.toBeInTheDocument()
+  })
+
+  it('treats completed AMRAP work at the planned load as planned and shows actual reps', () => {
+    render(
+      <SetRow
+        set={{
+          ...baseSet,
+          is_amrap: true,
+          repsActual: 8,
+          set_type: 'amrap',
+        }}
+        userId="user-1"
+      />,
+    )
+
+    expect(screen.getByText('Logged as planned')).toBeInTheDocument()
+    expect(screen.getByText('Logged 225 lbs × 8 reps')).toBeInTheDocument()
+    expect(screen.queryByText('Logged with adjustments')).not.toBeInTheDocument()
   })
 
   it('announces a new AMRAP PR after a successful save', async () => {
@@ -183,10 +282,10 @@ describe('SetRow', () => {
       />,
     )
 
-    await user.click(screen.getByRole('button', { name: /^log$/i }))
+    await user.click(screen.getByRole('button', { name: /log reps/i }))
     await user.clear(screen.getByLabelText(/reps achieved/i))
     await user.type(screen.getByLabelText(/reps achieved/i), '8')
-    await user.click(screen.getByRole('button', { name: /save reps/i }))
+    await user.click(screen.getByRole('button', { name: /save set/i }))
 
     await waitFor(() => {
       expect(refetchMock).toHaveBeenCalledTimes(1)
@@ -209,12 +308,12 @@ describe('SetRow', () => {
       />,
     )
 
-    await user.click(screen.getByRole('button', { name: /^log$/i }))
+    await user.click(screen.getByRole('button', { name: /log reps/i }))
     await user.clear(screen.getByLabelText(/reps achieved/i))
     await user.type(screen.getByLabelText(/reps achieved/i), '8.5')
 
     expect(screen.queryByText(/estimated 1rm:/i)).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /save reps/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /save set/i })).toBeDisabled()
     expect(mutateMock).not.toHaveBeenCalled()
   })
 
@@ -252,10 +351,10 @@ describe('SetRow', () => {
       />,
     )
 
-    await user.click(screen.getByRole('button', { name: /^log$/i }))
+    await user.click(screen.getByRole('button', { name: /log reps/i }))
     await user.clear(screen.getByLabelText(/reps achieved/i))
     await user.type(screen.getByLabelText(/reps achieved/i), '8')
-    await user.click(screen.getByRole('button', { name: /save reps/i }))
+    await user.click(screen.getByRole('button', { name: /save set/i }))
 
     await waitFor(() => {
       expect(toastSuccessMock).not.toHaveBeenCalled()

@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { calculateBenchmarkMultiRepMax } from '@/lib/strength-benchmarks'
+import { DEFAULT_WEIGHT_ROUNDING_KG_LBS, roundToIncrement } from '@/lib/utils'
 import {
   buildStrengthProfile,
   calculateStrengthRepMax,
@@ -116,9 +118,91 @@ describe('strength profile helpers', () => {
     expect(profile.strongestLift?.displayName).toBe('Back Squat')
     expect(profile.strongestLift?.deviationFromTotalPct).toBe(5.6)
     expect(profile.weakestLift?.displayName).toBe('Bench Press')
-    expect(profile.weakestLift?.deviationFromTotalPct).toBe(-5.9)
+    expect(profile.weakestLift?.deviationFromTotalPct).toBe(-4.5)
     expect(profile.symmetryScore).toBe(82.3)
     expect(profile.muscleGroups).toContainEqual(expect.objectContaining({ muscleKey: 'quads', score: 103.2 }))
+  })
+
+  it('uses the active kg rounding increment for expected standards and rep maxes', () => {
+    const rawStrengthProfile: StrengthProfileRawData = {
+      lifts: [
+        {
+          actualRepMaxes: [{ reps: 1, weightLbs: 475.8 }],
+          benchmarkOneRepMaxLbs: 475.8,
+          benchmarkRepMaxes: [{ reps: 1, weightLbs: 475.8 }],
+          bestDate: '2026-04-10',
+          bestExternalWeightLbs: 475.8,
+          bestOneRepMaxLbs: 475.8,
+          bestReps: 1,
+          bestTotalLoadLbs: 475.8,
+          categoryKey: 'squat',
+          categoryLabel: 'Squat',
+          displayName: 'Back Squat',
+          liftSlug: 'back_squat',
+          muscleWeights: {},
+          sourceExerciseId: 1,
+          sourceExerciseName: 'Squat',
+        },
+        {
+          actualRepMaxes: [{ reps: 1, weightLbs: 520.8 }],
+          benchmarkOneRepMaxLbs: 520.8,
+          benchmarkRepMaxes: [{ reps: 1, weightLbs: 520.8 }],
+          bestDate: '2026-04-08',
+          bestExternalWeightLbs: 520.8,
+          bestOneRepMaxLbs: 520.8,
+          bestReps: 1,
+          bestTotalLoadLbs: 520.8,
+          categoryKey: 'deadlift',
+          categoryLabel: 'Deadlift',
+          displayName: 'Deadlift',
+          liftSlug: 'deadlift',
+          muscleWeights: {},
+          sourceExerciseId: 2,
+          sourceExerciseName: 'Deadlift',
+        },
+        {
+          actualRepMaxes: [{ reps: 1, weightLbs: 321.6 }],
+          benchmarkOneRepMaxLbs: 321.6,
+          benchmarkRepMaxes: [{ reps: 1, weightLbs: 321.6 }],
+          bestDate: '2026-04-09',
+          bestExternalWeightLbs: 321.6,
+          bestOneRepMaxLbs: 321.6,
+          bestReps: 1,
+          bestTotalLoadLbs: 321.6,
+          categoryKey: 'bench_press',
+          categoryLabel: 'Bench Press',
+          displayName: 'Bench Press',
+          liftSlug: 'bench_press',
+          muscleWeights: {},
+          sourceExerciseId: 3,
+          sourceExerciseName: 'Bench Press',
+        },
+      ],
+      minimumCategoryCount: 2,
+      minimumLiftCount: 3,
+      profile: {
+        ageYears: 32,
+        bodyweightLbs: 181,
+        sex: 'male',
+      },
+    }
+
+    const poundsProfile = buildStrengthProfile(rawStrengthProfile)
+    const kilogramsProfile = buildStrengthProfile(rawStrengthProfile, DEFAULT_WEIGHT_ROUNDING_KG_LBS)
+
+    expect(kilogramsProfile.lifts.some((lift, index) => lift.expectedOneRepMaxLbs !== poundsProfile.lifts[index]?.expectedOneRepMaxLbs)).toBe(true)
+
+    for (const lift of kilogramsProfile.lifts) {
+      expect(lift.expectedOneRepMaxLbs).not.toBeNull()
+      expect(roundToIncrement(lift.expectedOneRepMaxLbs!, DEFAULT_WEIGHT_ROUNDING_KG_LBS)).toBe(lift.expectedOneRepMaxLbs)
+
+      for (const repMax of lift.expectedRepMaxes) {
+        expect(calculateBenchmarkMultiRepMax(repMax.reps, lift.expectedOneRepMaxLbs!)).not.toBeNull()
+        expect(repMax.weightLbs).toBe(
+          roundToIncrement(calculateBenchmarkMultiRepMax(repMax.reps, lift.expectedOneRepMaxLbs!)!, DEFAULT_WEIGHT_ROUNDING_KG_LBS, 'down')
+        )
+      }
+    }
   })
 
   it('calculates total score and symmetry from raw lift scores before display rounding', () => {
@@ -221,9 +305,9 @@ describe('strength profile helpers', () => {
 
     const profile = buildStrengthProfile(rawStrengthProfile)
 
-    expect(profile.lifts.map((lift) => lift.score)).toEqual([89.3, 97.4, 82.5, 82.9, 90.9])
-    expect(profile.totalScore).toBe(88.6)
-    expect(profile.symmetryScore).toBe(69.4)
+    expect(profile.lifts.map((lift) => lift.score)).toEqual([89.3, 96.3, 80.8, 82.9, 90.9])
+    expect(profile.totalScore).toBe(88.1)
+    expect(profile.symmetryScore).toBe(68.7)
   })
 
   it('keeps total metrics provisional until the minimum lift coverage is met', () => {

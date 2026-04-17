@@ -4,6 +4,8 @@ import { useMemo, useState } from 'react'
 import { TrendingUp } from 'lucide-react'
 import { useAnalytics, type AnalyticsDateRange } from '@/hooks/useAnalytics'
 import { useExercises } from '@/hooks/useExercises'
+import { usePreferredUnit } from '@/hooks/usePreferredUnit'
+import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { aggregateWeeklyVolume, buildWeeklyActivity, deriveRecentPrs, hasAnalyticsData as hasAnalyticsSnapshot } from '@/lib/analytics'
 import { ChartCard } from '@/components/charts/ChartCard'
 import { ConsistencyHeatmap } from '@/components/charts/ConsistencyHeatmap'
@@ -12,6 +14,7 @@ import { MuscleBalanceChart } from '@/components/charts/MuscleBalanceChart'
 import { PrTimelineChart } from '@/components/charts/PrTimelineChart'
 import { TmProgressionChart } from '@/components/charts/TmProgressionChart'
 import { VolumeTrendChart } from '@/components/charts/VolumeTrendChart'
+import { formatDisplayLoad } from '@/components/charts/chart-utils'
 import { AiInsightsPanel } from './AiInsightsPanel'
 import { StrengthProfilePanel } from './StrengthProfilePanel'
 import {
@@ -31,7 +34,7 @@ import {
 } from '@/components/ui/select'
 import { createEmptyStrengthProfile } from '@/lib/strength-profile'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { formatDate, formatDateAsLocalIso } from '@/lib/utils'
+import { formatDate, formatDateAsLocalIso, formatWeight } from '@/lib/utils'
 import type { AnalyticsData } from '@/types/analytics'
 
 const EMPTY_ANALYTICS: AnalyticsData = {
@@ -66,6 +69,8 @@ function createDateRange(rangeKey: string): AnalyticsDateRange {
 }
 
 export function AnalyticsDashboard() {
+  const preferredUnit = usePreferredUnit()
+  const weightRoundingLbs = usePreferredWeightRounding()
   const [tab, setTab] = useState('overview')
   const [rangeKey, setRangeKey] = useState('6m')
   const [selectedExerciseValue, setSelectedExerciseValue] = useState('all')
@@ -343,8 +348,8 @@ export function AnalyticsDashboard() {
                       <div key={`${record.exerciseId}-${record.date}`} className="rounded-[20px] border border-border/70 bg-background/45 p-4">
                         <p className="text-sm font-medium text-foreground">{record.exerciseName}</p>
                         <p className="mt-1 text-xs text-muted-foreground">{formatDate(record.date)}</p>
-                        <p className="mt-3 text-lg font-semibold tracking-[-0.05em] text-foreground">{record.e1rm.toFixed(1)} lbs</p>
-                        <p className="text-xs text-muted-foreground">{record.weight} lbs × {record.reps}</p>
+                        <p className="mt-3 text-lg font-semibold tracking-[-0.05em] text-foreground">{formatWeight(record.e1rm, preferredUnit, weightRoundingLbs)}</p>
+                        <p className="text-xs text-muted-foreground">{formatWeight(record.weight, preferredUnit, weightRoundingLbs)} × {record.reps}</p>
                       </div>
                     ))}
                   </div>
@@ -378,7 +383,7 @@ export function AnalyticsDashboard() {
                 <ChartCard
                   title="Volume Pulse"
                   description={averageWeeklyVolume > 0
-                    ? `Current week ${Math.round(currentWeekVolume)} lbs vs ${Math.round(averageWeeklyVolume)} lbs trailing average.`
+                    ? `Current week ${formatDisplayLoad(currentWeekVolume, preferredUnit)} vs ${formatDisplayLoad(averageWeeklyVolume, preferredUnit)} trailing average.`
                     : 'Weekly activity for the selected filter window.'}
                   emptyMessage="Weekly activity appears after completed work sets are logged."
                   isEmpty={weeklyActivity.every((entry) => !entry.isActive)}
@@ -388,11 +393,11 @@ export function AnalyticsDashboard() {
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="rounded-[20px] border border-border/70 bg-background/45 p-4">
                         <span className="eyebrow">Current Week</span>
-                        <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-foreground">{Math.round(currentWeekVolume)} lbs</p>
+                        <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-foreground">{formatDisplayLoad(currentWeekVolume, preferredUnit)}</p>
                       </div>
                       <div className="rounded-[20px] border border-border/70 bg-background/45 p-4">
                         <span className="eyebrow">Trailing Average</span>
-                        <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-foreground">{Math.round(averageWeeklyVolume)} lbs</p>
+                        <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-foreground">{formatDisplayLoad(averageWeeklyVolume, preferredUnit)}</p>
                       </div>
                     </div>
                     <ConsistencyHeatmap data={weeklyActivity} />

@@ -1,0 +1,118 @@
+import { render, screen, within } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { ConsistencyHeatmap } from './ConsistencyHeatmap'
+import { E1rmTrendChart } from './E1rmTrendChart'
+import { PrTimelineChart } from './PrTimelineChart'
+import { TmProgressionChart } from './TmProgressionChart'
+import { VolumeTrendChart } from './VolumeTrendChart'
+
+const TEST_WEIGHT_LBS = 246
+
+const mocks = vi.hoisted(() => ({
+  preferredUnit: 'kg' as 'kg' | 'lbs',
+  weightRoundingLbs: 5.51156,
+}))
+
+vi.mock('@/hooks/usePreferredUnit', () => ({
+  usePreferredUnit: () => mocks.preferredUnit,
+}))
+
+vi.mock('@/hooks/usePreferredWeightRounding', () => ({
+  usePreferredWeightRounding: () => mocks.weightRoundingLbs,
+}))
+
+vi.mock('recharts', () => ({
+  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  CartesianGrid: () => null,
+  Legend: () => null,
+  Line: () => null,
+  Bar: () => null,
+  Scatter: () => null,
+  LineChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  BarChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  ScatterChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  XAxis: () => null,
+  YAxis: ({ tickFormatter }: { tickFormatter?: (value: number) => string }) => (
+    <div data-testid="y-axis">{tickFormatter ? tickFormatter(TEST_WEIGHT_LBS) : ''}</div>
+  ),
+  Tooltip: ({ formatter, content }: { formatter?: (value: number) => unknown; content?: (payload: unknown) => React.ReactNode }) => {
+    if (typeof formatter === 'function') {
+      const result = formatter(TEST_WEIGHT_LBS)
+      const label = Array.isArray(result) ? result[0] : result
+      return <div data-testid="tooltip">{String(label)}</div>
+    }
+
+    if (typeof content === 'function') {
+      return (
+        <div data-testid="tooltip">
+          {content({
+            active: true,
+            payload: [{
+              payload: {
+                date: '2026-04-01',
+                e1rm: TEST_WEIGHT_LBS,
+                exerciseName: 'Bench Press',
+                reps: 5,
+                weight: TEST_WEIGHT_LBS,
+              },
+            }],
+          })}
+        </div>
+      )
+    }
+
+    return null
+  },
+}))
+
+describe('chart weight formatting', () => {
+  it('formats e1rm chart axes and tooltips in the selected unit', () => {
+    render(
+      <E1rmTrendChart
+        data={[{ date: '2026-04-01', e1rm: TEST_WEIGHT_LBS, exerciseId: 1, exerciseName: 'Bench Press', reps: 5, weight: TEST_WEIGHT_LBS }]}
+      />,
+    )
+
+    expect(screen.getByTestId('y-axis')).toHaveTextContent('110')
+    expect(screen.getByTestId('tooltip')).toHaveTextContent('110 kg')
+  })
+
+  it('formats tm progression axes and tooltips in the selected unit', () => {
+    render(<TmProgressionChart data={[{ effectiveDate: '2026-04-01', weightLbs: TEST_WEIGHT_LBS }]} />)
+
+    expect(screen.getByTestId('y-axis')).toHaveTextContent('110')
+    expect(screen.getByTestId('tooltip')).toHaveTextContent('110 kg')
+  })
+
+  it('formats pr timeline axes and tooltip content in the selected unit', () => {
+    render(
+      <PrTimelineChart
+        data={[{ date: '2026-04-01', e1rm: TEST_WEIGHT_LBS, exerciseId: 1, exerciseName: 'Bench Press', reps: 5, weight: TEST_WEIGHT_LBS }]}
+      />,
+    )
+
+    expect(screen.getByTestId('y-axis')).toHaveTextContent('110')
+    expect(within(screen.getByTestId('tooltip')).getByText('Estimated 1RM 110 kg')).toBeInTheDocument()
+  })
+
+  it('formats volume chart axes and tooltips in the selected unit', () => {
+    render(
+      <VolumeTrendChart
+        data={[{ exerciseId: 1, exerciseName: 'Bench Press', totalSets: 5, totalVolume: TEST_WEIGHT_LBS, weekStart: '2026-04-01' }]}
+      />,
+    )
+
+    expect(screen.getByTestId('y-axis')).toHaveTextContent('111.6')
+    expect(screen.getByTestId('tooltip')).toHaveTextContent('111.6 kg')
+  })
+
+  it('formats heatmap titles in the selected unit', () => {
+    render(
+      <ConsistencyHeatmap
+        data={[{ isActive: true, totalSets: 5, totalVolume: TEST_WEIGHT_LBS, weekStart: '2026-04-01' }]}
+      />,
+    )
+
+    expect(screen.getByTitle(/111.6 kg/i)).toBeInTheDocument()
+  })
+})

@@ -33,8 +33,9 @@ function areWeightRoundingValuesEqual(left: number, right: number) {
   return Math.abs(left - right) <= WEIGHT_ROUNDING_EPSILON
 }
 
-function roundToSingleDecimal(value: number) {
-  return Math.round(value * 10) / 10
+function roundToDecimalPlaces(value: number, fractionDigits: number) {
+  const precision = 10 ** Math.max(0, fractionDigits)
+  return Math.round(value * precision) / precision
 }
 
 function normalizeRoundedValue(value: number) {
@@ -43,6 +44,7 @@ function normalizeRoundedValue(value: number) {
 
 export type RoundingMode = 'nearest' | 'down' | 'up'
 export const DEFAULT_WEIGHT_ROUNDING_LBS: WeightRoundingLbs = 5
+export const DEFAULT_WEIGHT_ROUNDING_KG_LBS: WeightRoundingLbs = ROUNDING_OPTIONS_KG_LBS[1]!
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -74,8 +76,12 @@ export function parseWeightRoundingLbs(value: string): WeightRoundingLbs | null 
   return isWeightRoundingLbs(normalizedValue) ? normalizedValue : null
 }
 
+export function getDefaultWeightRoundingLbs(unit: PreferredUnit): WeightRoundingLbs {
+  return unit === 'kg' ? DEFAULT_WEIGHT_ROUNDING_KG_LBS : DEFAULT_WEIGHT_ROUNDING_LBS
+}
+
 export function roundWeightForDisplay(lbs: number, roundingLbs?: number | null): number {
-  return roundToNearest(lbs, resolveWeightRoundingLbs(roundingLbs))
+  return roundToIncrement(lbs, resolveWeightRoundingLbs(roundingLbs), 'down')
 }
 
 export function formatWeight(lbs: number, unit: PreferredUnit, roundingLbs?: number | null): string {
@@ -83,11 +89,11 @@ export function formatWeight(lbs: number, unit: PreferredUnit, roundingLbs?: num
   return `${lbsToDisplay(resolvedLbs, unit)} ${formatUnit(unit)}`
 }
 
-export function lbsToDisplay(lbs: number, unit: PreferredUnit): number {
+export function lbsToDisplay(lbs: number, unit: PreferredUnit, fractionDigits: number = 1): number {
   if (unit === 'kg') {
-    return roundToSingleDecimal(lbs * KG_PER_LB)
+    return roundToDecimalPlaces(lbs * KG_PER_LB, fractionDigits)
   }
-  return roundToSingleDecimal(lbs)
+  return roundToDecimalPlaces(lbs, fractionDigits)
 }
 
 export function displayToLbs(value: number, unit: PreferredUnit): number {

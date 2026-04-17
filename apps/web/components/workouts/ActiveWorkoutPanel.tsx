@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
-import { AlertCircle, CircleCheckBig } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { AlertCircle, ArrowLeft, CircleCheckBig } from 'lucide-react'
 import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { buildExerciseKeyMap, resolveExerciseIdFromMap, useExercises } from '@/hooks/useExercises'
 import { useCurrentTrainingMaxes } from '@/hooks/useTrainingMaxes'
@@ -9,18 +9,50 @@ import { useUser } from '@/hooks/useUser'
 import { buildTrainingMaxMap, resolveWorkoutProgram, useActiveCycle, useCycleWorkouts, useWorkoutSets } from '@/hooks/useWorkouts'
 import type { TrainingProgram } from '@/hooks/usePrograms'
 import { generateWorkoutPlan } from '@/lib/constants/templates/engine'
-import { formatExerciseKey } from '@/lib/utils'
+import { cn, formatExerciseKey } from '@/lib/utils'
 import { useWorkoutSessionStore } from '@/store/workoutSessionStore'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { CompleteWorkoutButton } from './CompleteWorkoutButton'
 import { OfflineSyncBanner } from './OfflineSyncBanner'
 import { PlateBreakdownInline } from './PlateBreakdownInline'
 import { SetRow } from './SetRow'
-import type { WorkoutDisplaySet } from './types'
+import {
+  buildWorkoutExecutionCue,
+  buildWorkoutExecutionSnapshot,
+  formatBlockRoleLabel,
+  formatDurationClock,
+  formatExecutionGroupTypeLabel,
+  hasRemainingPendingWork,
+  shouldAutoStartRestTimer,
+  type WorkoutDisplayBlock,
+  type WorkoutDisplaySet,
+} from './types'
 
 interface ActiveWorkoutPanelProps {
   program: TrainingProgram
+}
+
+const REST_TIMER_PRESET_SECONDS = [90, 120, 180] as const
+
+function getBlockCardClasses(role: WorkoutDisplayBlock['role']) {
+  switch (role) {
+    case 'primary':
+      return 'border-primary/30 bg-primary/5'
+    case 'variation':
+      return 'border-sky-500/25 bg-sky-500/5'
+    case 'accessory':
+      return 'border-border/70 bg-background/55'
+    default:
+      return 'border-border/70 bg-background/55'
+  }
+}
+
+function getExecutionGroupDescription(kind: 'superset' | 'circuit') {
+  return kind === 'superset'
+    ? 'Move between these blocks as a superset.'
+    : 'Work through these blocks as a circuit.'
 }
 
 export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
@@ -36,6 +68,10 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
   const activeCycleId = useWorkoutSessionStore((state) => state.activeCycleId)
   const activeDayIndex = useWorkoutSessionStore((state) => state.activeDayIndex)
   const activeWeekNumber = useWorkoutSessionStore((state) => state.activeWeekNumber)
+  const clearRestTimer = useWorkoutSessionStore((state) => state.clearRestTimer)
+  const exitActiveWorkout = useWorkoutSessionStore((state) => state.exitActiveWorkout)
+  const restTimer = useWorkoutSessionStore((state) => state.restTimer)
+  const startRestTimer = useWorkoutSessionStore((state) => state.startRestTimer)
   const syncStates = useWorkoutSessionStore((state) => state.syncStates)
   const setSyncState = useWorkoutSessionStore((state) => state.setSyncState)
   const clearSession = useWorkoutSessionStore((state) => state.clearSession)
@@ -43,6 +79,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
   const cycleId = activeCycleId ?? fallbackCycle?.id
   const { data: cycleWorkouts } = useCycleWorkouts(cycleId)
   const { data: workoutSets } = useWorkoutSets(activeWorkoutId ?? undefined)
+  const [timerNowMs, setTimerNowMs] = useState(() => Date.now())
 
   const trainingMaxMap = useMemo(() => buildTrainingMaxMap(trainingMaxes), [trainingMaxes])
   const exerciseKeyMap = useMemo(() => buildExerciseKeyMap(exercises), [exercises])
@@ -64,6 +101,26 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
       clearSession()
     }
   }, [clearSession, currentWorkout?.completed_at])
+
+  useEffect(() => {
+    const isTimerForCurrentWorkout = restTimer.workoutId === activeWorkoutId && restTimer.endsAt !== null
+
+    if (!isTimerForCurrentWorkout) {
+      return
+    }
+
+    const animationFrameId = window.requestAnimationFrame(() => {
+      setTimerNowMs(Date.now())
+    })
+    const intervalId = window.setInterval(() => {
+      setTimerNowMs(Date.now())
+    }, 1000)
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId)
+      window.clearInterval(intervalId)
+    }
+  }, [activeWorkoutId, restTimer.endsAt, restTimer.workoutId])
 
   const generatedSets = useMemo(() => {
     if (!template || effectiveDayIndex < 0) return []
@@ -100,20 +157,20 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
       }
     })
   }, [activeWorkoutId, exerciseKeyMap, exerciseNameById, generatedSets, workoutSets])
-
-  const groupedSets = useMemo(() => {
-    const groups = new Map<string, WorkoutDisplaySet[]>()
-
-    for (const set of displaySets) {
-      const current = groups.get(set.exerciseName) ?? []
-      current.push(set)
-      groups.set(set.exerciseName, current)
-    }
-
-    return Array.from(groups.entries())
-  }, [displaySets])
-
-  const completedCount = displaySets.filter((set) => set.repsActual !== null).length
+  const execution = useMemo(() => buildWorkoutExecutionSnapshot(displaySets), [displaySets])
+  const nextSet = execution.nextSet
+  const nextBlock = execution.nextBlock
+  const nextGroup = useMemo(
+    () => execution.groups.find((group) => group.blocks.some((block) => block.blockId === nextBlock?.blockId)) ?? null,
+    [execution.groups, nextBlock?.blockId],
+  )
+  const executionCue = useMemo(() => buildWorkoutExecutionCue(execution), [execution])
+  const isRestTimerForCurrentWorkout = restTimer.workoutId === activeWorkoutId && restTimer.endsAt !== null
+  const remainingRestSeconds = isRestTimerForCurrentWorkout && restTimer.endsAt !== null
+    ? Math.max(0, Math.ceil((restTimer.endsAt - timerNowMs) / 1000))
+    : null
+  const isRestComplete = remainingRestSeconds === 0 && isRestTimerForCurrentWorkout
+  const completedCount = execution.completedSets
 
   if (!activeWorkoutId || !template || effectiveDayIndex < 0) {
     return (
@@ -126,52 +183,195 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
     )
   }
 
+  const startManualRestTimer = (durationSeconds: number) => {
+    startRestTimer({
+      durationSeconds,
+      label: nextSet?.exerciseName ?? template.days[effectiveDayIndex]?.label ?? 'Workout rest',
+      sourceSetOrder: restTimer.sourceSetOrder,
+      workoutId: activeWorkoutId,
+    })
+  }
+
+  const scrollToNextSet = () => {
+    if (!nextSet) {
+      return
+    }
+
+    document.getElementById(`workout-set-${nextSet.set_order}`)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    })
+  }
+
+  const renderBlock = (block: WorkoutDisplayBlock, nested = false) => {
+    const distinctWeightsLbs = [...new Set(block.sets.map((set) => set.weight_lbs).filter((weight) => weight > 0))]
+
+    return (
+      <Card key={block.blockId} className={cn('surface-panel', getBlockCardClasses(block.role), nested ? 'bg-background/70' : null)}>
+        <CardHeader className="gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <CardTitle className="text-lg">{block.exerciseName}</CardTitle>
+            <Badge variant={block.role === 'primary' ? 'secondary' : 'outline'}>{formatBlockRoleLabel(block.role)}</Badge>
+            <Badge variant="outline">
+              {block.completedCount}/{block.totalCount} sets
+            </Badge>
+          </div>
+          {block.notes ? <CardDescription>{block.notes}</CardDescription> : null}
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 pt-0">
+          {block.sets.map((set) => (
+            <SetRow
+              autoStartRestTimer={shouldAutoStartRestTimer(execution, set.set_order)}
+              key={set.set_order}
+              anchorId={`workout-set-${set.set_order}`}
+              hasRemainingWorkAfterSet={hasRemainingPendingWork(execution, set.set_order)}
+              isNextUp={nextSet?.set_order === set.set_order}
+              layout="default"
+              set={set}
+              syncState={syncStates[set.set_order]?.status}
+              onSyncStateChange={(state) => setSyncState(set.set_order, state)}
+              userId={user?.id ?? ''}
+            />
+          ))}
+          <PlateBreakdownInline weightsLbs={distinctWeightsLbs} />
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <OfflineSyncBanner />
 
       <Card className="surface-panel">
         <CardHeader className="gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <CardTitle className="text-xl">{template.days[effectiveDayIndex]?.label ?? 'Active Workout'}</CardTitle>
-            <Badge>Week {effectiveWeekNumber}</Badge>
-            {fallbackCycle ? <Badge variant="outline">Cycle {fallbackCycle.cycle_number}</Badge> : null}
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <CardTitle className="text-xl">{template.days[effectiveDayIndex]?.label ?? 'Active Workout'}</CardTitle>
+                <Badge>Week {effectiveWeekNumber}</Badge>
+                {fallbackCycle ? <Badge variant="outline">Cycle {fallbackCycle.cycle_number}</Badge> : null}
+                <Badge variant="outline">
+                  {execution.completedBlocks}/{execution.totalBlocks} blocks
+                </Badge>
+              </div>
+              <CardDescription>
+                {completedCount} of {displaySets.length} planned sets logged.
+              </CardDescription>
+            </div>
+            <Button type="button" size="sm" variant="ghost" onClick={exitActiveWorkout}>
+              <ArrowLeft data-icon="inline-start" />
+              Back to workouts
+            </Button>
           </div>
-          <CardDescription>
-            {completedCount} of {displaySets.length} planned sets logged.
-          </CardDescription>
         </CardHeader>
       </Card>
 
-      {groupedSets.map(([exerciseName, sets]) => {
-        const exerciseCompletedCount = sets.filter((set) => set.repsActual !== null).length
-        const distinctWeightsLbs = [...new Set(sets.map((set) => set.weight_lbs).filter((w) => w > 0))]
-
-        return (
-          <Card key={exerciseName} className="surface-panel">
-            <CardHeader className="gap-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <CardTitle className="text-lg">{exerciseName}</CardTitle>
-                <Badge variant="outline">
-                  {exerciseCompletedCount}/{sets.length} sets
-                </Badge>
+      {nextSet && nextBlock ? (
+        <Card className="surface-panel border-primary/30 bg-primary/6">
+          <CardHeader className="gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge>Next up</Badge>
+              <Badge variant="outline">{formatBlockRoleLabel(nextBlock.role)}</Badge>
+              {nextGroup && nextGroup.kind !== 'single' ? <Badge variant="secondary">{nextGroup.label}</Badge> : null}
+              {executionCue?.roundLabel ? <Badge variant="outline">{executionCue.roundLabel}</Badge> : null}
+              {isRestTimerForCurrentWorkout ? <Badge variant={isRestComplete ? 'secondary' : 'outline'}>{isRestComplete ? 'Rest complete' : 'Resting'}</Badge> : null}
+            </div>
+            <div className="flex flex-col gap-1">
+              <CardTitle className="text-xl">{executionCue?.currentSetLabel ?? nextSet.exerciseName}</CardTitle>
+              <CardDescription>{executionCue?.workoutProgressLabel ?? `Workout ${execution.completedSets}/${execution.totalSets} complete.`}</CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent className="grid gap-4 pt-0 xl:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
+            <div className="rounded-[22px] border border-border/70 bg-background/70 p-4">
+              <div className="flex flex-col gap-3">
+                <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Execution cue</span>
+                <p className="text-sm font-medium text-foreground">{executionCue?.blockProgressLabel ?? `Set ${nextSet.set_order} is next.`}</p>
+                {executionCue?.groupProgressLabel ? <p className="text-sm text-muted-foreground">{executionCue.groupProgressLabel}</p> : null}
+                {executionCue?.followUpLabel ? <p className="text-sm text-muted-foreground">{executionCue.followUpLabel}</p> : null}
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Button type="button" size="sm" variant="outline" onClick={scrollToNextSet}>
+                    Jump to next set
+                  </Button>
+                </div>
               </div>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3 pt-0">
-              {sets.map((set) => (
-                <SetRow
-                  key={set.set_order}
-                  set={set}
-                  syncState={syncStates[set.set_order]?.status}
-                  onSyncStateChange={(state) => setSyncState(set.set_order, state)}
-                  userId={user?.id ?? ''}
-                />
-              ))}
-              <PlateBreakdownInline weightsLbs={distinctWeightsLbs} />
-            </CardContent>
-          </Card>
-        )
-      })}
+            </div>
+
+            <div className="rounded-[22px] border border-border/70 bg-background/70 p-4">
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Rest timer</span>
+                  {isRestTimerForCurrentWorkout && remainingRestSeconds !== null ? (
+                    <>
+                      <p className="text-3xl font-semibold tracking-[-0.06em] text-foreground">{formatDurationClock(remainingRestSeconds)}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {isRestComplete
+                          ? 'Rest is complete. Start the next set when you are ready.'
+                          : 'Stay with the timer, then hit the next set.'}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-muted-foreground">Start a quick rest timer and keep the workout moving.</p>
+                      <div className="flex flex-wrap gap-2">
+                        {REST_TIMER_PRESET_SECONDS.map((durationSeconds) => (
+                          <Button key={durationSeconds} type="button" size="sm" variant="outline" onClick={() => startManualRestTimer(durationSeconds)}>
+                            {formatDurationClock(durationSeconds)}
+                          </Button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+                {isRestTimerForCurrentWorkout && restTimer.durationSeconds ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" size="sm" variant="outline" onClick={() => startManualRestTimer(restTimer.durationSeconds!)}>
+                      Restart rest
+                    </Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={clearRestTimer}>
+                      Skip rest
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="xl:col-span-2">
+              <SetRow
+                autoStartRestTimer={shouldAutoStartRestTimer(execution, nextSet.set_order)}
+                hasRemainingWorkAfterSet={hasRemainingPendingWork(execution, nextSet.set_order)}
+                layout="focus"
+                set={nextSet}
+                syncState={syncStates[nextSet.set_order]?.status}
+                onSyncStateChange={(state) => setSyncState(nextSet.set_order, state)}
+                userId={user?.id ?? ''}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {execution.groups.map((group) =>
+        group.kind === 'single'
+          ? renderBlock(group.blocks[0]!)
+          : (
+              <Card key={group.id} className="surface-panel border-dashed border-border/80 bg-card/70">
+                <CardHeader className="gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <CardTitle className="text-base">{group.label}</CardTitle>
+                    <Badge>{formatExecutionGroupTypeLabel(group.kind)}</Badge>
+                    <Badge variant="outline">
+                      {group.completedCount}/{group.totalCount} sets
+                    </Badge>
+                  </div>
+                  <CardDescription>{getExecutionGroupDescription(group.kind)}</CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-4 pt-0 lg:grid-cols-2">
+                  {group.blocks.map((block) => renderBlock(block, true))}
+                </CardContent>
+              </Card>
+            ),
+      )}
 
       {displaySets.length > 0 && completedCount === displaySets.length ? (
         <div className="flex items-center gap-2 rounded-[22px] border border-border/70 bg-card/60 px-4 py-3 text-sm text-muted-foreground">

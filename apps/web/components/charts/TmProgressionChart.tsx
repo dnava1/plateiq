@@ -13,7 +13,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { CHART_COLORS, formatCompactNumber, formatShortDate } from './chart-utils'
+import { CHART_COLORS, formatCompactRoundedWeight, formatShortDate } from './chart-utils'
 
 interface TmProgressionPoint {
   effectiveDate: string
@@ -43,7 +43,7 @@ export function TmProgressionChart({ data }: TmProgressionChartProps) {
         <LineChart data={rows} margin={{ top: 8, right: 12, bottom: 8, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
           <XAxis dataKey="label" minTickGap={20} tickLine={false} axisLine={false} />
-          <YAxis tickFormatter={formatCompactNumber} width={48} tickLine={false} axisLine={false} />
+          <YAxis tickFormatter={(value) => formatCompactRoundedWeight(Number(value), preferredUnit, weightRoundingLbs)} width={48} tickLine={false} axisLine={false} />
           <Tooltip
             formatter={(value) => {
               const numericValue = Array.isArray(value)

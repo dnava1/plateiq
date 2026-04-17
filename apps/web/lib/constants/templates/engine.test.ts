@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { resolveWeight, generateWorkoutPlan, getProgressionIncrements } from './engine'
 import { TEMPLATE_REGISTRY } from './index'
-import type { SetPrescription } from '@/types/template'
+import type { ProgramTemplate, SetPrescription } from '@/types/template'
 
 // Helper to create a SetPrescription
 function makePrescription(overrides: Partial<SetPrescription> & Pick<SetPrescription, 'intensity_type' | 'intensity'>): SetPrescription {
@@ -56,7 +56,7 @@ describe('resolveWeight', () => {
 
   it('handles percentage_work_set', () => {
     const prescription = makePrescription({ intensity: 0.5, intensity_type: 'percentage_work_set' })
-    expect(resolveWeight(prescription, trainingMaxes, 'squat', 5, 255)).toBe(130)
+    expect(resolveWeight(prescription, trainingMaxes, 'squat', 5, 255)).toBe(125)
   })
 
   it('rounds to custom increment', () => {
@@ -124,12 +124,12 @@ describe('generateWorkoutPlan', () => {
     const sets = generateWorkoutPlan(template, 3, 2, trainingMaxes)
 
     // Week 2 modifier is 1.0769
-    // Set 1: 300 * 0.65 * 1.0769 = 210 (rounded to 5)
-    expect(sets[0].weight_lbs).toBe(210)
+    // Set 1: 300 * 0.65 * 1.0769 = 209.9955 → 205 when rounded down to 5
+    expect(sets[0].weight_lbs).toBe(205)
     // Set 2: 300 * 0.75 * 1.0769 = 242.3.. → 240
     expect(sets[1].weight_lbs).toBe(240)
-    // Set 3: 300 * 0.85 * 1.0769 = 274.6.. → 275
-    expect(sets[2].weight_lbs).toBe(275)
+    // Set 3: 300 * 0.85 * 1.0769 = 274.6.. → 270 when rounded down to 5
+    expect(sets[2].weight_lbs).toBe(270)
   })
 
   it('applies week 4 deload modifier for 5/3/1', () => {
@@ -183,6 +183,80 @@ describe('generateWorkoutPlan', () => {
     expect(backoffSets).toHaveLength(2)
     expect(backoffSets[0].weight_lbs).toBe(175)
     expect(backoffSets[0].exercise_key).toBe('squat')
+  })
+
+  it('preserves block metadata, rest timing, and execution groups through generation', () => {
+    const template: ProgramTemplate = {
+      key: 'execution-metadata',
+      name: 'Execution Metadata',
+      level: 'intermediate',
+      description: 'Metadata preservation test',
+      days_per_week: 1,
+      cycle_length_weeks: 1,
+      uses_training_max: true,
+      required_exercises: ['bench', 'chin_up'],
+      days: [
+        {
+          label: 'Upper',
+          exercise_blocks: [
+            {
+              block_id: 'bench-main',
+              role: 'primary',
+              exercise_key: 'bench',
+              sets: [{ sets: 2, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm', rest_seconds: 180 }],
+              notes: 'Pause each rep.',
+            },
+            {
+              role: 'accessory',
+              exercise_key: 'chin_up',
+              execution_group: {
+                key: 'upper-a',
+                label: 'Press + Pull',
+                type: 'superset',
+              },
+              sets: [{ sets: 2, reps: 8, intensity: 0, intensity_type: 'bodyweight', rest_seconds: 60 }],
+              notes: 'Move quickly between blocks.',
+            },
+          ],
+        },
+      ],
+      progression: {
+        style: 'linear_per_week',
+        increment_lbs: { upper: 5, lower: 10 },
+      },
+    }
+
+    const sets = generateWorkoutPlan(template, 0, 1, trainingMaxes)
+
+    expect(sets[0]).toMatchObject({
+      block_id: 'bench-main',
+      block_order: 1,
+      block_role: 'primary',
+      notes: 'Pause each rep.',
+      rest_seconds: 180,
+    })
+
+    expect(sets[2]).toMatchObject({
+      block_role: 'accessory',
+      block_order: 2,
+      execution_group: {
+        key: 'upper-a',
+        label: 'Press + Pull',
+        type: 'superset',
+      },
+      rest_seconds: 60,
+    })
+  })
+
+  it('creates stable fallback block ids when the template omits them', () => {
+    const template = TEMPLATE_REGISTRY['starting_strength']
+    const sets = generateWorkoutPlan(template, 0, 1, trainingMaxes)
+    const squatSets = sets.filter((set) => set.exercise_key === 'squat')
+    const benchSets = sets.filter((set) => set.exercise_key === 'bench')
+
+    expect(new Set(squatSets.map((set) => set.block_id)).size).toBe(1)
+    expect(new Set(benchSets.map((set) => set.block_id)).size).toBe(1)
+    expect(squatSets[0]?.block_id).not.toBe(benchSets[0]?.block_id)
   })
 
   it('ignores unselected variations', () => {

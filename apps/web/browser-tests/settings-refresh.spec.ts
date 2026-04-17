@@ -6,7 +6,7 @@ function isHydrationWarning(message: string) {
 }
 
 test.describe('settings refresh persistence', () => {
-  test('keeps strength profile values visible after refresh while unit and rounding persist without hydration warnings', async ({ page }) => {
+  test('keeps strength profile values visible after refresh while the unit persists without hydration warnings', async ({ page }) => {
     const consoleMessages: string[] = []
 
     page.on('console', (message) => {
@@ -30,7 +30,6 @@ test.describe('settings refresh persistence', () => {
     const ageInput = page.getByLabel('Age')
     const bodyweightInput = page.getByLabel(/Bodyweight \((lbs|kg)\)/)
     const sexTrigger = page.getByRole('combobox', { name: 'Sex' })
-    const roundingTrigger = page.getByRole('combobox', { name: /Rounding increment/ })
     const poundsToggle = page.getByRole('radio', { name: 'Pounds (lbs)' })
     const kilogramsToggle = page.getByRole('radio', { name: 'Kilograms (kg)' })
 
@@ -42,7 +41,6 @@ test.describe('settings refresh persistence', () => {
     const expectedAgeValue = await ageInput.inputValue()
     const expectedBodyweightValue = await bodyweightInput.inputValue()
     const expectedSexLabel = (await sexTrigger.textContent())?.trim().toLowerCase() ?? ''
-    const expectedRoundingText = (await roundingTrigger.textContent())?.trim() ?? ''
     const selectedUnit = await poundsToggle.getAttribute('aria-checked') === 'true' ? 'lbs' : 'kg'
 
     expect(expectedAgeValue).not.toBe('')
@@ -52,7 +50,7 @@ test.describe('settings refresh persistence', () => {
     await expect(ageInput).toHaveValue(expectedAgeValue)
     await expect(bodyweightInput).toHaveValue(expectedBodyweightValue)
     await expect(sexTrigger).toContainText(new RegExp(expectedSexLabel, 'i'))
-    await expect(roundingTrigger).toContainText(expectedRoundingText)
+    await expect(page.getByText(/Loads round down to 5 lbs or 2.5 kg automatically./i)).toBeVisible()
 
     await page.reload()
     await page.waitForLoadState('networkidle')
@@ -61,7 +59,7 @@ test.describe('settings refresh persistence', () => {
     await expect(ageInput).toHaveValue(expectedAgeValue)
     await expect(bodyweightInput).toHaveValue(expectedBodyweightValue)
     await expect(sexTrigger).toContainText(new RegExp(expectedSexLabel, 'i'))
-    await expect(roundingTrigger).toContainText(expectedRoundingText)
+    await expect(page.getByText(/Loads round down to 5 lbs or 2.5 kg automatically./i)).toBeVisible()
 
     if (selectedUnit === 'lbs') {
       await expect(poundsToggle).toHaveAttribute('aria-checked', 'true')

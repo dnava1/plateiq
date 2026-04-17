@@ -299,7 +299,7 @@ describe('SettingsPage', () => {
     expect(screen.getByRole('radio', { name: 'Kilograms (kg)' })).toBeDisabled()
   })
 
-  it('does not let PreferenceSync overwrite the optimistic snapped values while a preference mutation is pending', async () => {
+  it('does not let PreferenceSync overwrite the optimistic unit while a preference mutation is pending', async () => {
     const user = userEvent.setup()
     let resolveUpdate: ((value: { error: null }) => void) | undefined
 
@@ -333,22 +333,19 @@ describe('SettingsPage', () => {
     )
 
     mocks.setPreferredUnit.mockClear()
-    mocks.setWeightRoundingLbs.mockClear()
 
     await user.click(screen.getByRole('radio', { name: 'Pounds (lbs)' }))
 
     await waitFor(() => {
       expect(mocks.setPreferredUnit).toHaveBeenCalledWith('lbs')
-      expect(mocks.setWeightRoundingLbs).toHaveBeenCalledWith(10)
     })
 
     expect(mocks.setPreferredUnit).not.toHaveBeenCalledWith('kg')
-    expect(mocks.setWeightRoundingLbs).not.toHaveBeenCalledWith(11.02312)
 
     resolveUpdate?.({ error: null })
   })
 
-  it('snaps rounding to the nearest lbs option when switching from kilograms', async () => {
+  it('persists only the preferred unit when switching from kilograms', async () => {
     const user = userEvent.setup()
 
     mocks.useProfile.mockReturnValue({
@@ -374,19 +371,17 @@ describe('SettingsPage', () => {
     await user.click(screen.getByRole('radio', { name: 'Pounds (lbs)' }))
 
     expect(mocks.setPreferredUnit).toHaveBeenCalledWith('lbs')
-    expect(mocks.setWeightRoundingLbs).toHaveBeenCalledWith(10)
 
     await waitFor(() => {
       expect(mocks.updateProfile).toHaveBeenCalledWith({
         preferred_unit: 'lbs',
-        weight_rounding_lbs: 10,
       })
     })
 
     expect(mocks.updateEq).toHaveBeenCalledWith('id', 'user-1')
   })
 
-  it('snaps rounding to the nearest kg option when switching from pounds', async () => {
+  it('persists only the preferred unit when switching from pounds', async () => {
     const user = userEvent.setup()
 
     render(<SettingsPage />, { wrapper: createWrapper() })
@@ -394,17 +389,15 @@ describe('SettingsPage', () => {
     await user.click(screen.getByRole('radio', { name: 'Kilograms (kg)' }))
 
     expect(mocks.setPreferredUnit).toHaveBeenCalledWith('kg')
-    expect(mocks.setWeightRoundingLbs).toHaveBeenCalledWith(5.51156)
 
     await waitFor(() => {
       expect(mocks.updateProfile).toHaveBeenCalledWith({
         preferred_unit: 'kg',
-        weight_rounding_lbs: 5.51156,
       })
     })
   })
 
-  it('rolls back both unit and rounding when the unit update fails', async () => {
+  it('rolls back the unit when the unit update fails', async () => {
     const user = userEvent.setup()
     mocks.useProfile.mockReturnValue({
       data: {
@@ -432,11 +425,17 @@ describe('SettingsPage', () => {
     await waitFor(() => {
       expect(mocks.setPreferredUnit).toHaveBeenNthCalledWith(1, 'lbs')
       expect(mocks.setPreferredUnit).toHaveBeenNthCalledWith(2, 'kg')
-      expect(mocks.setWeightRoundingLbs).toHaveBeenNthCalledWith(1, 10)
-      expect(mocks.setWeightRoundingLbs).toHaveBeenNthCalledWith(2, 11.02312)
     })
 
     expect(mocks.toastError).toHaveBeenCalledWith('network failed')
+  })
+
+  it('does not render a weight rounding control', () => {
+    render(<SettingsPage />, { wrapper: createWrapper() })
+
+    expect(screen.queryByText('Weight Rounding')).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: /rounding increment/i })).not.toBeInTheDocument()
+    expect(screen.getByText(/Loads round down to 5 lbs or 2.5 kg automatically./i)).toBeInTheDocument()
   })
 
   it('shows a clear empty state when sex is not set', () => {

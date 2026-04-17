@@ -34,6 +34,7 @@ import { ChartCard } from '@/components/charts/ChartCard'
 import { ConsistencyHeatmap } from '@/components/charts/ConsistencyHeatmap'
 import { E1rmTrendChart } from '@/components/charts/E1rmTrendChart'
 import { VolumeTrendChart } from '@/components/charts/VolumeTrendChart'
+import { formatDisplayLoad } from '@/components/charts/chart-utils'
 import { formatDate, formatDaysPerWeek, formatWeight, formatWeekCycle } from '@/lib/utils'
 import type { Json } from '@/types/database'
 
@@ -342,7 +343,7 @@ export function DashboardOverview() {
             <ChartCard
               title="Volume Pace"
               description={rollingAverageVolume > 0
-                ? `This week ${Math.round(currentWeekVolume)} lbs vs ${Math.round(rollingAverageVolume)} lbs recent average.`
+                ? `This week ${formatDisplayLoad(currentWeekVolume, preferredUnit)} vs ${formatDisplayLoad(rollingAverageVolume, preferredUnit)} recent average.`
                 : 'Weekly logged volume across all exercises.'}
               emptyMessage="Log completed work sets to compare weekly volume."
               isEmpty={(analytics?.volumeTrend.length ?? 0) === 0}
@@ -403,7 +404,7 @@ export function DashboardOverview() {
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
                         {formatWeight(record.weight, preferredUnit, weightRoundingLbs)} × {record.reps}
-                        {record.improvementLbs !== null ? ` · +${formatWeight(record.improvementLbs, preferredUnit)} over the prior best` : ''}
+                        {record.improvementLbs !== null ? ` · +${formatWeight(record.improvementLbs, preferredUnit, weightRoundingLbs)} over the prior best` : ''}
                       </p>
                     </div>
                   ))}
