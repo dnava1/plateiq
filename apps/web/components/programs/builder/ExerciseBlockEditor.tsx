@@ -296,7 +296,6 @@ export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, o
         <Label htmlFor={`${fieldId}-notes`}>Notes</Label>
         <Input
           id={`${fieldId}-notes`}
-          placeholder="Notes (optional)"
           value={block.notes ?? ''}
           onChange={(event) => onChange({ ...block, notes: event.target.value || undefined })}
           className="text-sm"

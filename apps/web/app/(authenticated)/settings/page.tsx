@@ -1,19 +1,19 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useEffectEvent, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { LogOut, Ruler } from 'lucide-react'
 import { toast } from 'sonner'
 import { isAnonymousUser } from '@/lib/auth/auth-state'
-import { useProfile } from '@/hooks/useProfile'
+import { profilePreferenceMutationKeys, useProfile } from '@/hooks/useProfile'
 import { useUser } from '@/hooks/useUser'
 import { useSupabase } from '@/hooks/useSupabase'
 import { analyticsQueryKeys } from '@/hooks/useAnalytics'
 import { useUiStore } from '@/store/uiStore'
 import { clearAllPersistedQueryCaches } from '@/lib/query-persistence'
-import { displayToLbs, getRoundingOptions, lbsToDisplay } from '@/lib/utils'
+import { DEFAULT_WEIGHT_ROUNDING_LBS, displayToLbs, getRoundingOptions, lbsToDisplay, parseWeightRoundingLbs, snapWeightRoundingLbsToUnit } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
@@ -36,6 +36,15 @@ import {
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import type { PreferredUnit, StrengthProfileSex, WeightRoundingLbs } from '@/types/domain'
+import type { ProfilePreferences } from '@/hooks/useProfile'
+
+function subscribeToClientRender(onStoreChange: () => void) {
+  const animationFrameId = window.requestAnimationFrame(onStoreChange)
+
+  return () => {
+    window.cancelAnimationFrame(animationFrameId)
+  }
+}
 
 function formatStrengthProfileWeight(valueLbs: number | null, unit: PreferredUnit) {
   if (valueLbs === null || !Number.isFinite(valueLbs)) {
@@ -146,14 +155,22 @@ function StrengthProfileCard({
 }) {
   const [draft, setDraft] = useState<StrengthProfileDraft>(() => createStrengthProfileDraft(profile, preferredUnit))
   const [visibleErrors, setVisibleErrors] = useState<StrengthProfileErrors>({})
-  const previousUnitRef = useRef(preferredUnit)
   const ageErrorTimeoutRef = useRef<number | null>(null)
   const bodyweightErrorTimeoutRef = useRef<number | null>(null)
   const profileValues = createStrengthProfileValues(profile)
   const profileValuesKey = createStrengthProfileValuesKey(profileValues)
-  const { errors, values } = parseStrengthProfileDraft(draft, preferredUnit)
+  const profileDraft = createStrengthProfileDraft(profile, preferredUnit)
+  const { values: draftValues } = parseStrengthProfileDraft(draft, preferredUnit)
+  const draftValuesKey = createStrengthProfileValuesKey(draftValues)
+  const activeDraft = draftValuesKey === profileValuesKey ? profileDraft : draft
+  const { errors, values } = parseStrengthProfileDraft(activeDraft, preferredUnit)
+  const activeVisibleErrors: StrengthProfileErrors = draftValuesKey === profileValuesKey
+    ? {}
+    : {
+        ageYears: errors.ageYears ? visibleErrors.ageYears : undefined,
+        bodyweight: errors.bodyweight ? visibleErrors.bodyweight : undefined,
+      }
   const valuesKey = createStrengthProfileValuesKey(values)
-  const syncDraftFromProfile = createStrengthProfileDraft(profile, preferredUnit)
   const lastSubmittedValuesKeyRef = useRef(profileValuesKey)
   const requestSave = useEffectEvent((nextValues: StrengthProfileValues) => {
     onSave(nextValues)
@@ -225,53 +242,13 @@ function StrengthProfileCard({
   }, [])
 
   useEffect(() => {
-    if (previousUnitRef.current === preferredUnit) {
-      return
-    }
-
-    previousUnitRef.current = preferredUnit
-    clearValidationTimeout('ageYears')
-    clearValidationTimeout('bodyweight')
-    setVisibleErrors({})
-    setDraft((current) => {
-      if (
-        current.ageYears === syncDraftFromProfile.ageYears
-        && current.bodyweight === syncDraftFromProfile.bodyweight
-        && current.sex === syncDraftFromProfile.sex
-      ) {
-        return current
-      }
-
-      return syncDraftFromProfile
-    })
-  }, [preferredUnit, syncDraftFromProfile.ageYears, syncDraftFromProfile.bodyweight, syncDraftFromProfile.sex])
-
-  useEffect(() => {
     if (valuesKey !== profileValuesKey) {
       return
     }
 
     clearValidationTimeout('ageYears')
     clearValidationTimeout('bodyweight')
-    setVisibleErrors((current) => (Object.keys(current).length === 0 ? current : {}))
-    setDraft((current) => {
-      if (
-        current.ageYears === syncDraftFromProfile.ageYears
-        && current.bodyweight === syncDraftFromProfile.bodyweight
-        && current.sex === syncDraftFromProfile.sex
-      ) {
-        return current
-      }
-
-      return syncDraftFromProfile
-    })
-  }, [
-    profileValuesKey,
-    syncDraftFromProfile.ageYears,
-    syncDraftFromProfile.bodyweight,
-    syncDraftFromProfile.sex,
-    valuesKey,
-  ])
+  }, [profileValuesKey, valuesKey])
 
   useEffect(() => {
     if (errors.ageYears || errors.bodyweight) {
@@ -290,7 +267,7 @@ function StrengthProfileCard({
     return () => {
       window.clearTimeout(timeoutId)
     }
-  }, [errors.ageYears, errors.bodyweight, profileValuesKey, requestSave, values, valuesKey])
+  }, [errors.ageYears, errors.bodyweight, profileValuesKey, values, valuesKey])
 
   return (
     <Card className="surface-panel">
@@ -305,11 +282,14 @@ function StrengthProfileCard({
           <div className="flex flex-col gap-2">
             <Label htmlFor="strength-profile-sex">Sex</Label>
             <Select
-              value={draft.sex}
-              onValueChange={(value) => setDraft((current) => ({ ...current, sex: value === 'male' || value === 'female' ? value : '' }))}
+              value={activeDraft.sex}
+              onValueChange={(value) => setDraft({
+                ...activeDraft,
+                sex: value === 'male' || value === 'female' ? value : '',
+              })}
             >
               <SelectTrigger id="strength-profile-sex" className="h-9 w-full">
-                <SelectValue placeholder="Select sex" />
+                <SelectValue placeholder="Not set" />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
@@ -329,10 +309,10 @@ function StrengthProfileCard({
               max={100}
               step="1"
               inputMode="numeric"
-              value={draft.ageYears}
+              value={activeDraft.ageYears}
               onChange={(event) => {
                 const nextDraft = {
-                  ...draft,
+                  ...activeDraft,
                   ageYears: event.target.value,
                 }
 
@@ -341,11 +321,11 @@ function StrengthProfileCard({
                 scheduleFieldError('ageYears', nextDraft)
               }}
               onBlur={() => showFieldErrorOnBlur('ageYears')}
-              aria-invalid={visibleErrors.ageYears ? 'true' : 'false'}
-              aria-describedby={visibleErrors.ageYears ? 'strength-profile-age-error' : undefined}
+              aria-invalid={activeVisibleErrors.ageYears ? 'true' : 'false'}
+              aria-describedby={activeVisibleErrors.ageYears ? 'strength-profile-age-error' : undefined}
             />
-            {visibleErrors.ageYears && (
-              <p id="strength-profile-age-error" className="text-sm text-destructive">{visibleErrors.ageYears}</p>
+            {activeVisibleErrors.ageYears && (
+              <p id="strength-profile-age-error" className="text-sm text-destructive">{activeVisibleErrors.ageYears}</p>
             )}
           </div>
 
@@ -357,10 +337,10 @@ function StrengthProfileCard({
               min={0}
               step={preferredUnit === 'kg' ? '0.5' : '1'}
               inputMode="decimal"
-              value={draft.bodyweight}
+              value={activeDraft.bodyweight}
               onChange={(event) => {
                 const nextDraft = {
-                  ...draft,
+                  ...activeDraft,
                   bodyweight: event.target.value,
                 }
 
@@ -369,11 +349,11 @@ function StrengthProfileCard({
                 scheduleFieldError('bodyweight', nextDraft)
               }}
               onBlur={() => showFieldErrorOnBlur('bodyweight')}
-              aria-invalid={visibleErrors.bodyweight ? 'true' : 'false'}
-              aria-describedby={visibleErrors.bodyweight ? 'strength-profile-bodyweight-error' : undefined}
+              aria-invalid={activeVisibleErrors.bodyweight ? 'true' : 'false'}
+              aria-describedby={activeVisibleErrors.bodyweight ? 'strength-profile-bodyweight-error' : undefined}
             />
-            {visibleErrors.bodyweight && (
-              <p id="strength-profile-bodyweight-error" className="text-sm text-destructive">{visibleErrors.bodyweight}</p>
+            {activeVisibleErrors.bodyweight && (
+              <p id="strength-profile-bodyweight-error" className="text-sm text-destructive">{activeVisibleErrors.bodyweight}</p>
             )}
           </div>
         </div>
@@ -391,23 +371,57 @@ function StrengthProfileCard({
 export default function SettingsPage() {
   const router = useRouter()
   const supabase = useSupabase()
-  const { data: user } = useUser()
-  const { data: profile } = useProfile()
+  const { data: user, isLoading: isUserLoading } = useUser()
+  const { data: profile, isLoading: isProfileLoading } = useProfile()
   const queryClient = useQueryClient()
+  const hasMounted = useSyncExternalStore(subscribeToClientRender, () => true, () => false)
   const [isSigningOut, setIsSigningOut] = useState(false)
   const { preferredUnit, setPreferredUnit, setWeightRoundingLbs, weightRoundingLbs } = useUiStore()
   const isGuest = isAnonymousUser(user)
 
+  const syncOptimisticProfilePreferences = async (
+    updater: (currentProfile: ProfilePreferences) => ProfilePreferences,
+  ) => {
+    await queryClient.cancelQueries({ queryKey: ['profile'] })
+    const previousProfile = queryClient.getQueryData<ProfilePreferences | null>(['profile']) ?? null
+
+    queryClient.setQueryData<ProfilePreferences | null>(['profile'], (currentProfile) => {
+      if (!currentProfile) {
+        return currentProfile
+      }
+
+      return updater(currentProfile)
+    })
+
+    return { previousProfile }
+  }
+
   const updateUnit = useMutation({
-    mutationFn: async (unit: PreferredUnit) => {
+    mutationKey: profilePreferenceMutationKeys.unit(),
+    mutationFn: async ({
+      rounding,
+      unit,
+    }: {
+      rounding: WeightRoundingLbs
+      unit: PreferredUnit
+    }) => {
       const { error } = await supabase
         .from('profiles')
-        .update({ preferred_unit: unit })
+        .update({ preferred_unit: unit, weight_rounding_lbs: rounding })
         .eq('id', user?.id ?? '')
       if (error) throw error
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile'] })
+    onMutate: async ({ rounding, unit }) => syncOptimisticProfilePreferences((currentProfile) => ({
+      ...currentProfile,
+      preferred_unit: unit,
+      weight_rounding_lbs: rounding,
+    })),
+    onError: (_error, _variables, context) => {
+      queryClient.setQueryData(['profile'], context?.previousProfile ?? null)
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['profile'] })
+      await queryClient.invalidateQueries({ queryKey: analyticsQueryKeys.all() })
     },
   })
 
@@ -441,6 +455,7 @@ export default function SettingsPage() {
   })
 
   const updateWeightRounding = useMutation({
+    mutationKey: profilePreferenceMutationKeys.rounding(),
     mutationFn: async (rounding: WeightRoundingLbs) => {
       const { error } = await supabase
         .from('profiles')
@@ -448,22 +463,40 @@ export default function SettingsPage() {
         .eq('id', user?.id ?? '')
       if (error) throw error
     },
+    onMutate: async (rounding) => syncOptimisticProfilePreferences((currentProfile) => ({
+      ...currentProfile,
+      weight_rounding_lbs: rounding,
+    })),
+    onError: (_error, _rounding, context) => {
+      queryClient.setQueryData(['profile'], context?.previousProfile ?? null)
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['profile'] })
       await queryClient.invalidateQueries({ queryKey: analyticsQueryKeys.all() })
     },
   })
 
+  const isPreferenceUpdatePending = updateUnit.isPending || updateWeightRounding.isPending
+  const renderedPreferredUnit = hasMounted ? preferredUnit : 'lbs'
+  const renderedWeightRoundingLbs = hasMounted ? weightRoundingLbs : DEFAULT_WEIGHT_ROUNDING_LBS
+  const arePreferencesHydrated = !isUserLoading && (user == null || !isProfileLoading)
+  const isPreferenceControlDisabled = !hasMounted || !arePreferencesHydrated || isPreferenceUpdatePending
+
   const handleUnitToggle = (unit: PreferredUnit) => {
-    if (unit === preferredUnit) return
+    if (unit === preferredUnit || isPreferenceControlDisabled) return
 
     const previousUnit = preferredUnit
+    const previousRounding = weightRoundingLbs
+    const snappedRounding = snapWeightRoundingLbsToUnit(profile?.weight_rounding_lbs ?? weightRoundingLbs, unit)
+
     setPreferredUnit(unit)
+    setWeightRoundingLbs(snappedRounding)
 
     if (user) {
-      updateUnit.mutate(unit, {
+      updateUnit.mutate({ rounding: snappedRounding, unit }, {
         onError: (error: Error) => {
           setPreferredUnit(previousUnit)
+          setWeightRoundingLbs(previousRounding)
           toast.error(error.message)
         },
       })
@@ -483,7 +516,7 @@ export default function SettingsPage() {
   }
 
   const handleWeightRoundingChange = (rounding: WeightRoundingLbs) => {
-    if (rounding === weightRoundingLbs) return
+    if (rounding === weightRoundingLbs || isPreferenceControlDisabled) return
 
     const previousRounding = weightRoundingLbs
     setWeightRoundingLbs(rounding)
@@ -523,7 +556,7 @@ export default function SettingsPage() {
     .slice(0, 2)
     .map((part: string) => part[0]?.toUpperCase())
     .join('') || 'PI'
-  const roundingOptions = getRoundingOptions(preferredUnit)
+  const roundingOptions = getRoundingOptions(renderedPreferredUnit, renderedWeightRoundingLbs)
 
   return (
     <div className="page-shell max-w-5xl">
@@ -591,7 +624,7 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <ToggleGroup
-              value={[preferredUnit]}
+              value={[renderedPreferredUnit]}
               role="radiogroup"
               aria-label="Preferred weight unit"
               onValueChange={(value: string[]) => {
@@ -604,10 +637,10 @@ export default function SettingsPage() {
               spacing={2}
               className="w-full"
             >
-              <ToggleGroupItem value="lbs" role="radio" aria-checked={preferredUnit === 'lbs'} disabled={updateUnit.isPending} className="flex-1 justify-center">
+              <ToggleGroupItem value="lbs" role="radio" aria-checked={renderedPreferredUnit === 'lbs'} disabled={isPreferenceControlDisabled} className="flex-1 justify-center">
                 Pounds (lbs)
               </ToggleGroupItem>
-              <ToggleGroupItem value="kg" role="radio" aria-checked={preferredUnit === 'kg'} disabled={updateUnit.isPending} className="flex-1 justify-center">
+              <ToggleGroupItem value="kg" role="radio" aria-checked={renderedPreferredUnit === 'kg'} disabled={isPreferenceControlDisabled} className="flex-1 justify-center">
                 Kilograms (kg)
               </ToggleGroupItem>
             </ToggleGroup>
@@ -630,17 +663,23 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="weight-rounding">Rounding increment ({preferredUnit})</Label>
+              <Label htmlFor="weight-rounding">Rounding increment ({renderedPreferredUnit})</Label>
               <Select
-                value={String(weightRoundingLbs)}
+                value={String(renderedWeightRoundingLbs)}
                 onValueChange={(value) => {
-                  if (value === '2.5' || value === '5' || value === '10') {
-                    handleWeightRoundingChange(Number(value) as WeightRoundingLbs)
+                  if (value === null) {
+                    return
+                  }
+
+                  const nextRounding = parseWeightRoundingLbs(value)
+
+                  if (nextRounding !== null) {
+                    handleWeightRoundingChange(nextRounding)
                   }
                 }}
                 items={roundingOptions.map((option) => ({ value: String(option.value), label: option.label }))}
               >
-                <SelectTrigger id="weight-rounding" className="h-9 w-full max-w-xs">
+                <SelectTrigger id="weight-rounding" className="h-9 w-full max-w-xs" disabled={isPreferenceControlDisabled}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -663,8 +702,9 @@ export default function SettingsPage() {
         </Card>
 
         <StrengthProfileCard
+          key={renderedPreferredUnit}
           profile={profile}
-          preferredUnit={preferredUnit}
+          preferredUnit={renderedPreferredUnit}
           isPending={updateStrengthProfile.isPending}
           onSave={handleStrengthProfileSave}
         />
@@ -675,7 +715,7 @@ export default function SettingsPage() {
             <CardDescription>
               {isGuest
                 ? 'End this temporary session on this device and return to Get Started.'
-                : 'End the current session on this device and return to Get Started.'}
+                : 'End the current session on this device.'}
             </CardDescription>
           </CardHeader>
           <CardContent>

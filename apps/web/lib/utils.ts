@@ -3,8 +3,11 @@ import { twMerge } from 'tailwind-merge'
 import type { PreferredUnit, WeightRoundingLbs } from '@/types/domain'
 
 const KG_PER_LB = 0.453592
+const WEIGHT_ROUNDING_PRECISION = 5
 const ROUNDING_OPTIONS_LBS = [2.5, 5, 10] as const
+const ROUNDING_OPTIONS_KG = [1, 2.5, 5] as const
 const ROUNDING_EPSILON = 1e-9
+const WEIGHT_ROUNDING_EPSILON = 1e-6
 const ISO_DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/
 const EXERCISE_KEY_ACRONYMS = new Set(['ohp', 'rdl'])
 const EXERCISE_KEY_LABELS: Record<string, string> = {
@@ -18,6 +21,16 @@ const EXERCISE_KEY_LABELS: Record<string, string> = {
   power_clean: 'Power Clean',
   rdl: 'Romanian Deadlift',
   sumo_deadlift: 'Sumo Deadlift',
+}
+const ROUNDING_OPTIONS_KG_LBS = ROUNDING_OPTIONS_KG.map((value) => normalizeWeightRoundingLbs(value / KG_PER_LB))
+const SUPPORTED_WEIGHT_ROUNDING_LBS = [...ROUNDING_OPTIONS_LBS, ...ROUNDING_OPTIONS_KG_LBS]
+
+function normalizeWeightRoundingLbs(value: number) {
+  return Math.round(value * 10 ** WEIGHT_ROUNDING_PRECISION) / 10 ** WEIGHT_ROUNDING_PRECISION
+}
+
+function areWeightRoundingValuesEqual(left: number, right: number) {
+  return Math.abs(left - right) <= WEIGHT_ROUNDING_EPSILON
 }
 
 function roundToSingleDecimal(value: number) {
@@ -36,11 +49,29 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function isWeightRoundingLbs(value: unknown): value is WeightRoundingLbs {
-  return value === 2.5 || value === 5 || value === 10
+  return typeof value === 'number'
+    && Number.isFinite(value)
+    && SUPPORTED_WEIGHT_ROUNDING_LBS.some((supportedValue) => areWeightRoundingValuesEqual(supportedValue, value))
 }
 
 export function resolveWeightRoundingLbs(value: unknown): WeightRoundingLbs {
-  return isWeightRoundingLbs(value) ? value : DEFAULT_WEIGHT_ROUNDING_LBS
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return DEFAULT_WEIGHT_ROUNDING_LBS
+  }
+
+  const normalizedValue = normalizeWeightRoundingLbs(value)
+  return isWeightRoundingLbs(normalizedValue) ? normalizedValue : DEFAULT_WEIGHT_ROUNDING_LBS
+}
+
+export function parseWeightRoundingLbs(value: string): WeightRoundingLbs | null {
+  const parsedValue = Number(value)
+
+  if (!Number.isFinite(parsedValue)) {
+    return null
+  }
+
+  const normalizedValue = normalizeWeightRoundingLbs(parsedValue)
+  return isWeightRoundingLbs(normalizedValue) ? normalizedValue : null
 }
 
 export function roundWeightForDisplay(lbs: number, roundingLbs?: number | null): number {
@@ -82,17 +113,56 @@ export function formatWeekCycle(weeks: number): string {
   return `${weeks}-week cycle`
 }
 
+function getBaseRoundingOptionsLbs(unit: PreferredUnit) {
+  return unit === 'kg' ? ROUNDING_OPTIONS_KG_LBS : ROUNDING_OPTIONS_LBS
+}
+
 export function normalizeCadenceCopy(text: string): string {
   return text
     .replace(/\b(\d+)d\/wk\b/gi, (_, value: string) => formatDaysPerWeek(Number(value)))
     .replace(/\b(\d+)\s+days?\/week\b/gi, (_, value: string) => formatDaysPerWeek(Number(value)))
 }
 
-export function getRoundingOptions(unit: PreferredUnit) {
-  return ROUNDING_OPTIONS_LBS.map((value) => ({
-    value,
-    label: formatRounding(value, unit),
-  }))
+export function snapWeightRoundingLbsToUnit(roundingLbs: unknown, unit: PreferredUnit): WeightRoundingLbs {
+  const resolvedRounding = resolveWeightRoundingLbs(roundingLbs)
+  const candidates = getBaseRoundingOptionsLbs(unit)
+
+  return candidates.reduce((closestValue, candidateValue) => {
+    const closestDistance = Math.abs(closestValue - resolvedRounding)
+    const candidateDistance = Math.abs(candidateValue - resolvedRounding)
+
+    if (candidateDistance + WEIGHT_ROUNDING_EPSILON < closestDistance) {
+      return candidateValue
+    }
+
+    const isTie = Math.abs(candidateDistance - closestDistance) <= WEIGHT_ROUNDING_EPSILON
+    if (isTie && candidateValue < closestValue) {
+      return candidateValue
+    }
+
+    return closestValue
+  })
+}
+
+export function getRoundingOptions(unit: PreferredUnit, currentRoundingLbs?: number | null) {
+  const baseValues = getBaseRoundingOptionsLbs(unit)
+  const optionValues = [...baseValues]
+
+  if (currentRoundingLbs != null) {
+    const resolvedCurrentValue = resolveWeightRoundingLbs(currentRoundingLbs)
+    const hasCurrentValue = optionValues.some((value) => areWeightRoundingValuesEqual(value, resolvedCurrentValue))
+
+    if (!hasCurrentValue) {
+      optionValues.push(resolvedCurrentValue)
+    }
+  }
+
+  return optionValues
+    .sort((left, right) => lbsToDisplay(left, unit) - lbsToDisplay(right, unit))
+    .map((value) => ({
+      value,
+      label: formatRounding(value, unit),
+    }))
 }
 
 export function formatExerciseKey(exerciseKey: string): string {

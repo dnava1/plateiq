@@ -13,8 +13,10 @@ import {
   getRoundingOptions,
   lbsToDisplay,
   normalizeCadenceCopy,
+  parseWeightRoundingLbs,
   roundToIncrement,
   roundToNearest,
+  snapWeightRoundingLbsToUnit,
 } from './utils'
 
 function createMockDate(localDate: string, utcDate: string) {
@@ -141,12 +143,46 @@ describe('getRoundingOptions', () => {
     ])
   })
 
-  it('keeps canonical lbs values while converting labels for kilogram preference', () => {
+  it('uses unit-native kilogram increments for kilogram preference', () => {
     expect(getRoundingOptions('kg')).toEqual([
-      { value: 2.5, label: '1.1 kg' },
-      { value: 5, label: '2.3 kg' },
-      { value: 10, label: '4.5 kg' },
+      { value: 2.20462, label: '1 kg' },
+      { value: 5.51156, label: '2.5 kg' },
+      { value: 11.02312, label: '5 kg' },
     ])
+  })
+
+  it('keeps the current cross-unit selection available after switching units', () => {
+    expect(getRoundingOptions('lbs', 11.02312)).toEqual([
+      { value: 2.5, label: '2.5 lbs' },
+      { value: 5, label: '5 lbs' },
+      { value: 10, label: '10 lbs' },
+      { value: 11.02312, label: '11 lbs' },
+    ])
+  })
+})
+
+describe('snapWeightRoundingLbsToUnit', () => {
+  it('snaps kilogram-backed preferences to the nearest lbs option', () => {
+    expect(snapWeightRoundingLbsToUnit(11.02312, 'lbs')).toBe(10)
+    expect(snapWeightRoundingLbsToUnit(2.20462, 'lbs')).toBe(2.5)
+  })
+
+  it('snaps pound-backed preferences to the nearest kg option', () => {
+    expect(snapWeightRoundingLbsToUnit(10, 'kg')).toBe(11.02312)
+    expect(snapWeightRoundingLbsToUnit(5, 'kg')).toBe(5.51156)
+  })
+})
+
+describe('parseWeightRoundingLbs', () => {
+  it('accepts supported kilogram-backed rounding values', () => {
+    expect(parseWeightRoundingLbs('2.20462')).toBe(2.20462)
+    expect(parseWeightRoundingLbs('5.51156')).toBe(5.51156)
+    expect(parseWeightRoundingLbs('11.02312')).toBe(11.02312)
+  })
+
+  it('rejects unsupported rounding values', () => {
+    expect(parseWeightRoundingLbs('3')).toBeNull()
+    expect(parseWeightRoundingLbs('')).toBeNull()
   })
 })
 

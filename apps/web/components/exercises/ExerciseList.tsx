@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -13,6 +13,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
+import { Label } from '@/components/ui/label'
 import { Search, SearchX } from 'lucide-react'
 import { formatWeight } from '@/lib/utils'
 import type { Tables } from '@/types/database'
@@ -29,6 +30,7 @@ interface ExerciseListProps {
 
 export function ExerciseList({ exercises, trainingMaxes, unit, onSetTm }: ExerciseListProps) {
   const [search, setSearch] = useState('')
+  const searchFieldId = useId()
   const weightRoundingLbs = usePreferredWeightRounding()
 
   const filtered = exercises.filter((e) =>
@@ -38,11 +40,14 @@ export function ExerciseList({ exercises, trainingMaxes, unit, onSetTm }: Exerci
   return (
     <div className="flex flex-col gap-4">
       <div className="relative max-w-md">
+        <Label htmlFor={searchFieldId} className="sr-only">Search exercises</Label>
         <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search exercises..."
+          id={searchFieldId}
+          type="search"
+          placeholder="Filter by name"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(event) => setSearch(event.target.value)}
           className="pl-9"
         />
       </div>

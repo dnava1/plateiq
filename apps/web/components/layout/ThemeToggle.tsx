@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { useUiStore } from '@/store/uiStore'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Moon, Sun } from 'lucide-react'
@@ -9,6 +9,14 @@ import { cn } from '@/lib/utils'
 interface ThemeToggleProps {
   compact?: boolean
   className?: string
+}
+
+function subscribeToHydration(onStoreChange: () => void) {
+  const animationFrameId = window.requestAnimationFrame(onStoreChange)
+
+  return () => {
+    window.cancelAnimationFrame(animationFrameId)
+  }
 }
 
 function useResolvedTheme() {
@@ -36,10 +44,12 @@ function useResolvedTheme() {
 export function ThemeToggle({ compact = false, className }: ThemeToggleProps) {
   const { setTheme } = useUiStore()
   const resolved = useResolvedTheme()
+  const hasHydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false)
+  const selectedTheme = hasHydrated ? resolved : null
 
   return (
     <ToggleGroup
-      value={[resolved]}
+      value={selectedTheme ? [selectedTheme] : []}
       role="radiogroup"
       aria-label="Theme"
       onValueChange={(values) => {
@@ -56,8 +66,9 @@ export function ThemeToggle({ compact = false, className }: ThemeToggleProps) {
         value="dark"
         size={compact ? 'sm' : 'default'}
         role="radio"
-        aria-checked={resolved === 'dark'}
+        aria-checked={selectedTheme === 'dark'}
         aria-label="Dark theme"
+        disabled={!hasHydrated}
       >
         <Moon />
         {!compact && <span>Dark</span>}
@@ -66,8 +77,9 @@ export function ThemeToggle({ compact = false, className }: ThemeToggleProps) {
         value="light"
         size={compact ? 'sm' : 'default'}
         role="radio"
-        aria-checked={resolved === 'light'}
+        aria-checked={selectedTheme === 'light'}
         aria-label="Light theme"
+        disabled={!hasHydrated}
       >
         <Sun />
         {!compact && <span>Light</span>}

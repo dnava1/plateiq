@@ -1,8 +1,9 @@
 import * as React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { PreferenceSync } from '@/components/layout/PreferenceSync'
 import SettingsPage from './page'
 
 const mocks = vi.hoisted(() => ({
@@ -12,9 +13,11 @@ const mocks = vi.hoisted(() => ({
   replace: vi.fn(),
   rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
   setPreferredUnit: vi.fn(),
+  setWeightRoundingLbs: vi.fn(),
   signOut: vi.fn().mockResolvedValue({ error: null }),
   toastError: vi.fn(),
   toastSuccess: vi.fn(),
+  updateProfile: vi.fn(),
   updateEq: vi.fn().mockResolvedValue({ error: null }),
   useProfile: vi.fn(),
   useUiStore: vi.fn(),
@@ -40,6 +43,11 @@ vi.mock('@/hooks/useUser', () => ({
 }))
 
 vi.mock('@/hooks/useProfile', () => ({
+  profilePreferenceMutationKeys: {
+    all: () => ['profile', 'preferences'],
+    rounding: () => ['profile', 'preferences', 'rounding'],
+    unit: () => ['profile', 'preferences', 'unit'],
+  },
   useProfile: () => mocks.useProfile(),
 }))
 
@@ -47,16 +55,17 @@ vi.mock('@/hooks/useSupabase', () => ({
   useSupabase: () => ({
     auth: { signOut: mocks.signOut },
     from: () => ({
-      update: () => ({
-        eq: mocks.updateEq,
-      }),
+      update: mocks.updateProfile,
     }),
     rpc: mocks.rpc,
   }),
 }))
 
 vi.mock('@/store/uiStore', () => ({
-  useUiStore: () => mocks.useUiStore(),
+  useUiStore: (selector?: (state: ReturnType<typeof mocks.useUiStore>) => unknown) => {
+    const state = mocks.useUiStore()
+    return typeof selector === 'function' ? selector(state) : state
+  },
 }))
 
 vi.mock('@/lib/query-persistence', () => ({
@@ -97,6 +106,7 @@ describe('SettingsPage', () => {
         id: 'user-1',
         user_metadata: {},
       },
+      isLoading: false,
     })
     mocks.useProfile.mockReturnValue({
       data: {
@@ -107,13 +117,21 @@ describe('SettingsPage', () => {
         strength_profile_bodyweight_lbs: 181,
         strength_profile_sex: 'male',
       },
+      isLoading: false,
     })
     mocks.useUiStore.mockReturnValue({
       preferredUnit: 'lbs',
       setPreferredUnit: mocks.setPreferredUnit,
-      setWeightRoundingLbs: vi.fn(),
+      setWeightRoundingLbs: mocks.setWeightRoundingLbs,
       weightRoundingLbs: 5,
     })
+    mocks.setPreferredUnit.mockClear()
+    mocks.setWeightRoundingLbs.mockClear()
+    mocks.updateProfile.mockImplementation(() => ({
+      eq: mocks.updateEq,
+    }))
+    mocks.updateProfile.mockClear()
+    mocks.updateEq.mockClear()
     mocks.rpc.mockClear()
     mocks.signOut.mockClear()
     mocks.clearAllPersistedQueryCaches.mockClear()
@@ -146,6 +164,180 @@ describe('SettingsPage', () => {
     })
 
     expect(mocks.toastSuccess).not.toHaveBeenCalled()
+  })
+
+  it('keeps the unit controls disabled until auth and profile hydration complete', () => {
+    mocks.useUser.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+    })
+    mocks.useProfile.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+    })
+
+    render(<SettingsPage />, { wrapper: createWrapper() })
+
+    expect(screen.getByRole('radio', { name: 'Pounds (lbs)' })).toBeDisabled()
+    expect(screen.getByRole('radio', { name: 'Kilograms (kg)' })).toBeDisabled()
+  })
+
+  it('does not let PreferenceSync overwrite the optimistic snapped values while a preference mutation is pending', async () => {
+    const user = userEvent.setup()
+    let resolveUpdate: ((value: { error: null }) => void) | undefined
+
+    mocks.useProfile.mockReturnValue({
+      data: {
+        id: 'user-1',
+        preferred_unit: 'kg',
+        weight_rounding_lbs: 11.02312,
+        strength_profile_age_years: 32,
+        strength_profile_bodyweight_lbs: 181,
+        strength_profile_sex: 'male',
+      },
+      isLoading: false,
+    })
+    mocks.useUiStore.mockReturnValue({
+      preferredUnit: 'kg',
+      setPreferredUnit: mocks.setPreferredUnit,
+      setWeightRoundingLbs: mocks.setWeightRoundingLbs,
+      weightRoundingLbs: 11.02312,
+    })
+    mocks.updateEq.mockReturnValueOnce(new Promise((resolve) => {
+      resolveUpdate = resolve
+    }))
+
+    render(
+      <>
+        <PreferenceSync />
+        <SettingsPage />
+      </>,
+      { wrapper: createWrapper() },
+    )
+
+    mocks.setPreferredUnit.mockClear()
+    mocks.setWeightRoundingLbs.mockClear()
+
+    await user.click(screen.getByRole('radio', { name: 'Pounds (lbs)' }))
+
+    await waitFor(() => {
+      expect(mocks.setPreferredUnit).toHaveBeenCalledWith('lbs')
+      expect(mocks.setWeightRoundingLbs).toHaveBeenCalledWith(10)
+    })
+
+    expect(mocks.setPreferredUnit).not.toHaveBeenCalledWith('kg')
+    expect(mocks.setWeightRoundingLbs).not.toHaveBeenCalledWith(11.02312)
+
+    resolveUpdate?.({ error: null })
+  })
+
+  it('snaps rounding to the nearest lbs option when switching from kilograms', async () => {
+    const user = userEvent.setup()
+
+    mocks.useProfile.mockReturnValue({
+      data: {
+        id: 'user-1',
+        preferred_unit: 'kg',
+        weight_rounding_lbs: 11.02312,
+        strength_profile_age_years: 32,
+        strength_profile_bodyweight_lbs: 181,
+        strength_profile_sex: 'male',
+      },
+      isLoading: false,
+    })
+    mocks.useUiStore.mockReturnValue({
+      preferredUnit: 'kg',
+      setPreferredUnit: mocks.setPreferredUnit,
+      setWeightRoundingLbs: mocks.setWeightRoundingLbs,
+      weightRoundingLbs: 11.02312,
+    })
+
+    render(<SettingsPage />, { wrapper: createWrapper() })
+
+    await user.click(screen.getByRole('radio', { name: 'Pounds (lbs)' }))
+
+    expect(mocks.setPreferredUnit).toHaveBeenCalledWith('lbs')
+    expect(mocks.setWeightRoundingLbs).toHaveBeenCalledWith(10)
+
+    await waitFor(() => {
+      expect(mocks.updateProfile).toHaveBeenCalledWith({
+        preferred_unit: 'lbs',
+        weight_rounding_lbs: 10,
+      })
+    })
+
+    expect(mocks.updateEq).toHaveBeenCalledWith('id', 'user-1')
+  })
+
+  it('snaps rounding to the nearest kg option when switching from pounds', async () => {
+    const user = userEvent.setup()
+
+    render(<SettingsPage />, { wrapper: createWrapper() })
+
+    await user.click(screen.getByRole('radio', { name: 'Kilograms (kg)' }))
+
+    expect(mocks.setPreferredUnit).toHaveBeenCalledWith('kg')
+    expect(mocks.setWeightRoundingLbs).toHaveBeenCalledWith(5.51156)
+
+    await waitFor(() => {
+      expect(mocks.updateProfile).toHaveBeenCalledWith({
+        preferred_unit: 'kg',
+        weight_rounding_lbs: 5.51156,
+      })
+    })
+  })
+
+  it('rolls back both unit and rounding when the unit update fails', async () => {
+    const user = userEvent.setup()
+    mocks.useProfile.mockReturnValue({
+      data: {
+        id: 'user-1',
+        preferred_unit: 'kg',
+        weight_rounding_lbs: 11.02312,
+        strength_profile_age_years: 32,
+        strength_profile_bodyweight_lbs: 181,
+        strength_profile_sex: 'male',
+      },
+      isLoading: false,
+    })
+    mocks.useUiStore.mockReturnValue({
+      preferredUnit: 'kg',
+      setPreferredUnit: mocks.setPreferredUnit,
+      setWeightRoundingLbs: mocks.setWeightRoundingLbs,
+      weightRoundingLbs: 11.02312,
+    })
+    mocks.updateEq.mockResolvedValueOnce({ error: new Error('network failed') })
+
+    render(<SettingsPage />, { wrapper: createWrapper() })
+
+    await user.click(screen.getByRole('radio', { name: 'Pounds (lbs)' }))
+
+    await waitFor(() => {
+      expect(mocks.setPreferredUnit).toHaveBeenNthCalledWith(1, 'lbs')
+      expect(mocks.setPreferredUnit).toHaveBeenNthCalledWith(2, 'kg')
+      expect(mocks.setWeightRoundingLbs).toHaveBeenNthCalledWith(1, 10)
+      expect(mocks.setWeightRoundingLbs).toHaveBeenNthCalledWith(2, 11.02312)
+    })
+
+    expect(mocks.toastError).toHaveBeenCalledWith('network failed')
+  })
+
+  it('shows a clear empty state when sex is not set', () => {
+    mocks.useProfile.mockReturnValue({
+      data: {
+        id: 'user-1',
+        preferred_unit: 'lbs',
+        weight_rounding_lbs: 5,
+        strength_profile_age_years: 32,
+        strength_profile_bodyweight_lbs: 181,
+        strength_profile_sex: null,
+      },
+    })
+
+    render(<SettingsPage />, { wrapper: createWrapper() })
+
+    expect(screen.getByText('Sex')).toBeInTheDocument()
+    expect(within(screen.getByRole('combobox', { name: 'Sex' })).getByText('Not set')).toBeInTheDocument()
   })
 
   it('shows a single consolidated guest account card', () => {
