@@ -1,6 +1,9 @@
 'use client'
 
 import { useMemo } from 'react'
+import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
+import { usePreferredUnit } from '@/hooks/usePreferredUnit'
+import { formatWeight } from '@/lib/utils'
 import {
   CartesianGrid,
   Legend,
@@ -20,6 +23,8 @@ interface PrTimelineChartProps {
 }
 
 export function PrTimelineChart({ data, exerciseId }: PrTimelineChartProps) {
+  const preferredUnit = usePreferredUnit()
+  const weightRoundingLbs = usePreferredWeightRounding()
   const series = useMemo(() => {
     const filteredPoints = exerciseId
       ? data.filter((point) => point.exerciseId === exerciseId)
@@ -90,8 +95,8 @@ export function PrTimelineChart({ data, exerciseId }: PrTimelineChartProps) {
                 <div className="rounded-[18px] border border-border/70 bg-background/95 p-3 shadow-xl backdrop-blur">
                   <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{formatShortDate(point.date)}</p>
                   <p className="mt-1 text-sm font-medium text-foreground">{point.exerciseName}</p>
-                  <p className="text-sm text-muted-foreground">Estimated 1RM {point.e1rm.toFixed(1)} lbs</p>
-                  <p className="text-xs text-muted-foreground">{point.weight} lbs × {point.reps}</p>
+                  <p className="text-sm text-muted-foreground">Estimated 1RM {formatWeight(point.e1rm, preferredUnit, weightRoundingLbs)}</p>
+                  <p className="text-xs text-muted-foreground">{formatWeight(point.weight, preferredUnit, weightRoundingLbs)} × {point.reps}</p>
                 </div>
               )
             }}

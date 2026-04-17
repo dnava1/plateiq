@@ -102,6 +102,7 @@ describe('SettingsPage', () => {
       data: {
         id: 'user-1',
         preferred_unit: 'lbs',
+        weight_rounding_lbs: 5,
         strength_profile_age_years: 32,
         strength_profile_bodyweight_lbs: 181,
         strength_profile_sex: 'male',
@@ -110,6 +111,8 @@ describe('SettingsPage', () => {
     mocks.useUiStore.mockReturnValue({
       preferredUnit: 'lbs',
       setPreferredUnit: mocks.setPreferredUnit,
+      setWeightRoundingLbs: vi.fn(),
+      weightRoundingLbs: 5,
     })
     mocks.rpc.mockClear()
     mocks.signOut.mockClear()
@@ -124,15 +127,15 @@ describe('SettingsPage', () => {
 
     render(<SettingsPage />, { wrapper: createWrapper() })
 
-    expect(screen.getByText('Saved values stay tied to your account.')).toBeInTheDocument()
     expect(screen.getByLabelText('Age')).toHaveValue(32)
     expect(screen.getByLabelText('Bodyweight (lbs)')).toHaveValue(181)
+    expect(screen.queryByRole('button', { name: 'Save Strength Profile' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Complete all three fields to unlock strength standards in Analytics.')).not.toBeInTheDocument()
 
     await user.clear(screen.getByLabelText('Age'))
     await user.type(screen.getByLabelText('Age'), '34')
     await user.clear(screen.getByLabelText('Bodyweight (lbs)'))
     await user.type(screen.getByLabelText('Bodyweight (lbs)'), '185.5')
-    await user.click(screen.getByRole('button', { name: 'Save Strength Profile' }))
 
     await waitFor(() => {
       expect(mocks.rpc).toHaveBeenCalledWith('update_strength_profile', {
@@ -142,7 +145,7 @@ describe('SettingsPage', () => {
       })
     })
 
-    expect(mocks.toastSuccess).toHaveBeenCalledWith('Strength profile saved.')
+    expect(mocks.toastSuccess).not.toHaveBeenCalled()
   })
 
   it('shows a single consolidated guest account card', () => {

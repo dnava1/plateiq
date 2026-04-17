@@ -177,7 +177,7 @@ test.describe('strength profile browser flow', () => {
 
     await page.getByLabel('Age').fill('29')
     await page.getByLabel('Bodyweight (lbs)').fill('165')
-    await page.getByRole('button', { name: 'Save Strength Profile' }).click()
+    await expect(page.getByRole('button', { name: 'Save Strength Profile' })).toHaveCount(0)
 
     await expect.poll(() => state.ageYears).toBe(29)
     await expect.poll(() => state.bodyweightLbs).toBe(165)

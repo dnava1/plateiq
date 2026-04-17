@@ -147,10 +147,10 @@ describe('StrengthProfilePanel', () => {
     expect(screen.getAllByText('100.0').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Back Squat').length).toBeGreaterThan(0)
     expect(screen.getByText('Muscle-Group Profile')).toBeInTheDocument()
-    expect(screen.getByText('475.8 lbs')).toBeInTheDocument()
+    expect(screen.getByText('475 lbs')).toBeInTheDocument()
     expect(screen.getAllByText('Your Estimated 1RM').length).toBeGreaterThan(0)
     expect(screen.queryByText('Expected 1RM At Your Score')).not.toBeInTheDocument()
-    expect(screen.getByText('1RM estimate from that set: 475.8 lbs')).toBeInTheDocument()
+    expect(screen.getByText('1RM estimate from that set: 475 lbs')).toBeInTheDocument()
   })
 
   it('renders a setup call to action when athlete profile data is missing', () => {

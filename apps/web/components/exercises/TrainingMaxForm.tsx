@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { setTrainingMaxSchema, type SetTrainingMaxInput } from '@/lib/validations/trainingMax'
 import { useSetTrainingMax } from '@/hooks/useTrainingMaxes'
 import { Button } from '@/components/ui/button'
@@ -40,6 +41,7 @@ export function TrainingMaxForm({
 }: TrainingMaxFormProps) {
   const [inputType, setInputType] = useState<'tm' | '1rm'>('tm')
   const setTrainingMax = useSetTrainingMax()
+  const weightRoundingLbs = usePreferredWeightRounding()
 
   const {
     clearErrors,
@@ -71,7 +73,7 @@ export function TrainingMaxForm({
   const enteredWeightLbs = displayToLbs(weight || 0, unit)
   const initialDisplayWeight = lbsToDisplay(currentTm ?? 0, unit)
   const calculatedTmLbs = inputType === '1rm' && weight
-    ? roundToNearest(enteredWeightLbs * (tmPercentage ?? 0.9), 5)
+    ? roundToNearest(enteredWeightLbs * (tmPercentage ?? 0.9), weightRoundingLbs)
     : enteredWeightLbs
 
   const onSubmit = (data: SetTrainingMaxInput) => {
@@ -83,7 +85,7 @@ export function TrainingMaxForm({
     const finalWeight = unchangedCurrentTm
       ? currentTm
       : inputType === '1rm'
-        ? roundToNearest(weightLbs * (data.tmPercentage ?? 0.9), 5)
+        ? roundToNearest(weightLbs * (data.tmPercentage ?? 0.9), weightRoundingLbs)
         : weightLbs
 
     if (finalWeight > 2000) {
@@ -102,7 +104,7 @@ export function TrainingMaxForm({
       { ...data, weightLbs: finalWeight },
       {
         onSuccess: () => {
-          toast.success(`Training max set to ${formatWeight(finalWeight, unit)}`)
+          toast.success(`Training max set to ${formatWeight(finalWeight, unit, weightRoundingLbs)}`)
           onOpenChange(false)
         },
         onError: (error) => {
@@ -119,7 +121,7 @@ export function TrainingMaxForm({
           <DialogTitle>Set Training Max — {exerciseName}</DialogTitle>
           <DialogDescription>
             {currentTm
-              ? `Current TM: ${formatWeight(currentTm, unit)}`
+              ? `Current TM: ${formatWeight(currentTm, unit, weightRoundingLbs)}`
               : 'No training max set yet'}
           </DialogDescription>
         </DialogHeader>
@@ -195,10 +197,10 @@ export function TrainingMaxForm({
                   <CardContent className="flex flex-col gap-1.5 pt-4">
                     <p className="text-sm">
                       <span className="text-muted-foreground">Calculated TM:</span>{' '}
-                      <span className="font-bold text-foreground">{formatWeight(calculatedTmLbs, unit)}</span>
+                      <span className="font-bold text-foreground">{formatWeight(calculatedTmLbs, unit, weightRoundingLbs)}</span>
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {weight} {formatUnit(unit)} × {Math.round((tmPercentage ?? 0.9) * 100)}% = {formatWeight(calculatedTmLbs, unit)}
+                      {weight} {formatUnit(unit)} × {Math.round((tmPercentage ?? 0.9) * 100)}% = {formatWeight(calculatedTmLbs, unit, weightRoundingLbs)}
                     </p>
                   </CardContent>
                 </Card>

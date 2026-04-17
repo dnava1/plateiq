@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import {
   formatStrengthProfileMissingField,
@@ -39,9 +40,13 @@ function formatDeviation(deviationFromTotalPct: number) {
   return `${sign}${deviationFromTotalPct.toFixed(1)}%`
 }
 
-function describeBestSet(lift: StrengthProfileLift, unit: ReturnType<typeof usePreferredUnit>) {
-  const bestExternal = formatWeight(lift.bestExternalWeightLbs, unit)
-  const bestTotal = formatWeight(lift.bestTotalLoadLbs, unit)
+function describeBestSet(
+  lift: StrengthProfileLift,
+  unit: ReturnType<typeof usePreferredUnit>,
+  roundingLbs: ReturnType<typeof usePreferredWeightRounding>,
+) {
+  const bestExternal = formatWeight(lift.bestExternalWeightLbs, unit, roundingLbs)
+  const bestTotal = formatWeight(lift.bestTotalLoadLbs, unit, roundingLbs)
 
   if (Math.abs(lift.bestExternalWeightLbs - lift.bestTotalLoadLbs) > 0.1) {
     return `${bestExternal} external / ${bestTotal} total x ${lift.bestReps}`
@@ -56,6 +61,7 @@ function formatRepStandardLabel(repCount: number) {
 
 export function StrengthProfilePanel({ strengthProfile }: StrengthProfilePanelProps) {
   const preferredUnit = usePreferredUnit()
+  const weightRoundingLbs = usePreferredWeightRounding()
   const [selectedRep, setSelectedRep] = useState('1')
   const selectedRepCount = Number(selectedRep)
   const selectedRepLabel = formatRepStandardLabel(selectedRepCount)
@@ -217,14 +223,14 @@ export function StrengthProfilePanel({ strengthProfile }: StrengthProfilePanelPr
                     <div>
                       <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Your Estimated {selectedRepLabel}</p>
                       <p className="mt-1 text-lg font-semibold tracking-[-0.05em] text-foreground">
-                        {actualRepMaxLbs !== null ? formatWeight(actualRepMaxLbs, preferredUnit) : '—'}
+                        {actualRepMaxLbs !== null ? formatWeight(actualRepMaxLbs, preferredUnit, weightRoundingLbs) : '—'}
                       </p>
                     </div>
                   </div>
 
                   <div className="mt-4 flex flex-col gap-1 text-sm text-muted-foreground">
-                    <p>Best logged set: {describeBestSet(lift, preferredUnit)}</p>
-                    <p>1RM estimate from that set: {formatWeight(lift.bestOneRepMaxLbs, preferredUnit)}</p>
+                    <p>Best logged set: {describeBestSet(lift, preferredUnit, weightRoundingLbs)}</p>
+                    <p>1RM estimate from that set: {formatWeight(lift.bestOneRepMaxLbs, preferredUnit, weightRoundingLbs)}</p>
                     {lift.deviationFromTotalPct !== null && (
                       <p>{formatDeviation(lift.deviationFromTotalPct)} vs the lift expected at your total score</p>
                     )}

@@ -4,5 +4,6 @@ export type MovementPattern = 'push' | 'pull' | 'hinge' | 'squat' | 'single_leg'
 export type IntensityType = 'percentage_tm' | 'percentage_1rm' | 'rpe' | 'fixed_weight' | 'bodyweight' | 'percentage_work_set'
 export type ProgressionStyle = 'linear_per_session' | 'linear_per_week' | 'linear_per_cycle' | 'percentage_cycle' | 'wave' | 'autoregulated' | 'custom'
 export type PreferredUnit = 'lbs' | 'kg'
+export type WeightRoundingLbs = 2.5 | 5 | 10
 export type ProgramLevel = 'beginner' | 'intermediate' | 'advanced'
 export type StrengthProfileSex = 'male' | 'female'

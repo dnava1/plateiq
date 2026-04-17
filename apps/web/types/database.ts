@@ -113,6 +113,7 @@ export type Database = {
           display_name: string
           id: string
           preferred_unit: string
+          weight_rounding_lbs: number
           strength_profile_age_years: number | null
           strength_profile_bodyweight_lbs: number | null
           strength_profile_sex: string | null
@@ -124,6 +125,7 @@ export type Database = {
           display_name: string
           id: string
           preferred_unit?: string
+          weight_rounding_lbs?: number
           strength_profile_age_years?: number | null
           strength_profile_bodyweight_lbs?: number | null
           strength_profile_sex?: string | null
@@ -135,6 +137,7 @@ export type Database = {
           display_name?: string
           id?: string
           preferred_unit?: string
+          weight_rounding_lbs?: number
           strength_profile_age_years?: number | null
           strength_profile_bodyweight_lbs?: number | null
           strength_profile_sex?: string | null
@@ -380,6 +383,21 @@ export type Database = {
         Args: { p_cycle_id: number; p_progression?: Json }
         Returns: Json
       }
+      create_program_with_cycle: {
+        Args: {
+          p_activate_on_save?: boolean
+          p_config?: Json
+          p_name: string
+          p_template_key: string
+        }
+        Returns: Json
+      }
+      delete_inactive_program: {
+        Args: {
+          p_program_id: number
+        }
+        Returns: number
+      }
       estimate_one_rep_max: {
         Args: { p_reps: number; p_weight_lbs: number }
         Returns: number
@@ -393,11 +411,26 @@ export type Database = {
         Returns: Json
       }
       get_dashboard: { Args: never; Returns: Json }
+      set_active_program: {
+        Args: {
+          p_program_id: number
+        }
+        Returns: Json
+      }
+      update_program_definition: {
+        Args: {
+          p_config?: Json
+          p_name: string
+          p_program_id: number
+          p_template_key: string
+        }
+        Returns: Json
+      }
       update_strength_profile: {
         Args: {
-          p_age_years?: number
-          p_bodyweight_lbs?: number
-          p_sex?: string
+          p_age_years?: number | null
+          p_bodyweight_lbs?: number | null
+          p_sex?: string | null
         }
         Returns: Json
       }

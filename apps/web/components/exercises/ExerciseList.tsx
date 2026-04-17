@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -28,6 +29,7 @@ interface ExerciseListProps {
 
 export function ExerciseList({ exercises, trainingMaxes, unit, onSetTm }: ExerciseListProps) {
   const [search, setSearch] = useState('')
+  const weightRoundingLbs = usePreferredWeightRounding()
 
   const filtered = exercises.filter((e) =>
     e.name.toLowerCase().includes(search.toLowerCase())
@@ -78,7 +80,7 @@ export function ExerciseList({ exercises, trainingMaxes, unit, onSetTm }: Exerci
               </div>
               <div className="flex items-center gap-3">
                 {exercise.is_main_lift && trainingMaxes?.has(exercise.id) && (
-                  <Badge variant="secondary">TM {formatWeight(trainingMaxes.get(exercise.id) ?? 0, unit)}</Badge>
+                  <Badge variant="secondary">TM {formatWeight(trainingMaxes.get(exercise.id) ?? 0, unit, weightRoundingLbs)}</Badge>
                 )}
                 {exercise.is_main_lift && onSetTm && (
                   <Button

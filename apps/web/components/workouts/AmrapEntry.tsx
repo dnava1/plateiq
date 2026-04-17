@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { formatWeight } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -31,6 +32,7 @@ export function AmrapEntry({
   weightLbs,
 }: AmrapEntryProps) {
   const preferredUnit = usePreferredUnit()
+  const weightRoundingLbs = usePreferredWeightRounding()
   const [value, setValue] = useState(() => String(defaultValue ?? prescribedReps))
 
   const reps = parsePositiveWholeNumber(value)
@@ -64,7 +66,7 @@ export function AmrapEntry({
 
       {estimatedOneRepMax ? (
         <p className="text-sm text-muted-foreground">
-          Estimated 1RM: <span className="font-medium text-foreground">{formatWeight(estimatedOneRepMax, preferredUnit)}</span>
+          Estimated 1RM: <span className="font-medium text-foreground">{formatWeight(estimatedOneRepMax, preferredUnit, weightRoundingLbs)}</span>
         </p>
       ) : null}
 

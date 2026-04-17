@@ -9,8 +9,6 @@ const MIN_CYCLE_LENGTH_WEEKS = 1
 const MAX_CYCLE_LENGTH_WEEKS = 16
 const MIN_TM_PERCENTAGE = 0.7
 const MAX_TM_PERCENTAGE = 1.0
-const MIN_ROUNDING = 1
-const MAX_ROUNDING = 10
 const MIN_DAY_COUNT = 1
 const MAX_DAY_COUNT = 7
 const MAX_DAY_LABEL_LENGTH = 100
@@ -37,7 +35,6 @@ export const createProgramSchema = z.object({
   template_key: z.string().min(1, 'Select a program template'),
   name: z.string().trim().min(MIN_PROGRAM_NAME_LENGTH, PROGRAM_NAME_ERROR_MESSAGE).max(MAX_PROGRAM_NAME_LENGTH),
   variation_key: z.string().optional(),
-  rounding: z.number().min(MIN_ROUNDING).max(MAX_ROUNDING),
   tm_percentage: z.number().min(MIN_TM_PERCENTAGE).max(MAX_TM_PERCENTAGE),
 })
 
@@ -80,6 +77,16 @@ const progressionRuleSchema = z.object({
   deload_strategy: z.string().optional(),
 })
 
+const weekSchemeSchema = z.object({
+  label: z.string().trim().min(1),
+  intensity_modifier: z.number().positive().optional(),
+})
+
+const editableProgramMetadataSchema = z.object({
+  source_template_key: z.string().trim().min(1).optional(),
+  selected_variation_key: z.string().trim().min(1).nullable().optional(),
+})
+
 export const customProgramConfigSchema = z.object({
   type: z.literal('custom'),
   level: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
@@ -87,9 +94,10 @@ export const customProgramConfigSchema = z.object({
   cycle_length_weeks: z.number().int().min(MIN_CYCLE_LENGTH_WEEKS).max(MAX_CYCLE_LENGTH_WEEKS),
   uses_training_max: z.boolean(),
   tm_percentage: z.number().min(MIN_TM_PERCENTAGE).max(MAX_TM_PERCENTAGE).optional(),
-  rounding: z.number().min(MIN_ROUNDING).max(MAX_ROUNDING).optional(),
   days: z.array(customDaySchema).min(MIN_DAY_COUNT).max(MAX_DAY_COUNT),
+  week_schemes: z.record(z.string(), weekSchemeSchema).optional(),
   progression: progressionRuleSchema,
+  metadata: editableProgramMetadataSchema.optional(),
 })
 
 export const createCustomProgramSchema = z.object({
@@ -201,10 +209,6 @@ export function getCreateCustomProgramErrorMessage(error: z.ZodError<CreateCusto
 
   if (path[0] === 'tm_percentage') {
     return 'Choose a training max percentage between 70% and 100%.'
-  }
-
-  if (path[0] === 'rounding') {
-    return 'Choose a valid rounding increment.'
   }
 
   if (path[0] === 'progression') {

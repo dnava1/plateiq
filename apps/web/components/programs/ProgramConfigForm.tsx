@@ -1,12 +1,12 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useForm, Controller, type FieldErrors, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createProgramSchema, type CreateProgramInput } from '@/lib/validations/program'
-import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { useCreateProgram } from '@/hooks/usePrograms'
 import { getTemplate } from '@/lib/constants/templates'
-import { formatExerciseKey, formatUnit, getRoundingOptions } from '@/lib/utils'
+import { formatExerciseKey } from '@/lib/utils'
 import { TemplatePicker } from './TemplatePicker'
 import { VariationSelector } from './VariationSelector'
 import { Button } from '@/components/ui/button'
@@ -39,7 +39,6 @@ const DEFAULT_VALUES: CreateProgramInput = {
   template_key: '',
   name: '',
   variation_key: undefined,
-  rounding: 5,
   tm_percentage: 0.9,
 }
 
@@ -52,13 +51,14 @@ const TM_PERCENTAGE_OPTIONS = [
 ]
 
 export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps) {
-  const preferredUnit = usePreferredUnit()
+  const router = useRouter()
   const createProgram = useCreateProgram()
 
   const {
     register,
     handleSubmit,
     control,
+    getValues,
     reset,
     setFocus,
     setValue,
@@ -97,7 +97,7 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
   }
 
   const handleInvalidSubmit = (formErrors: FieldErrors<CreateProgramInput>) => {
-    const firstField = (['name', 'tm_percentage', 'rounding'] as const).find((field) => formErrors[field])
+    const firstField = (['name', 'tm_percentage'] as const).find((field) => formErrors[field])
     if (firstField) {
       setFocus(firstField)
     }
@@ -110,11 +110,33 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
     onOpenChange(open)
   }
 
-  const roundingOptions = getRoundingOptions(preferredUnit)
-  const roundingSelectItems = roundingOptions.map((option) => ({
-    value: String(option.value),
-    label: option.label,
-  }))
+  const handleCustomizeInBuilder = () => {
+    if (!template || !templateKey) {
+      return
+    }
+
+    const {
+      variation_key: selectedVariationKey,
+      name: selectedName,
+      tm_percentage: selectedTmPercentage,
+    } = getValues()
+
+    const params = new URLSearchParams({
+      template: templateKey,
+      name: selectedName?.trim() || template.name,
+    })
+
+    if (selectedVariationKey) {
+      params.set('variation', selectedVariationKey)
+    }
+
+    if (template.uses_training_max) {
+      params.set('tm', String(selectedTmPercentage ?? template.default_tm_percentage ?? DEFAULT_VALUES.tm_percentage))
+    }
+
+    handleOpenChange(false)
+    router.push(`/programs/builder?${params.toString()}`)
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -259,39 +281,6 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
                   </div>
                 )}
 
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="rounding">Weight Rounding ({formatUnit(preferredUnit)})</Label>
-                  <Controller
-                    name="rounding"
-                    control={control}
-                    render={({ field }) => (
-                      <Select
-                        value={String(field.value)}
-                        onValueChange={(value) => field.onChange(Number(value))}
-                        items={roundingSelectItems}
-                      >
-                        <SelectTrigger
-                          id="rounding"
-                          className="w-full h-9"
-                          aria-invalid={!!errors.rounding}
-                          aria-describedby={errors.rounding ? 'rounding-error' : undefined}
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            {roundingSelectItems.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                  {errors.rounding && (
-                    <p id="rounding-error" className="text-sm text-destructive">{errors.rounding.message}</p>
-                  )}
-                </div>
               </div>
             </div>
           )}
@@ -299,6 +288,15 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
           <div className="flex gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} className="flex-1">
               Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCustomizeInBuilder}
+              disabled={!templateKey}
+              className="flex-1"
+            >
+              Customize in Builder
             </Button>
             <Button
               type="submit"

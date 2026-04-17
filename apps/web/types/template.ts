@@ -31,6 +31,18 @@ export interface VariationOption {
   blocks: ExerciseBlock[]
 }
 
+export interface ProgramWeekScheme {
+  label: string
+  intensity_modifier?: number
+}
+
+export type ProgramWeekSchemes = Record<string, ProgramWeekScheme>
+
+export interface EditableProgramMetadata {
+  source_template_key?: string
+  selected_variation_key?: string | null
+}
+
 export interface ProgressionRule {
   style: ProgressionStyle
   increment_lbs?: { upper: number; lower: number }
@@ -49,7 +61,7 @@ export interface ProgramTemplate {
   default_tm_percentage?: number
   required_exercises: string[] // exercise keys needed for this program
   days: DayTemplate[]
-  week_schemes?: Record<number, { label: string; intensity_modifier?: number }> // for wave loading (5/3/1 weeks)
+  week_schemes?: ProgramWeekSchemes // for wave loading (5/3/1 weeks)
   variation_options?: VariationOption[]
   progression: ProgressionRule
   source_url?: string
@@ -76,9 +88,10 @@ export interface CustomProgramConfig {
   cycle_length_weeks: number
   uses_training_max: boolean
   tm_percentage?: number
-  rounding?: number
   days: DayTemplate[]
+  week_schemes?: ProgramWeekSchemes
   progression: ProgressionRule
+  metadata?: EditableProgramMetadata
 }
 
 export function isCustomProgramConfig(config: unknown): config is CustomProgramConfig {

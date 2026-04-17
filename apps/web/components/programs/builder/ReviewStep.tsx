@@ -5,7 +5,12 @@ import { formatDaysPerWeek, formatWeight, formatWeekCycle } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import { useBuilderDraftStore } from '@/store/builderDraftStore'
 import { DEFAULT_LINEAR_INCREMENT_LBS, usesLinearProgression } from '@/store/builderDraftStore'
-import { useCreateCustomProgram } from '@/hooks/usePrograms'
+import {
+  useCreateProgramDefinition,
+  useCreateProgramRevision,
+  useUpdateProgramDefinition,
+} from '@/hooks/usePrograms'
+import { normalizeEditableProgramConfig } from '@/lib/programs/editable'
 import {
   createCustomProgramSchema,
   getCreateCustomProgramErrorMessage,
@@ -32,28 +37,85 @@ const STYLE_LABELS: Record<string, string> = {
 
 export function ReviewStep() {
   const router = useRouter()
-  const { draft, toConfig, resetDraft, setStep } = useBuilderDraftStore()
+  const { draft, source, toConfig, resetDraft, setStep } = useBuilderDraftStore()
   const preferredUnit = usePreferredUnit()
-  const createCustom = useCreateCustomProgram()
+  const createProgramDefinition = useCreateProgramDefinition()
+  const updateProgramDefinition = useUpdateProgramDefinition()
+  const createProgramRevision = useCreateProgramRevision()
   const progressionIncrements = usesLinearProgression(draft.progression.style)
     ? draft.progression.increment_lbs ?? DEFAULT_LINEAR_INCREMENT_LBS
     : null
 
+  const templateKey = source?.template_key ?? draft.metadata?.source_template_key ?? 'custom'
+  const saveStrategy = source?.save_strategy ?? 'create'
+  const isPending = createProgramDefinition.isPending
+    || updateProgramDefinition.isPending
+    || createProgramRevision.isPending
+
   const handleSubmit = () => {
-    const config = toConfig()
+    const config = normalizeEditableProgramConfig(toConfig(), templateKey)
     const result = createCustomProgramSchema.safeParse({ name: draft.name, definition: config })
+
     if (!result.success) {
       toast.error(getCreateCustomProgramErrorMessage(result.error))
       return
     }
-    createCustom.mutate(result.data, {
-      onSuccess: () => {
-        toast.success(`"${draft.name}" created!`)
-        resetDraft()
-        router.push('/programs')
+
+    const handleSuccess = (message: string) => {
+      toast.success(message)
+      resetDraft()
+      router.push('/programs')
+    }
+
+    const handleError = (err: Error) => {
+      toast.error(err.message)
+    }
+
+    if (saveStrategy === 'update' && source?.program_id) {
+      updateProgramDefinition.mutate(
+        {
+          programId: source.program_id,
+          name: result.data.name,
+          templateKey,
+          definition: result.data.definition,
+        },
+        {
+          onSuccess: () => handleSuccess(`"${draft.name}" updated.`),
+          onError: handleError,
+        },
+      )
+      return
+    }
+
+    if (saveStrategy === 'revision' && source?.program_id) {
+      createProgramRevision.mutate(
+        {
+          sourceProgramId: source.program_id,
+          name: result.data.name,
+          templateKey,
+          definition: result.data.definition,
+          activateOnSave: false,
+        },
+        {
+          onSuccess: () => handleSuccess(`"${draft.name}" saved as a new program.`),
+          onError: handleError,
+        },
+      )
+      return
+    }
+
+    createProgramDefinition.mutate(
+      {
+        name: result.data.name,
+        templateKey,
+        definition: result.data.definition,
+        activateOnSave: true,
       },
-      onError: (err) => toast.error(err.message),
-    })
+      {
+        onSuccess: () => handleSuccess(`"${draft.name}" created!`),
+        onError: handleError,
+      },
+    )
   }
 
   const formatIntensity = (val: number, type: IntensityType) => {
@@ -119,12 +181,28 @@ export function ReviewStep() {
         {draft.progression.deload_strategy && <p>Deload strategy: {draft.progression.deload_strategy}</p>}
       </div>
 
+      {saveStrategy === 'revision' && (
+        <div className="rounded-[24px] border border-amber-500/30 bg-amber-500/8 p-4 text-sm text-amber-950 shadow-sm dark:text-amber-100">
+          This program already has workout history, so saving here will create a new editable revision instead of rewriting past training data.
+        </div>
+      )}
+
       <div className="flex gap-2">
         <Button variant="outline" onClick={() => setStep('progression')} className="flex-1">
           Back
         </Button>
-        <Button onClick={handleSubmit} disabled={createCustom.isPending} className="flex-1">
-          {createCustom.isPending ? 'Creating…' : 'Create Program'}
+        <Button onClick={handleSubmit} disabled={isPending} className="flex-1">
+          {isPending
+            ? saveStrategy === 'update'
+              ? 'Saving…'
+              : saveStrategy === 'revision'
+                ? 'Saving revision…'
+                : 'Creating…'
+            : saveStrategy === 'update'
+              ? 'Save Changes'
+              : saveStrategy === 'revision'
+                ? 'Save as New Program'
+                : 'Create Program'}
         </Button>
       </div>
     </div>

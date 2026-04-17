@@ -1,6 +1,7 @@
 import type { Json } from '@/types/database'
 import { buildStrengthProfile, createEmptyStrengthProfile } from '@/lib/strength-profile'
 import { estimateBenchmarkOneRepMax } from '@/lib/strength-benchmarks'
+import { DEFAULT_WEIGHT_ROUNDING_LBS } from '@/lib/utils'
 import type {
   AnalyticsConsistency,
   AnalyticsData,
@@ -451,7 +452,7 @@ export function parseDashboardData(value: Json | null): DashboardData {
   }
 }
 
-export function parseAnalyticsData(value: Json | null): AnalyticsData {
+export function parseAnalyticsData(value: Json | null, weightRoundingLbs: number = DEFAULT_WEIGHT_ROUNDING_LBS): AnalyticsData {
   const record = isRecord(value) ? value : {}
 
   return {
@@ -462,7 +463,7 @@ export function parseAnalyticsData(value: Json | null): AnalyticsData {
     muscleBalance: mapArray(record.muscle_balance, parseAnalyticsMuscleBalancePoint),
     stallDetection: mapArray(record.stall_detection, parseAnalyticsStallPoint),
     tmProgression: mapArray(record.tm_progression, parseAnalyticsTmProgressionPoint),
-    strengthProfile: buildStrengthProfile(parseStrengthProfileRawData(record.strength_profile)),
+    strengthProfile: buildStrengthProfile(parseStrengthProfileRawData(record.strength_profile), weightRoundingLbs),
   }
 }
 

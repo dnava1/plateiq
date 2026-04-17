@@ -133,6 +133,6 @@ describe('useAnalytics', () => {
         from: createMockDate('2026-02-01', '2026-01-31'),
         to: createMockDate('2026-04-01', '2026-03-31'),
       }),
-    ).toEqual(['analytics', 2, '2026-02-01', '2026-04-01'])
+    ).toEqual(['analytics', 2, '2026-02-01', '2026-04-01', 'default-rounding'])
   })
 })

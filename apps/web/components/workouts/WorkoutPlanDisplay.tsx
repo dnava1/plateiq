@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { formatWeight } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -13,6 +14,7 @@ interface WorkoutPlanDisplayProps {
 
 export function WorkoutPlanDisplay({ sets }: WorkoutPlanDisplayProps) {
   const preferredUnit = usePreferredUnit()
+  const weightRoundingLbs = usePreferredWeightRounding()
   const groupedSets = useMemo(() => {
     const groups = new Map<string, WorkoutDisplaySet[]>()
 
@@ -46,7 +48,7 @@ export function WorkoutPlanDisplay({ sets }: WorkoutPlanDisplayProps) {
                   </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {formatWeight(set.weight_lbs, preferredUnit)} × {formatRepTarget(set.reps_prescribed, set.reps_prescribed_max, set.is_amrap)}
+                  {formatWeight(set.weight_lbs, preferredUnit, weightRoundingLbs)} × {formatRepTarget(set.reps_prescribed, set.reps_prescribed_max, set.is_amrap)}
                 </p>
               </div>
             ))}

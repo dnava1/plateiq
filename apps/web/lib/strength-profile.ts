@@ -22,9 +22,9 @@ import {
   getBenchmarkStrengthLabel,
   toBenchmarkSex,
 } from '@/lib/strength-benchmarks'
+import { DEFAULT_WEIGHT_ROUNDING_LBS, roundToNearest } from '@/lib/utils'
 
 const MAX_STRENGTH_REPS = 10
-const STRENGTH_BENCHMARK_ROUND_TO_LBS = 5
 
 const MISSING_FIELD_LABELS: Record<StrengthProfileMissingField, string> = {
   ageYears: 'Age',
@@ -68,15 +68,12 @@ function isPositiveNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value > 0
 }
 
-function roundStrengthProfileWeight(weightLbs: number) {
+function roundStrengthProfileWeight(weightLbs: number, roundingLbs: number = DEFAULT_WEIGHT_ROUNDING_LBS) {
   if (!Number.isFinite(weightLbs)) {
     return weightLbs
   }
 
-  const remainder = weightLbs % STRENGTH_BENCHMARK_ROUND_TO_LBS
-  return remainder < (STRENGTH_BENCHMARK_ROUND_TO_LBS / 2)
-    ? weightLbs - remainder
-    : weightLbs - remainder + STRENGTH_BENCHMARK_ROUND_TO_LBS
+  return roundToNearest(weightLbs, roundingLbs)
 }
 
 function resolveMissingFields(profile: StrengthProfileRawData['profile']): StrengthProfileMissingField[] {
@@ -97,7 +94,7 @@ function resolveMissingFields(profile: StrengthProfileRawData['profile']): Stren
   return missingFields
 }
 
-function buildStrengthRepMaxes(oneRepMaxLbs: number) {
+function buildStrengthRepMaxes(oneRepMaxLbs: number, roundingLbs: number) {
   if (!isPositiveNumber(oneRepMaxLbs)) {
     return []
   }
@@ -105,7 +102,7 @@ function buildStrengthRepMaxes(oneRepMaxLbs: number) {
   return STRENGTH_REP_RANGE
     .map<StrengthProfileRepMax | null>((reps) => {
       const weightLbs = calculateBenchmarkMultiRepMax(reps, oneRepMaxLbs)
-      return weightLbs === null ? null : { reps, weightLbs: roundStrengthProfileWeight(weightLbs) }
+      return weightLbs === null ? null : { reps, weightLbs: roundStrengthProfileWeight(weightLbs, roundingLbs) }
     })
     .filter((entry): entry is StrengthProfileRepMax => entry !== null)
 }
@@ -171,7 +168,10 @@ export function createEmptyStrengthProfile(): StrengthProfileData {
   }
 }
 
-export function buildStrengthProfile(rawStrengthProfile: StrengthProfileRawData): StrengthProfileData {
+export function buildStrengthProfile(
+  rawStrengthProfile: StrengthProfileRawData,
+  weightRoundingLbs: number = DEFAULT_WEIGHT_ROUNDING_LBS,
+): StrengthProfileData {
   const missingFields = resolveMissingFields(rawStrengthProfile.profile)
   const benchmarkSex = toBenchmarkSex(rawStrengthProfile.profile.sex)
   const bodyweightLbs = rawStrengthProfile.profile.bodyweightLbs
@@ -180,7 +180,7 @@ export function buildStrengthProfile(rawStrengthProfile: StrengthProfileRawData)
     const displayName = getBenchmarkDisplayLift(lift.liftSlug, lift.displayName)
     const category = getBenchmarkCategory(lift.liftSlug)
     const rawOneRepMaxLbs = estimateBenchmarkOneRepMax(lift.bestTotalLoadLbs, lift.bestReps) ?? lift.bestOneRepMaxLbs
-    const bestOneRepMaxLbs = roundStrengthProfileWeight(rawOneRepMaxLbs)
+    const bestOneRepMaxLbs = roundStrengthProfileWeight(rawOneRepMaxLbs, weightRoundingLbs)
     const rawScore = benchmarkSex && isPositiveNumber(bodyweightLbs)
       ? calculateSingleLiftStrengthScore('Imperial', benchmarkSex, rawStrengthProfile.profile.ageYears, bodyweightLbs, displayName, bestOneRepMaxLbs)
       : 0
@@ -189,7 +189,7 @@ export function buildStrengthProfile(rawStrengthProfile: StrengthProfileRawData)
     return {
       lift: {
         ...lift,
-        actualRepMaxes: buildStrengthRepMaxes(bestOneRepMaxLbs),
+        actualRepMaxes: buildStrengthRepMaxes(bestOneRepMaxLbs, weightRoundingLbs),
         bestOneRepMaxLbs,
         categoryKey: category.key,
         categoryLabel: category.label,
@@ -275,7 +275,7 @@ export function buildStrengthProfile(rawStrengthProfile: StrengthProfileRawData)
         deviationFromTotalPct,
         expectedAtTotalScoreLbs: expectedOneRepMaxLbs,
         expectedOneRepMaxLbs,
-        expectedRepMaxes: expectedOneRepMaxLbs === null ? [] : buildStrengthRepMaxes(expectedOneRepMaxLbs),
+        expectedRepMaxes: expectedOneRepMaxLbs === null ? [] : buildStrengthRepMaxes(expectedOneRepMaxLbs, weightRoundingLbs),
       },
       rawScore,
     }

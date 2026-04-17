@@ -52,6 +52,7 @@ export default function UpgradePage() {
   const { data: user, isLoading } = useUser()
   const errorParam = searchParams.get('error')
   const upgradeMode = searchParams.get('upgrade_mode')
+  const hasExistingAccountRetry = hasExistingAccountRetrySignal(upgradeMode)
   const [action, setAction] = useState<UpgradeAction>(null)
   const [feedback, setFeedback] = useState<FeedbackState | null>(null)
   const [dismissedUrlFeedbackKey, setDismissedUrlFeedbackKey] = useState<string | null>(null)
@@ -81,6 +82,10 @@ export default function UpgradePage() {
       feedbackRef.current?.focus()
     }
   }, [visibleFeedback])
+
+  const shouldAutoRetry = hasExistingAccountRetry
+    && !existingAccountRetryStartedRef.current
+    && (isLoading || user?.is_anonymous === true)
 
   const nextAfterUpgrade = sanitizeNextPath('/settings', '/settings')
 
@@ -112,39 +117,26 @@ export default function UpgradePage() {
 
       preparedExistingAccountGoogleSignIn = true
 
+      // signInWithOAuth performs a standalone PKCE flow: it generates a code
+      // verifier, stores it in a cookie, and redirects to Google. When the
+      // callback exchanges the code for a session, the response replaces the
+      // current anonymous session cookie — no pre-redirect signOut is needed.
+      // Removing the signOut avoids clearing the PKCE verifier (gotrue-js
+      // deletes it in _removeSession) and prevents the auth-state change
+      // from causing a React re-render flash.
       const supabase = createClient()
-
-      // Obtain the OAuth URL before signing out so the redirect can follow
-      // the sign-out synchronously, preventing React from re-rendering with
-      // a stale auth state (which would flash the "unavailable" screen).
-      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: getExistingGoogleUpgradeRedirect(window.location.origin, nextAfterUpgrade),
-          skipBrowserRedirect: true,
         },
       })
 
-      if (oauthError || !data?.url) {
+      if (error) {
         await clearPreparedExistingGoogleSignIn()
         setFeedback({ tone: 'error', message: 'Unable to switch to your existing Google account right now.' })
         setAction(null)
-        return
       }
-
-      const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' })
-
-      if (signOutError) {
-        await clearPreparedExistingGoogleSignIn()
-        setFeedback({ tone: 'error', message: 'Unable to switch to your existing Google account right now.' })
-        setAction(null)
-        return
-      }
-
-      // Navigate on the same synchronous tick as the signOut resolution so
-      // the browser begins unloading before React can process the auth-state
-      // change triggered by the sign-out.
-      window.location.href = data.url
     } catch {
       if (preparedExistingAccountGoogleSignIn) {
         await clearPreparedExistingGoogleSignIn()
@@ -160,7 +152,7 @@ export default function UpgradePage() {
   })
 
   const handleGoogleUpgrade = async () => {
-    if (existingAccountConflictRef.current || upgradeMode === EXISTING_GOOGLE_UPGRADE_MODE) {
+    if (existingAccountConflictRef.current || hasExistingAccountRetry) {
       await handleExistingAccountGoogleSignIn()
       return
     }
@@ -197,13 +189,7 @@ export default function UpgradePage() {
       return
     }
 
-    const hashParams = new URLSearchParams(window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash)
-    const hasExistingAccountConflict = (
-      upgradeMode === EXISTING_GOOGLE_UPGRADE_MODE
-      || hashParams.get('error_code') === EXISTING_GOOGLE_IDENTITY_ERROR_CODE
-    )
-
-    if (!hasExistingAccountConflict) {
+    if (!hasExistingAccountRetry) {
       return
     }
 
@@ -221,14 +207,12 @@ export default function UpgradePage() {
       normalizedSearch ? `${window.location.pathname}?${normalizedSearch}` : window.location.pathname,
     )
 
-    queueMicrotask(() => {
-      retryExistingAccountGoogleSignIn()
-    })
-  }, [upgradeMode, user?.id, user?.is_anonymous])
+    retryExistingAccountGoogleSignIn()
+  }, [hasExistingAccountRetry, user?.id, user?.is_anonymous])
 
-  const isPending = action !== null || isLoading
+  const isPending = action !== null || shouldAutoRetry || isLoading
 
-  if (!user && !isLoading && action === null) {
+  if (!user && !isLoading && !shouldAutoRetry && action === null) {
     return (
       <div className="animate-scale-in rounded-[32px] border border-border/70 bg-background/82 p-8 shadow-[0_36px_110px_-52px_rgba(0,0,0,0.92)] backdrop-blur-xl">
         <div className="flex flex-col gap-4">
@@ -245,7 +229,7 @@ export default function UpgradePage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-xl animate-scale-in rounded-[32px] border border-border/70 bg-background/82 p-6 shadow-[0_36px_110px_-52px_rgba(0,0,0,0.92)] backdrop-blur-xl sm:p-8">
+    <div className={`mx-auto w-full max-w-xl rounded-[32px] border border-border/70 bg-background/82 p-6 shadow-[0_36px_110px_-52px_rgba(0,0,0,0.92)] backdrop-blur-xl sm:p-8 ${hasExistingAccountRetry ? '' : 'animate-scale-in'}`}>
       <section className="flex flex-col gap-6">
         <div className="flex items-center gap-3">
           <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/12 text-primary ring-1 ring-primary/25">
@@ -301,7 +285,7 @@ export default function UpgradePage() {
                 fill="#EA4335"
               />
             </svg>
-            <span>{action === 'upgrade-google' ? 'Redirecting to Google…' : 'Sign In with Google'}</span>
+            <span>{action === 'upgrade-google' || shouldAutoRetry ? 'Redirecting to Google…' : 'Sign In with Google'}</span>
           </Button>
         </div>
 

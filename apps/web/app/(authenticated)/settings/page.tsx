@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { LogOut, Ruler } from 'lucide-react'
@@ -13,7 +13,7 @@ import { useSupabase } from '@/hooks/useSupabase'
 import { analyticsQueryKeys } from '@/hooks/useAnalytics'
 import { useUiStore } from '@/store/uiStore'
 import { clearAllPersistedQueryCaches } from '@/lib/query-persistence'
-import { displayToLbs, lbsToDisplay } from '@/lib/utils'
+import { displayToLbs, getRoundingOptions, lbsToDisplay } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
@@ -35,7 +35,7 @@ import {
 } from '@/components/ui/select'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
-import type { PreferredUnit, StrengthProfileSex } from '@/types/domain'
+import type { PreferredUnit, StrengthProfileSex, WeightRoundingLbs } from '@/types/domain'
 
 function formatStrengthProfileWeight(valueLbs: number | null, unit: PreferredUnit) {
   if (valueLbs === null || !Number.isFinite(valueLbs)) {
@@ -57,6 +57,21 @@ type StrengthProfileDraft = {
   sex: '' | StrengthProfileSex
 }
 
+type StrengthProfileValues = {
+  ageYears: number | null
+  bodyweightLbs: number | null
+  sex: StrengthProfileSex | null
+}
+
+type StrengthProfileErrors = {
+  ageYears?: string
+  bodyweight?: string
+}
+
+type StrengthProfileErrorField = keyof StrengthProfileErrors
+
+const STRENGTH_PROFILE_ERROR_DELAY_MS = 1000
+
 function createStrengthProfileDraft(profile: StrengthProfileSnapshot, preferredUnit: PreferredUnit): StrengthProfileDraft {
   return {
     ageYears: profile?.strength_profile_age_years !== null && profile?.strength_profile_age_years !== undefined
@@ -64,6 +79,53 @@ function createStrengthProfileDraft(profile: StrengthProfileSnapshot, preferredU
       : '',
     bodyweight: formatStrengthProfileWeight(profile?.strength_profile_bodyweight_lbs ?? null, preferredUnit),
     sex: profile?.strength_profile_sex ?? '',
+  }
+}
+
+function createStrengthProfileValues(profile: StrengthProfileSnapshot): StrengthProfileValues {
+  return {
+    ageYears: profile?.strength_profile_age_years ?? null,
+    bodyweightLbs: profile?.strength_profile_bodyweight_lbs ?? null,
+    sex: profile?.strength_profile_sex ?? null,
+  }
+}
+
+function createStrengthProfileValuesKey(values: StrengthProfileValues) {
+  return [
+    values.sex ?? 'none',
+    values.ageYears ?? 'none',
+    values.bodyweightLbs ?? 'none',
+  ].join(':')
+}
+
+function parseStrengthProfileDraft(draft: StrengthProfileDraft, preferredUnit: PreferredUnit) {
+  const normalizedAgeInput = draft.ageYears.trim()
+  const normalizedBodyweightInput = draft.bodyweight.trim()
+  const sex = draft.sex === 'male' || draft.sex === 'female' ? draft.sex : null
+  const ageYears = normalizedAgeInput.length === 0 ? null : Number(normalizedAgeInput)
+  const parsedBodyweight = normalizedBodyweightInput.length === 0 ? null : Number(normalizedBodyweightInput)
+  const bodyweightLbs = parsedBodyweight === null
+    ? null
+    : Math.round(displayToLbs(parsedBodyweight, preferredUnit) * 10) / 10
+  const errors: StrengthProfileErrors = {}
+
+  if (ageYears !== null && (!Number.isInteger(ageYears) || ageYears < 13 || ageYears > 100)) {
+    errors.ageYears = 'Age must be a whole number between 13 and 100.'
+  }
+
+  if (bodyweightLbs !== null && (!Number.isFinite(bodyweightLbs) || bodyweightLbs < 50 || bodyweightLbs > 600)) {
+    errors.bodyweight = preferredUnit === 'kg'
+      ? 'Bodyweight must be between 22.7 and 272.2 kg.'
+      : 'Bodyweight must be between 50 and 600 lbs.'
+  }
+
+  return {
+    errors,
+    values: {
+      ageYears,
+      bodyweightLbs,
+      sex,
+    } satisfies StrengthProfileValues,
   }
 }
 
@@ -83,32 +145,152 @@ function StrengthProfileCard({
   }) => void
 }) {
   const [draft, setDraft] = useState<StrengthProfileDraft>(() => createStrengthProfileDraft(profile, preferredUnit))
+  const [visibleErrors, setVisibleErrors] = useState<StrengthProfileErrors>({})
+  const previousUnitRef = useRef(preferredUnit)
+  const ageErrorTimeoutRef = useRef<number | null>(null)
+  const bodyweightErrorTimeoutRef = useRef<number | null>(null)
+  const profileValues = createStrengthProfileValues(profile)
+  const profileValuesKey = createStrengthProfileValuesKey(profileValues)
+  const { errors, values } = parseStrengthProfileDraft(draft, preferredUnit)
+  const valuesKey = createStrengthProfileValuesKey(values)
+  const syncDraftFromProfile = createStrengthProfileDraft(profile, preferredUnit)
+  const lastSubmittedValuesKeyRef = useRef(profileValuesKey)
+  const requestSave = useEffectEvent((nextValues: StrengthProfileValues) => {
+    onSave(nextValues)
+  })
 
-  const handleSave = () => {
-    const normalizedAgeInput = draft.ageYears.trim()
-    const normalizedBodyweightInput = draft.bodyweight.trim()
-    const normalizedSex = draft.sex === 'male' || draft.sex === 'female'
-      ? draft.sex
-      : null
-    const parsedAgeYears = normalizedAgeInput.length === 0 ? null : Number(normalizedAgeInput)
-    const parsedBodyweight = normalizedBodyweightInput.length === 0 ? null : Number(normalizedBodyweightInput)
+  const clearValidationTimeout = (field: StrengthProfileErrorField) => {
+    const timeoutRef = field === 'ageYears' ? ageErrorTimeoutRef : bodyweightErrorTimeoutRef
 
-    if (parsedAgeYears !== null && (!Number.isInteger(parsedAgeYears) || parsedAgeYears < 13 || parsedAgeYears > 100)) {
-      toast.error('Age must be a whole number between 13 and 100.')
-      return
+    if (timeoutRef.current !== null) {
+      window.clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
     }
+  }
 
-    if (parsedBodyweight !== null && (!Number.isFinite(parsedBodyweight) || parsedBodyweight <= 0)) {
-      toast.error('Bodyweight must be a positive number.')
-      return
-    }
+  const setVisibleFieldError = (field: StrengthProfileErrorField, message?: string) => {
+    setVisibleErrors((current) => {
+      if (!message) {
+        if (!current[field]) {
+          return current
+        }
 
-    onSave({
-      ageYears: parsedAgeYears,
-      bodyweightLbs: parsedBodyweight === null ? null : displayToLbs(parsedBodyweight, preferredUnit),
-      sex: normalizedSex,
+        const next = { ...current }
+        delete next[field]
+        return next
+      }
+
+      if (current[field] === message) {
+        return current
+      }
+
+      return {
+        ...current,
+        [field]: message,
+      }
     })
   }
+
+  const scheduleFieldError = (field: StrengthProfileErrorField, nextDraft: StrengthProfileDraft) => {
+    clearValidationTimeout(field)
+
+    const nextError = parseStrengthProfileDraft(nextDraft, preferredUnit).errors[field]
+
+    if (!nextError) {
+      setVisibleFieldError(field)
+      return
+    }
+
+    const timeoutRef = field === 'ageYears' ? ageErrorTimeoutRef : bodyweightErrorTimeoutRef
+    timeoutRef.current = window.setTimeout(() => {
+      setVisibleFieldError(field, nextError)
+      timeoutRef.current = null
+    }, STRENGTH_PROFILE_ERROR_DELAY_MS)
+  }
+
+  const showFieldErrorOnBlur = (field: StrengthProfileErrorField) => {
+    clearValidationTimeout(field)
+    setVisibleFieldError(field, errors[field])
+  }
+
+  useEffect(() => {
+    lastSubmittedValuesKeyRef.current = profileValuesKey
+  }, [profileValuesKey])
+
+  useEffect(() => {
+    return () => {
+      clearValidationTimeout('ageYears')
+      clearValidationTimeout('bodyweight')
+    }
+  }, [])
+
+  useEffect(() => {
+    if (previousUnitRef.current === preferredUnit) {
+      return
+    }
+
+    previousUnitRef.current = preferredUnit
+    clearValidationTimeout('ageYears')
+    clearValidationTimeout('bodyweight')
+    setVisibleErrors({})
+    setDraft((current) => {
+      if (
+        current.ageYears === syncDraftFromProfile.ageYears
+        && current.bodyweight === syncDraftFromProfile.bodyweight
+        && current.sex === syncDraftFromProfile.sex
+      ) {
+        return current
+      }
+
+      return syncDraftFromProfile
+    })
+  }, [preferredUnit, syncDraftFromProfile.ageYears, syncDraftFromProfile.bodyweight, syncDraftFromProfile.sex])
+
+  useEffect(() => {
+    if (valuesKey !== profileValuesKey) {
+      return
+    }
+
+    clearValidationTimeout('ageYears')
+    clearValidationTimeout('bodyweight')
+    setVisibleErrors((current) => (Object.keys(current).length === 0 ? current : {}))
+    setDraft((current) => {
+      if (
+        current.ageYears === syncDraftFromProfile.ageYears
+        && current.bodyweight === syncDraftFromProfile.bodyweight
+        && current.sex === syncDraftFromProfile.sex
+      ) {
+        return current
+      }
+
+      return syncDraftFromProfile
+    })
+  }, [
+    profileValuesKey,
+    syncDraftFromProfile.ageYears,
+    syncDraftFromProfile.bodyweight,
+    syncDraftFromProfile.sex,
+    valuesKey,
+  ])
+
+  useEffect(() => {
+    if (errors.ageYears || errors.bodyweight) {
+      return
+    }
+
+    if (valuesKey === profileValuesKey || valuesKey === lastSubmittedValuesKeyRef.current) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      lastSubmittedValuesKeyRef.current = valuesKey
+      requestSave(values)
+    }, 300)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [errors.ageYears, errors.bodyweight, profileValuesKey, requestSave, values, valuesKey])
 
   return (
     <Card className="surface-panel">
@@ -148,9 +330,23 @@ function StrengthProfileCard({
               step="1"
               inputMode="numeric"
               value={draft.ageYears}
-              onChange={(event) => setDraft((current) => ({ ...current, ageYears: event.target.value }))}
-              placeholder="e.g. 32"
+              onChange={(event) => {
+                const nextDraft = {
+                  ...draft,
+                  ageYears: event.target.value,
+                }
+
+                setDraft(nextDraft)
+                setVisibleFieldError('ageYears')
+                scheduleFieldError('ageYears', nextDraft)
+              }}
+              onBlur={() => showFieldErrorOnBlur('ageYears')}
+              aria-invalid={visibleErrors.ageYears ? 'true' : 'false'}
+              aria-describedby={visibleErrors.ageYears ? 'strength-profile-age-error' : undefined}
             />
+            {visibleErrors.ageYears && (
+              <p id="strength-profile-age-error" className="text-sm text-destructive">{visibleErrors.ageYears}</p>
+            )}
           </div>
 
           <div className="flex flex-col gap-2">
@@ -162,28 +358,31 @@ function StrengthProfileCard({
               step={preferredUnit === 'kg' ? '0.5' : '1'}
               inputMode="decimal"
               value={draft.bodyweight}
-              onChange={(event) => setDraft((current) => ({ ...current, bodyweight: event.target.value }))}
-              placeholder={preferredUnit === 'kg' ? 'e.g. 82.5' : 'e.g. 181'}
+              onChange={(event) => {
+                const nextDraft = {
+                  ...draft,
+                  bodyweight: event.target.value,
+                }
+
+                setDraft(nextDraft)
+                setVisibleFieldError('bodyweight')
+                scheduleFieldError('bodyweight', nextDraft)
+              }}
+              onBlur={() => showFieldErrorOnBlur('bodyweight')}
+              aria-invalid={visibleErrors.bodyweight ? 'true' : 'false'}
+              aria-describedby={visibleErrors.bodyweight ? 'strength-profile-bodyweight-error' : undefined}
             />
+            {visibleErrors.bodyweight && (
+              <p id="strength-profile-bodyweight-error" className="text-sm text-destructive">{visibleErrors.bodyweight}</p>
+            )}
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-sm text-muted-foreground">
-            {profile?.strength_profile_sex !== null
-              && profile?.strength_profile_sex !== undefined
-              && profile?.strength_profile_age_years !== null
-              && profile?.strength_profile_age_years !== undefined
-              && profile?.strength_profile_bodyweight_lbs !== null
-              && profile?.strength_profile_bodyweight_lbs !== undefined
-                ? 'Saved values stay tied to your account.'
-              : 'Complete all three fields to unlock strength standards in Analytics.'}
-          </div>
-
-          <Button size="lg" onClick={handleSave} disabled={isPending}>
-            {isPending ? 'Saving Strength Profile…' : 'Save Strength Profile'}
-          </Button>
-        </div>
+        {isPending && (
+          <p className="text-sm text-muted-foreground">
+            Saving strength profile…
+          </p>
+        )}
       </CardContent>
     </Card>
   )
@@ -196,7 +395,7 @@ export default function SettingsPage() {
   const { data: profile } = useProfile()
   const queryClient = useQueryClient()
   const [isSigningOut, setIsSigningOut] = useState(false)
-  const { preferredUnit, setPreferredUnit } = useUiStore()
+  const { preferredUnit, setPreferredUnit, setWeightRoundingLbs, weightRoundingLbs } = useUiStore()
   const isGuest = isAnonymousUser(user)
 
   const updateUnit = useMutation({
@@ -222,18 +421,36 @@ export default function SettingsPage() {
       bodyweightLbs: number | null
       sex: StrengthProfileSex | null
     }) => {
-      const { error } = await supabase.rpc('update_strength_profile', {
-        ...(ageYears !== null ? { p_age_years: ageYears } : {}),
-        ...(bodyweightLbs !== null ? { p_bodyweight_lbs: bodyweightLbs } : {}),
-        ...(sex !== null ? { p_sex: sex } : {}),
+      const { data, error } = await supabase.rpc('update_strength_profile', {
+        p_age_years: ageYears,
+        p_bodyweight_lbs: bodyweightLbs,
+        p_sex: sex,
       })
 
+      if (error) throw error
+
+      return data
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['profile'] })
+      await queryClient.invalidateQueries({ queryKey: analyticsQueryKeys.all() })
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
+    },
+  })
+
+  const updateWeightRounding = useMutation({
+    mutationFn: async (rounding: WeightRoundingLbs) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ weight_rounding_lbs: rounding })
+        .eq('id', user?.id ?? '')
       if (error) throw error
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['profile'] })
       await queryClient.invalidateQueries({ queryKey: analyticsQueryKeys.all() })
-      toast.success('Strength profile saved.')
     },
   })
 
@@ -265,6 +482,22 @@ export default function SettingsPage() {
     })
   }
 
+  const handleWeightRoundingChange = (rounding: WeightRoundingLbs) => {
+    if (rounding === weightRoundingLbs) return
+
+    const previousRounding = weightRoundingLbs
+    setWeightRoundingLbs(rounding)
+
+    if (user) {
+      updateWeightRounding.mutate(rounding, {
+        onError: (error: Error) => {
+          setWeightRoundingLbs(previousRounding)
+          toast.error(error.message)
+        },
+      })
+    }
+  }
+
   const handleLogout = async () => {
     setIsSigningOut(true)
 
@@ -290,6 +523,7 @@ export default function SettingsPage() {
     .slice(0, 2)
     .map((part: string) => part[0]?.toUpperCase())
     .join('') || 'PI'
+  const roundingOptions = getRoundingOptions(preferredUnit)
 
   return (
     <div className="page-shell max-w-5xl">
@@ -387,14 +621,48 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        <Card className="surface-panel">
+          <CardHeader>
+            <CardTitle>Weight Rounding</CardTitle>
+            <CardDescription>
+              Applies to prescribed loads, training maxes, estimated 1RM, and weight displays across the app.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="weight-rounding">Rounding increment ({preferredUnit})</Label>
+              <Select
+                value={String(weightRoundingLbs)}
+                onValueChange={(value) => {
+                  if (value === '2.5' || value === '5' || value === '10') {
+                    handleWeightRoundingChange(Number(value) as WeightRoundingLbs)
+                  }
+                }}
+                items={roundingOptions.map((option) => ({ value: String(option.value), label: option.label }))}
+              >
+                <SelectTrigger id="weight-rounding" className="h-9 w-full max-w-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {roundingOptions.map((option) => (
+                      <SelectItem key={option.value} value={String(option.value)}>{option.label}</SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {updateWeightRounding.isPending && (
+              <p className="text-sm text-muted-foreground">
+                <Ruler className="mr-1 inline-block size-3.5" />
+                Saving rounding preference…
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
         <StrengthProfileCard
-          key={[
-            profile?.id ?? 'anonymous',
-            profile?.strength_profile_sex ?? 'none',
-            profile?.strength_profile_age_years ?? 'none',
-            profile?.strength_profile_bodyweight_lbs ?? 'none',
-            preferredUnit,
-          ].join(':')}
           profile={profile}
           preferredUnit={preferredUnit}
           isPending={updateStrengthProfile.isPending}

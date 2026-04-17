@@ -38,7 +38,7 @@ export function ConsistencyHeatmap({ compact = false, data }: ConsistencyHeatmap
   const maxVolume = Math.max(...data.map((entry) => entry.totalVolume), 0)
 
   return (
-    <div className={cn('flex gap-1.5', compact ? 'items-center' : 'items-end')}>
+    <div className={cn('flex gap-1.5', compact ? 'items-center' : 'items-start')}>
       {data.map((entry) => {
         const bucket = getVolumeBucket(entry.totalVolume, maxVolume)
 
@@ -53,7 +53,7 @@ export function ConsistencyHeatmap({ compact = false, data }: ConsistencyHeatmap
               title={`${formatShortDate(entry.weekStart)}: ${entry.isActive ? 'active week' : 'rest week'}${entry.totalVolume > 0 ? ` · ${Math.round(entry.totalVolume)} lbs` : ''}`}
             />
             {!compact ? (
-              <span className="text-[10px] text-muted-foreground">{formatShortDate(entry.weekStart)}</span>
+              <span className="text-center text-[10px] text-muted-foreground">{formatShortDate(entry.weekStart)}</span>
             ) : null}
           </div>
         )

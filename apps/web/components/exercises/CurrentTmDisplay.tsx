@@ -1,3 +1,4 @@
+import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { formatWeight } from '@/lib/utils'
 import type { PreferredUnit } from '@/types/domain'
 
@@ -9,6 +10,8 @@ interface CurrentTmDisplayProps {
 }
 
 export function CurrentTmDisplay({ exerciseName, weightLbs, unit, effectiveDate }: CurrentTmDisplayProps) {
+  const weightRoundingLbs = usePreferredWeightRounding()
+
   if (!weightLbs) {
     return (
       <div className="flex flex-col gap-1.5">
@@ -23,7 +26,7 @@ export function CurrentTmDisplay({ exerciseName, weightLbs, unit, effectiveDate 
       <span className="text-sm font-medium text-foreground">{exerciseName}</span>
       <div className="flex flex-col gap-1">
         <span className="font-mono text-2xl font-semibold tracking-[-0.06em] text-foreground">
-          {formatWeight(weightLbs, unit)}
+          {formatWeight(weightLbs, unit, weightRoundingLbs)}
         </span>
         {effectiveDate && (
           <p className="text-xs text-muted-foreground">

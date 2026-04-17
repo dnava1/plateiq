@@ -6,6 +6,7 @@ import { getTemplate } from '@/lib/constants/templates'
 import { getExerciseLookupKeys } from '@/hooks/useExercises'
 import { analyticsQueryKeys } from '@/hooks/useAnalytics'
 import { dashboardQueryKeys } from '@/hooks/useDashboard'
+import { isWeightRoundingLbs, resolveWeightRoundingLbs } from '@/lib/utils'
 import { useSupabase } from './useSupabase'
 import type { TrainingProgram } from './usePrograms'
 import type { Database, Json, Tables } from '@/types/database'
@@ -94,7 +95,7 @@ function dedupeStrings(values: Array<string | undefined>) {
   return Array.from(new Set(values.filter((value): value is string => Boolean(value))))
 }
 
-export function resolveWorkoutProgram(program: TrainingProgram | null | undefined): ResolvedWorkoutProgram {
+export function resolveWorkoutProgram(program: TrainingProgram | null | undefined, preferredRounding?: number | null): ResolvedWorkoutProgram {
   if (!program) {
     return {
       isCustom: false,
@@ -105,11 +106,16 @@ export function resolveWorkoutProgram(program: TrainingProgram | null | undefine
   }
 
   const rawConfig = program.config ?? null
+  const resolvedPreferenceRounding = isWeightRoundingLbs(preferredRounding)
+    ? preferredRounding
+    : undefined
 
   if (rawConfig && isCustomProgramConfig(rawConfig)) {
+    const rounding = resolvedPreferenceRounding ?? DEFAULT_ROUNDING_LBS
+
     return {
       isCustom: true,
-      rounding: rawConfig.rounding ?? DEFAULT_ROUNDING_LBS,
+      rounding,
       selectedVariationKeys: [],
       template: {
         key: program.template_key,
@@ -124,6 +130,7 @@ export function resolveWorkoutProgram(program: TrainingProgram | null | undefine
           rawConfig.days.flatMap((day) => day.exercise_blocks.map((block) => block.exercise_key)),
         ),
         days: rawConfig.days,
+        week_schemes: rawConfig.week_schemes,
         progression: rawConfig.progression,
       },
     }
@@ -131,10 +138,11 @@ export function resolveWorkoutProgram(program: TrainingProgram | null | undefine
 
   const config = parseProgramConfig(rawConfig)
   const template = getTemplate(program.template_key) ?? null
+  const rounding = resolvedPreferenceRounding ?? resolveWeightRoundingLbs(config.rounding)
 
   return {
     isCustom: false,
-    rounding: config.rounding ?? DEFAULT_ROUNDING_LBS,
+    rounding,
     selectedVariationKeys: config.variation_key ? [config.variation_key] : [],
     template,
   }
@@ -364,6 +372,7 @@ export function useEnsureWorkout() {
     mutationFn: async (input: EnsureWorkoutInput) => ensureWorkoutMutation(supabase, input),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: workoutQueryKeys.cycle(variables.cycleId) })
+      queryClient.invalidateQueries({ queryKey: ['programs'] })
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() })
     },
   })

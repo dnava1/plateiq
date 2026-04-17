@@ -1,4 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import { getTemplate } from '@/lib/constants/templates'
+import {
+  buildBuilderDraftFromProgramDefinition,
+  buildEditableConfigFromTemplate,
+  createProgramBuilderDraftSource,
+  createTemplateBuilderDraftSource,
+} from '@/lib/programs/editable'
 import { DEFAULT_LINEAR_INCREMENT_LBS, useBuilderDraftStore } from './builderDraftStore'
 
 describe('builderDraftStore', () => {
@@ -39,5 +46,40 @@ describe('builderDraftStore', () => {
 
     expect(useBuilderDraftStore.getState().draft.progression.increment_lbs).toEqual(customIncrements)
     expect(useBuilderDraftStore.getState().toConfig().progression.increment_lbs).toBeUndefined()
+  })
+
+  it('preserves editable metadata and week schemes when hydrating from a template source', () => {
+    const template = getTemplate('wendler_531')
+    const definition = buildEditableConfigFromTemplate(template!, { variationKey: 'bbb' })
+    const draft = buildBuilderDraftFromProgramDefinition("Wendler's 5/3/1", definition)
+
+    useBuilderDraftStore.getState().hydrateDraft(draft, createTemplateBuilderDraftSource('wendler_531'))
+
+    const config = useBuilderDraftStore.getState().toConfig()
+
+    expect(config.week_schemes).toEqual(definition.week_schemes)
+    expect(config.metadata).toEqual(definition.metadata)
+  })
+
+  it('updates source metadata without overwriting the current draft', () => {
+    useBuilderDraftStore.getState().patchDraft({ name: 'Edited Draft' })
+
+    useBuilderDraftStore.getState().patchSource(
+      createProgramBuilderDraftSource(
+        {
+          id: 42,
+          name: 'Saved Program',
+          template_key: 'custom',
+          is_active: true,
+        },
+        'revision',
+      ),
+    )
+
+    const state = useBuilderDraftStore.getState()
+
+    expect(state.draft.name).toBe('Edited Draft')
+    expect(state.source?.save_strategy).toBe('revision')
+    expect(state.source?.program_id).toBe(42)
   })
 })

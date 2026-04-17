@@ -11,7 +11,15 @@ vi.mock('next/navigation', () => ({
 }))
 
 vi.mock('@/hooks/usePrograms', () => ({
-  useCreateCustomProgram: () => ({
+  useCreateProgramDefinition: () => ({
+    isPending: false,
+    mutate: vi.fn(),
+  }),
+  useUpdateProgramDefinition: () => ({
+    isPending: false,
+    mutate: vi.fn(),
+  }),
+  useCreateProgramRevision: () => ({
     isPending: false,
     mutate: vi.fn(),
   }),

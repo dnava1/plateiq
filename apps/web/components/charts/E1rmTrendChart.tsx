@@ -1,6 +1,9 @@
 'use client'
 
 import { useMemo } from 'react'
+import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
+import { usePreferredUnit } from '@/hooks/usePreferredUnit'
+import { formatWeight } from '@/lib/utils'
 import {
   CartesianGrid,
   Legend,
@@ -21,6 +24,8 @@ interface E1rmTrendChartProps {
 }
 
 export function E1rmTrendChart({ compact = false, data, exerciseId }: E1rmTrendChartProps) {
+  const preferredUnit = usePreferredUnit()
+  const weightRoundingLbs = usePreferredWeightRounding()
   const { rows, series } = useMemo(() => {
     const filteredPoints = exerciseId
       ? data.filter((point) => point.exerciseId === exerciseId)
@@ -80,7 +85,7 @@ export function E1rmTrendChart({ compact = false, data, exerciseId }: E1rmTrendC
                 : typeof value === 'number'
                   ? value
                   : Number(value ?? 0)
-              return [`${numericValue.toFixed(1)} lbs`, 'Estimated 1RM']
+              return [formatWeight(numericValue, preferredUnit, weightRoundingLbs), 'Estimated 1RM']
             }}
             labelFormatter={(_label, payload) => {
               const point = payload?.[0]?.payload as { date?: string } | undefined

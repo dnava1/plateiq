@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import type { PreferredUnit } from '@/types/domain'
+import type { PreferredUnit, WeightRoundingLbs } from '@/types/domain'
 
 const KG_PER_LB = 0.453592
 const ROUNDING_OPTIONS_LBS = [2.5, 5, 10] as const
@@ -29,13 +29,27 @@ function normalizeRoundedValue(value: number) {
 }
 
 export type RoundingMode = 'nearest' | 'down' | 'up'
+export const DEFAULT_WEIGHT_ROUNDING_LBS: WeightRoundingLbs = 5
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatWeight(lbs: number, unit: PreferredUnit): string {
-  return `${lbsToDisplay(lbs, unit)} ${formatUnit(unit)}`
+export function isWeightRoundingLbs(value: unknown): value is WeightRoundingLbs {
+  return value === 2.5 || value === 5 || value === 10
+}
+
+export function resolveWeightRoundingLbs(value: unknown): WeightRoundingLbs {
+  return isWeightRoundingLbs(value) ? value : DEFAULT_WEIGHT_ROUNDING_LBS
+}
+
+export function roundWeightForDisplay(lbs: number, roundingLbs?: number | null): number {
+  return roundToNearest(lbs, resolveWeightRoundingLbs(roundingLbs))
+}
+
+export function formatWeight(lbs: number, unit: PreferredUnit, roundingLbs?: number | null): string {
+  const resolvedLbs = roundingLbs == null ? lbs : roundWeightForDisplay(lbs, roundingLbs)
+  return `${lbsToDisplay(resolvedLbs, unit)} ${formatUnit(unit)}`
 }
 
 export function lbsToDisplay(lbs: number, unit: PreferredUnit): number {

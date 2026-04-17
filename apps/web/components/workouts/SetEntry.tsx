@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { displayToLbs, formatUnit, formatWeight, lbsToDisplay } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -45,6 +46,7 @@ export function SetEntry({
   suggestedWeightLbs,
 }: SetEntryProps) {
   const preferredUnit = usePreferredUnit()
+  const weightRoundingLbs = usePreferredWeightRounding()
   const [weightValue, setWeightValue] = useState(() => String(lbsToDisplay(defaultWeightLbs, preferredUnit)))
   const [repsValue, setRepsValue] = useState(() => String(defaultReps ?? ''))
 
@@ -85,7 +87,7 @@ export function SetEntry({
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Suggested load: <span className="font-medium text-foreground">{formatWeight(suggestedWeightLbs, preferredUnit)}</span>
+        Suggested load: <span className="font-medium text-foreground">{formatWeight(suggestedWeightLbs, preferredUnit, weightRoundingLbs)}</span>
       </p>
 
       <div className="flex gap-2">

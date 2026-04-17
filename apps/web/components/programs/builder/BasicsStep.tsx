@@ -1,8 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { usePreferredUnit } from '@/hooks/usePreferredUnit'
-import { formatUnit, getRoundingOptions } from '@/lib/utils'
 import { validateCustomProgramBasicsStep } from '@/lib/validations/program'
 import { useBuilderDraftStore } from '@/store/builderDraftStore'
 import { Button } from '@/components/ui/button'
@@ -43,12 +41,6 @@ const TM_PERCENTAGE_OPTIONS = [
 export function BasicsStep() {
   const { draft, patchDraft, setStep } = useBuilderDraftStore()
   const [error, setError] = useState<string | null>(null)
-  const preferredUnit = usePreferredUnit()
-  const roundingOptions = getRoundingOptions(preferredUnit)
-  const roundingSelectItems = roundingOptions.map((option) => ({
-    value: String(option.value),
-    label: option.label,
-  }))
 
   const handleNext = () => {
     const validationError = validateCustomProgramBasicsStep(draft.name)
@@ -157,8 +149,8 @@ export function BasicsStep() {
         </div>
 
         {draft.uses_training_max && (
-          <div className="grid grid-cols-2 gap-4 animate-slide-up motion-reduce:animate-none">
-            <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-1 gap-4 animate-slide-up motion-reduce:animate-none">
+            <div className="flex flex-col gap-2 max-w-xs">
               <Label htmlFor="tmp">Training Max Percentage</Label>
               <Select
                 value={String(draft.tm_percentage)}
@@ -174,28 +166,6 @@ export function BasicsStep() {
                 <SelectContent>
                   <SelectGroup>
                     {TM_PERCENTAGE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="rnd">Rounding ({formatUnit(preferredUnit)})</Label>
-              <Select
-                value={String(draft.rounding)}
-                onValueChange={(value) => {
-                  patchDraft({ rounding: Number(value) })
-                  setError(null)
-                }}
-                items={roundingSelectItems}
-              >
-                <SelectTrigger id="rnd" className="w-full h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {roundingSelectItems.map((option) => (
                       <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
                     ))}
                   </SelectGroup>

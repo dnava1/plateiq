@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { CloudOff, Flag } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCycleCompletionPreview, useCompleteCycle, buildCycleProgressionPayload } from '@/hooks/useCycleCompletion'
+import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import type { TrainingProgram } from '@/hooks/usePrograms'
 import { formatWeight } from '@/lib/utils'
@@ -37,6 +38,7 @@ function getIncrementBadge(rowIncrementLbs: number, preferredUnit: ReturnType<ty
 
 export function CompleteCycleDialog({ program }: CompleteCycleDialogProps) {
   const preferredUnit = usePreferredUnit()
+  const weightRoundingLbs = usePreferredWeightRounding()
   const clearSession = useWorkoutSessionStore((state) => state.clearSession)
   const completeCycle = useCompleteCycle()
   const { activeCycle, previewRows, isLoading } = useCycleCompletionPreview(program)
@@ -141,7 +143,7 @@ export function CompleteCycleDialog({ program }: CompleteCycleDialogProps) {
                     <div className="mt-4 grid gap-2 text-sm sm:grid-cols-3">
                       <div className="rounded-2xl border border-border/60 bg-card/70 px-3 py-2">
                         <p className="text-xs text-muted-foreground">Current TM</p>
-                        <p className="font-medium text-foreground">{formatWeight(row.currentTmLbs, preferredUnit)}</p>
+                        <p className="font-medium text-foreground">{formatWeight(row.currentTmLbs, preferredUnit, weightRoundingLbs)}</p>
                       </div>
                       <div className="rounded-2xl border border-border/60 bg-card/70 px-3 py-2">
                         <p className="text-xs text-muted-foreground">Adjustment</p>
@@ -149,7 +151,7 @@ export function CompleteCycleDialog({ program }: CompleteCycleDialogProps) {
                       </div>
                       <div className="rounded-2xl border border-border/60 bg-card/70 px-3 py-2">
                         <p className="text-xs text-muted-foreground">Next TM</p>
-                        <p className="font-medium text-foreground">{formatWeight(row.newTmLbs, preferredUnit)}</p>
+                        <p className="font-medium text-foreground">{formatWeight(row.newTmLbs, preferredUnit, weightRoundingLbs)}</p>
                       </div>
                     </div>
                   </div>

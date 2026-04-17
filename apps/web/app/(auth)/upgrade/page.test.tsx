@@ -83,11 +83,59 @@ describe('UpgradePage', () => {
     expect(screen.getByRole('button', { name: 'Sign In with Google' })).toBeDisabled()
   })
 
+  it('shows redirecting state immediately when existing-account retry mode loads', () => {
+    useSearchParamsMock.mockReturnValue(new URLSearchParams('upgrade_mode=existing_google'))
+    useUserMock.mockReturnValue({
+      data: null,
+      isLoading: true,
+    })
+
+    render(<UpgradePage />)
+
+    expect(screen.getByRole('button', { name: 'Redirecting to Google…' })).toBeDisabled()
+    expect(screen.getByText('Sign in with Google to keep this temporary guest session and continue with a permanent account.')).toBeInTheDocument()
+  })
+
+  it('falls back to the unavailable state when retry mode loads without a guest session', async () => {
+    useSearchParamsMock.mockReturnValue(new URLSearchParams('upgrade_mode=existing_google'))
+    useUserMock.mockReturnValue({
+      data: null,
+      isLoading: false,
+    })
+
+    render(<UpgradePage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Google sign-in unavailable')).toBeInTheDocument()
+    })
+
+    expect(screen.queryByRole('button', { name: 'Redirecting to Google…' })).not.toBeInTheDocument()
+  })
+
+  it('clears retry loading state when retry mode resolves to a permanent user', async () => {
+    useSearchParamsMock.mockReturnValue(new URLSearchParams('upgrade_mode=existing_google'))
+    useUserMock.mockReturnValue({
+      data: {
+        id: 'permanent-user',
+        is_anonymous: false,
+        email: 'member@example.com',
+      },
+      isLoading: false,
+    })
+
+    render(<UpgradePage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Sign In with Google' })).toBeInTheDocument()
+    })
+
+    expect(screen.queryByRole('button', { name: 'Redirecting to Google…' })).not.toBeInTheDocument()
+  })
+
   it('retries as a normal Google sign-in when the provider reports identity_already_exists', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true })
     vi.stubGlobal('fetch', fetchMock)
-    signOutMock.mockResolvedValue({ error: null })
-    signInWithOAuthMock.mockResolvedValue({ data: { url: 'https://accounts.google.com/o/oauth2/auth?test=1' }, error: null })
+    signInWithOAuthMock.mockResolvedValue({ error: null })
     useSearchParamsMock.mockReturnValue(new URLSearchParams('upgrade_mode=existing_google'))
     window.history.replaceState({}, '', '/upgrade?upgrade_mode=existing_google')
     const origin = window.location.origin
@@ -95,6 +143,8 @@ describe('UpgradePage', () => {
     render(<UpgradePage />)
 
     expect(screen.queryByText('We could not complete that Google sign-in. Try again.')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Redirecting to Google…' })).toBeDisabled()
+    expect(screen.getByText('Sign in with Google to keep this temporary guest session and continue with a permanent account.')).toBeInTheDocument()
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith('/api/auth/upgrade/discard', {
@@ -107,15 +157,11 @@ describe('UpgradePage', () => {
         provider: 'google',
         options: {
           redirectTo: `${origin}/auth/callback?next=%2Fsettings&upgrade_mode=existing_google`,
-          skipBrowserRedirect: true,
         },
       })
     })
 
-    await waitFor(() => {
-      expect(signOutMock).toHaveBeenCalledWith({ scope: 'local' })
-    })
-
+    expect(signOutMock).not.toHaveBeenCalled()
     expect(screen.getByRole('button', { name: 'Redirecting to Google…' })).toBeInTheDocument()
   })
 
@@ -124,8 +170,7 @@ describe('UpgradePage', () => {
       .mockResolvedValueOnce({ ok: true })
       .mockResolvedValueOnce({ ok: true })
     vi.stubGlobal('fetch', fetchMock)
-    signInWithOAuthMock.mockResolvedValue({ data: { url: 'https://accounts.google.com/o/oauth2/auth?test=1' }, error: null })
-    signOutMock.mockResolvedValue({ error: { message: 'sign out failed' } })
+    signInWithOAuthMock.mockResolvedValue({ error: { message: 'oauth failed' } })
     useSearchParamsMock.mockReturnValue(new URLSearchParams('upgrade_mode=existing_google'))
     window.history.replaceState({}, '', '/upgrade?upgrade_mode=existing_google')
 
@@ -144,6 +189,8 @@ describe('UpgradePage', () => {
     })
 
     expect(screen.getByText('Unable to switch to your existing Google account right now.')).toBeInTheDocument()
+    expect(signOutMock).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Sign In with Google' })).toBeEnabled()
   })
 
   it('starts Google account creation from the guest session', async () => {

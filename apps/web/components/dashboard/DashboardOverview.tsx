@@ -6,6 +6,7 @@ import { Activity, ArrowRight, Dumbbell, PlusIcon, TrendingUp } from 'lucide-rea
 import { useAnalytics, type AnalyticsDateRange } from '@/hooks/useAnalytics'
 import { useDashboard } from '@/hooks/useDashboard'
 import { useActiveProgram } from '@/hooks/usePrograms'
+import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { resolveWorkoutProgram, useActiveCycle, useCycleWorkouts } from '@/hooks/useWorkouts'
 import { aggregateWeeklyVolume, buildWeeklyActivity, deriveRecentPrs } from '@/lib/analytics'
@@ -50,9 +51,13 @@ function parseProgramConfig(config: Json | null): ProgramConfig {
 
 export function DashboardOverview() {
   const preferredUnit = usePreferredUnit()
+  const weightRoundingLbs = usePreferredWeightRounding()
   const { data: program, isLoading: isProgramLoading } = useActiveProgram()
   const { data: dashboard, isLoading: isDashboardLoading } = useDashboard()
-  const { template, isCustom } = useMemo(() => resolveWorkoutProgram(program), [program])
+  const { template, isCustom } = useMemo(
+    () => resolveWorkoutProgram(program, weightRoundingLbs),
+    [program, weightRoundingLbs],
+  )
   const { data: activeCycle, isLoading: isCycleLoading } = useActiveCycle(program?.id)
   const { data: cycleWorkouts } = useCycleWorkouts(activeCycle?.id)
   const analyticsRange = useMemo<AnalyticsDateRange>(() => {
@@ -312,7 +317,7 @@ export function DashboardOverview() {
                     <div key={trainingMax.exerciseId} className="rounded-[22px] border border-border/70 bg-background/45 p-4">
                       <p className="text-sm font-medium text-foreground">{trainingMax.exerciseName}</p>
                       <p className="mt-2 text-2xl font-semibold tracking-[-0.07em] text-foreground">
-                        {formatWeight(trainingMax.weightLbs, preferredUnit)}
+                        {formatWeight(trainingMax.weightLbs, preferredUnit, weightRoundingLbs)}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">Effective {formatDate(trainingMax.effectiveDate)}</p>
                     </div>
@@ -394,10 +399,10 @@ export function DashboardOverview() {
                         <TrendingUp className="text-primary" />
                       </div>
                       <p className="mt-3 text-lg font-semibold tracking-[-0.06em] text-foreground">
-                        {formatWeight(record.e1rm, preferredUnit)}
+                        {formatWeight(record.e1rm, preferredUnit, weightRoundingLbs)}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {formatWeight(record.weight, preferredUnit)} × {record.reps}
+                        {formatWeight(record.weight, preferredUnit, weightRoundingLbs)} × {record.reps}
                         {record.improvementLbs !== null ? ` · +${formatWeight(record.improvementLbs, preferredUnit)} over the prior best` : ''}
                       </p>
                     </div>

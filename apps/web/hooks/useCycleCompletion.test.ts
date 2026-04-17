@@ -52,7 +52,6 @@ describe('buildCycleCompletionPreview', () => {
       cycle_length_weeks: 1,
       uses_training_max: true,
       tm_percentage: 0.9,
-      rounding: 5,
       progression: {
         style: 'autoregulated',
         increment_lbs: { upper: 5, lower: 10 },

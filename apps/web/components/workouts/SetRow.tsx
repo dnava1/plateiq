@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { CheckCircle2, CloudAlert, CloudUpload, PencilLine } from 'lucide-react'
+import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { useHistoricalAmrapSets, useLogSet } from '@/hooks/useWorkouts'
 import { useWorkoutSessionStore, type SetSyncState } from '@/store/workoutSessionStore'
@@ -41,6 +42,7 @@ function getSyncLabel(syncState: SetSyncState['status'] | undefined) {
 
 export function SetRow({ set, syncState, onSyncStateChange, userId }: SetRowProps) {
   const preferredUnit = usePreferredUnit()
+  const weightRoundingLbs = usePreferredWeightRounding()
   const logSet = useLogSet()
   const historicalAmraps = useHistoricalAmrapSets(set.is_amrap ? (set.exerciseId ?? undefined) : undefined)
   const hasShownPrToast = useWorkoutSessionStore((state) => state.hasShownPrToast)
@@ -82,7 +84,7 @@ export function SetRow({ set, syncState, onSyncStateChange, userId }: SetRowProp
       }
 
       markPrToastShown(prToastKey)
-      toast.success(`New ${set.exerciseName} estimated 1RM PR: ${formatWeight(nextEstimate, preferredUnit)}`)
+      toast.success(`New ${set.exerciseName} estimated 1RM PR: ${formatWeight(nextEstimate, preferredUnit, weightRoundingLbs)}`)
     } catch {
       return
     }
@@ -144,11 +146,11 @@ export function SetRow({ set, syncState, onSyncStateChange, userId }: SetRowProp
           <div className="flex flex-col gap-1">
             <p className="text-sm font-medium text-foreground">{set.exerciseName}</p>
             <p className="text-sm text-muted-foreground">
-              {formatWeight(set.weight_lbs, preferredUnit)} × {repTarget} reps
+              {formatWeight(set.weight_lbs, preferredUnit, weightRoundingLbs)} × {repTarget} reps
             </p>
             {usesAdjustedLoad ? (
               <p className="text-xs text-muted-foreground">
-                Suggested {formatWeight(set.prescribedWeightLbs, preferredUnit)}
+                Suggested {formatWeight(set.prescribedWeightLbs, preferredUnit, weightRoundingLbs)}
               </p>
             ) : null}
           </div>
@@ -164,7 +166,7 @@ export function SetRow({ set, syncState, onSyncStateChange, userId }: SetRowProp
             </div>
             {estimatedOneRepMax ? (
               <p className="text-xs text-muted-foreground">
-                Estimated 1RM {formatWeight(estimatedOneRepMax, preferredUnit)}
+                Estimated 1RM {formatWeight(estimatedOneRepMax, preferredUnit, weightRoundingLbs)}
               </p>
             ) : null}
             {set.is_amrap ? (

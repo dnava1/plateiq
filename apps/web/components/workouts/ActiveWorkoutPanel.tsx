@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo } from 'react'
 import { AlertCircle, CircleCheckBig } from 'lucide-react'
+import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { buildExerciseKeyMap, resolveExerciseIdFromMap, useExercises } from '@/hooks/useExercises'
 import { useCurrentTrainingMaxes } from '@/hooks/useTrainingMaxes'
 import { useUser } from '@/hooks/useUser'
@@ -26,7 +27,11 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
   const { data: user } = useUser()
   const { data: exercises } = useExercises()
   const { data: trainingMaxes } = useCurrentTrainingMaxes()
-  const { template, selectedVariationKeys, rounding } = useMemo(() => resolveWorkoutProgram(program), [program])
+  const preferredWeightRounding = usePreferredWeightRounding()
+  const { template, selectedVariationKeys, rounding } = useMemo(
+    () => resolveWorkoutProgram(program, preferredWeightRounding),
+    [preferredWeightRounding, program],
+  )
   const activeWorkoutId = useWorkoutSessionStore((state) => state.activeWorkoutId)
   const activeCycleId = useWorkoutSessionStore((state) => state.activeCycleId)
   const activeDayIndex = useWorkoutSessionStore((state) => state.activeDayIndex)

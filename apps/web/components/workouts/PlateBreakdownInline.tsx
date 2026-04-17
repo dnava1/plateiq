@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { Disc3 } from 'lucide-react'
+import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { calculatePlateBreakdown, DEFAULT_BARBELL_WEIGHT_LBS } from '@/lib/plate-calculator'
 import { displayToLbs, formatUnit, formatWeight, lbsToDisplay } from '@/lib/utils'
@@ -15,6 +16,7 @@ interface PlateBreakdownInlineProps {
 export function PlateBreakdownInline({ weightsLbs }: PlateBreakdownInlineProps) {
   const [open, setOpen] = useState(false)
   const preferredUnit = usePreferredUnit()
+  const weightRoundingLbs = usePreferredWeightRounding()
   const barbellWeightLbs = preferredUnit === 'kg' ? displayToLbs(20, 'kg') : DEFAULT_BARBELL_WEIGHT_LBS
 
   const breakdowns = useMemo(
@@ -43,7 +45,7 @@ export function PlateBreakdownInline({ weightsLbs }: PlateBreakdownInlineProps) 
           {breakdowns.map(({ weightLbs, breakdown }) => (
             <div key={weightLbs} className="flex flex-wrap items-center gap-1.5 text-xs">
               <span className="font-medium text-foreground">
-                {formatWeight(weightLbs, preferredUnit)}
+                {formatWeight(weightLbs, preferredUnit, weightRoundingLbs)}
               </span>
               <span className="text-muted-foreground">→</span>
               {breakdown.platesPerSide.length > 0 ? (

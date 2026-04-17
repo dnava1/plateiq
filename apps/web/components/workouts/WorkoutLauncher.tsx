@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { ChevronLeft, ChevronRight, Play, RotateCcw } from 'lucide-react'
+import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { useExerciseKeyMap, resolveExerciseIdFromMap, useExercises } from '@/hooks/useExercises'
 import { useCurrentTrainingMaxes } from '@/hooks/useTrainingMaxes'
 import { useUser } from '@/hooks/useUser'
@@ -26,7 +27,11 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
   const { data: user } = useUser()
   const { data: exercises } = useExercises()
   const { data: trainingMaxes } = useCurrentTrainingMaxes()
-  const { template, selectedVariationKeys, rounding } = useMemo(() => resolveWorkoutProgram(program), [program])
+  const preferredWeightRounding = usePreferredWeightRounding()
+  const { template, selectedVariationKeys, rounding } = useMemo(
+    () => resolveWorkoutProgram(program, preferredWeightRounding),
+    [preferredWeightRounding, program],
+  )
   const { data: activeCycle, isLoading: isCycleLoading } = useActiveCycle(program.id)
   const { data: cycleWorkouts } = useCycleWorkouts(activeCycle?.id)
   const ensureWorkout = useEnsureWorkout()

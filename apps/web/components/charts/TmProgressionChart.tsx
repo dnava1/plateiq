@@ -1,6 +1,9 @@
 'use client'
 
 import { useMemo } from 'react'
+import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
+import { usePreferredUnit } from '@/hooks/usePreferredUnit'
+import { formatWeight } from '@/lib/utils'
 import {
   CartesianGrid,
   Line,
@@ -22,6 +25,8 @@ interface TmProgressionChartProps {
 }
 
 export function TmProgressionChart({ data }: TmProgressionChartProps) {
+  const preferredUnit = usePreferredUnit()
+  const weightRoundingLbs = usePreferredWeightRounding()
   const rows = useMemo(
     () => [...data]
       .sort((left, right) => left.effectiveDate.localeCompare(right.effectiveDate))
@@ -47,7 +52,7 @@ export function TmProgressionChart({ data }: TmProgressionChartProps) {
                   ? value
                   : Number(value ?? 0)
 
-              return [`${numericValue.toFixed(1)} lbs`, 'Training max']
+              return [formatWeight(numericValue, preferredUnit, weightRoundingLbs), 'Training max']
             }}
             labelFormatter={(_label, payload) => {
               const point = payload?.[0]?.payload as { effectiveDate?: string } | undefined

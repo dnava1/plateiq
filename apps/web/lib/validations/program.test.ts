@@ -17,7 +17,6 @@ function buildValidCustomProgramInput() {
       cycle_length_weeks: 4,
       uses_training_max: true,
       tm_percentage: 0.9,
-      rounding: 5,
       days: [
         {
           label: 'Upper',
@@ -53,7 +52,6 @@ describe('createProgramSchema', () => {
     const result = createProgramSchema.safeParse({
       template_key: 'wendler_531',
       name: "Wendler's 5/3/1",
-      rounding: 5,
       tm_percentage: 0.9,
     })
     expect(result.success).toBe(true)
@@ -64,7 +62,6 @@ describe('createProgramSchema', () => {
       template_key: 'wendler_531',
       name: "My 5/3/1",
       variation_key: 'bbb',
-      rounding: 5,
       tm_percentage: 0.9,
     })
     expect(result.success).toBe(true)
@@ -77,7 +74,6 @@ describe('createProgramSchema', () => {
     const result = createProgramSchema.safeParse({
       template_key: '',
       name: 'My Program',
-      rounding: 5,
       tm_percentage: 0.9,
     })
     expect(result.success).toBe(false)
@@ -87,7 +83,6 @@ describe('createProgramSchema', () => {
     const result = createProgramSchema.safeParse({
       template_key: 'wendler_531',
       name: 'A',
-      rounding: 5,
       tm_percentage: 0.9,
     })
     expect(result.success).toBe(false)
@@ -97,7 +92,6 @@ describe('createProgramSchema', () => {
     const result = createProgramSchema.safeParse({
       template_key: 'wendler_531',
       name: 'My Program',
-      rounding: 5,
       tm_percentage: 0.6,
     })
     expect(result.success).toBe(false)
@@ -107,32 +101,22 @@ describe('createProgramSchema', () => {
     const result = createProgramSchema.safeParse({
       template_key: 'wendler_531',
       name: 'My Program',
-      rounding: 5,
       tm_percentage: 1.05,
     })
     expect(result.success).toBe(false)
   })
 
-  it('accepts valid rounding values', () => {
-    for (const rounding of [2.5, 5, 10]) {
-      const result = createProgramSchema.safeParse({
-        template_key: 'starting_strength',
-        name: 'SS Program',
-        rounding,
-        tm_percentage: 0.9,
-      })
-      expect(result.success).toBe(true)
-    }
-  })
-
-  it('rejects rounding above 10', () => {
+  it('ignores legacy rounding input', () => {
     const result = createProgramSchema.safeParse({
       template_key: 'wendler_531',
       name: 'My Program',
       rounding: 15,
       tm_percentage: 0.9,
     })
-    expect(result.success).toBe(false)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data).not.toHaveProperty('rounding')
+    }
   })
 })
 
