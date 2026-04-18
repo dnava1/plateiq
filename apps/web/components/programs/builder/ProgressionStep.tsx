@@ -122,27 +122,9 @@ export function ProgressionStep() {
         </div>
       )}
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="deload-trigger">Deload Trigger (optional)</Label>
-        <Input
-          id="deload-trigger"
-          placeholder="e.g. 2 missed sessions in a row"
-          value={prog.deload_trigger ?? ''}
-          onChange={(e) => update({ deload_trigger: e.target.value || undefined })}
-          className="text-sm"
-        />
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="deload-strategy">Deload Strategy (optional)</Label>
-        <Input
-          id="deload-strategy"
-          placeholder="e.g. Reduce volume 50% for 1 week"
-          value={prog.deload_strategy ?? ''}
-          onChange={(e) => update({ deload_strategy: e.target.value || undefined })}
-          className="text-sm"
-        />
-      </div>
+      <p className="text-xs text-muted-foreground">
+        Deload decisions stay user-controlled and can be handled during cycle review instead of being saved as part of the progression rule.
+      </p>
 
       <div className="flex gap-2">
         <Button variant="outline" onClick={() => setStep('exercises')} className="flex-1">

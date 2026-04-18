@@ -71,6 +71,7 @@ function makeQueryClient(scope: string) {
       queryClient.invalidateQueries({ queryKey: ['workouts'] })
       queryClient.invalidateQueries({ queryKey: workoutQueryKeys.cycle(input.cycleId) })
       queryClient.invalidateQueries({ queryKey: workoutQueryKeys.sets(input.workoutId) })
+      queryClient.invalidateQueries({ queryKey: workoutQueryKeys.exerciseHistoryRoot() })
       queryClient.invalidateQueries({ queryKey: analyticsQueryKeys.all() })
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() })
     },

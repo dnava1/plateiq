@@ -3,13 +3,21 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AlertCircle, ArrowLeft, CircleCheckBig } from 'lucide-react'
 import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
+import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { buildExerciseKeyMap, resolveExerciseIdFromMap, useExercises } from '@/hooks/useExercises'
 import { useCurrentTrainingMaxes } from '@/hooks/useTrainingMaxes'
 import { useUser } from '@/hooks/useUser'
-import { buildTrainingMaxMap, resolveWorkoutProgram, useActiveCycle, useCycleWorkouts, useWorkoutSets } from '@/hooks/useWorkouts'
+import {
+  buildTrainingMaxMap,
+  resolveWorkoutProgram,
+  useActiveCycle,
+  useCycleWorkouts,
+  useWorkoutExerciseContext,
+  useWorkoutSets,
+} from '@/hooks/useWorkouts'
 import type { TrainingProgram } from '@/hooks/usePrograms'
 import { generateWorkoutPlan } from '@/lib/constants/templates/engine'
-import { cn, formatExerciseKey } from '@/lib/utils'
+import { cn, formatDate, formatExerciseKey, formatWeight } from '@/lib/utils'
 import { useWorkoutSessionStore } from '@/store/workoutSessionStore'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -24,6 +32,7 @@ import {
   formatBlockRoleLabel,
   formatDurationClock,
   formatExecutionGroupTypeLabel,
+  formatRepTarget,
   hasRemainingPendingWork,
   shouldAutoStartRestTimer,
   type WorkoutDisplayBlock,
@@ -59,6 +68,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
   const { data: user } = useUser()
   const { data: exercises } = useExercises()
   const { data: trainingMaxes } = useCurrentTrainingMaxes()
+  const preferredUnit = usePreferredUnit()
   const preferredWeightRounding = usePreferredWeightRounding()
   const { template, selectedVariationKeys, rounding } = useMemo(
     () => resolveWorkoutProgram(program, preferredWeightRounding),
@@ -157,14 +167,48 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
       }
     })
   }, [activeWorkoutId, exerciseKeyMap, exerciseNameById, generatedSets, workoutSets])
+  const exerciseContextIds = useMemo(
+    () => Array.from(
+      new Set(
+        displaySets
+          .map((set) => set.exerciseId)
+          .filter((exerciseId): exerciseId is number => Number.isInteger(exerciseId)),
+      ),
+    ).sort((left, right) => left - right),
+    [displaySets],
+  )
   const execution = useMemo(() => buildWorkoutExecutionSnapshot(displaySets), [displaySets])
   const nextSet = execution.nextSet
+  const currentExerciseId = nextSet?.exerciseId ?? null
+  const exerciseContextTargets = useMemo(() => {
+    if (currentExerciseId === null || !nextSet) {
+      return {}
+    }
+
+    return {
+      [currentExerciseId]: {
+        isAmrap: nextSet.is_amrap,
+        repsPrescribed: nextSet.reps_prescribed,
+        repsPrescribedMax: nextSet.reps_prescribed_max ?? null,
+      },
+    }
+  }, [currentExerciseId, nextSet])
+  const exerciseContext = useWorkoutExerciseContext(
+    activeWorkoutId ?? undefined,
+    exerciseContextIds,
+    user?.id ?? undefined,
+    exerciseContextTargets,
+  )
   const nextBlock = execution.nextBlock
   const nextGroup = useMemo(
     () => execution.groups.find((group) => group.blocks.some((block) => block.blockId === nextBlock?.blockId)) ?? null,
     [execution.groups, nextBlock?.blockId],
   )
   const executionCue = useMemo(() => buildWorkoutExecutionCue(execution), [execution])
+  const currentExerciseContext = currentExerciseId !== null
+    ? exerciseContext.data[currentExerciseId] ?? null
+    : null
+  const currentRecentSession = currentExerciseContext?.recentSession ?? null
   const isRestTimerForCurrentWorkout = restTimer.workoutId === activeWorkoutId && restTimer.endsAt !== null
   const remainingRestSeconds = isRestTimerForCurrentWorkout && restTimer.endsAt !== null
     ? Math.max(0, Math.ceil((restTimer.endsAt - timerNowMs) / 1000))
@@ -202,6 +246,24 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
       block: 'center',
     })
   }
+
+  const recentSessionDate = currentRecentSession?.completedAt ?? currentRecentSession?.scheduledDate ?? null
+  const recentSessionLabel = currentRecentSession
+    ? [
+        currentRecentSession.weekNumber ? `Week ${currentRecentSession.weekNumber}` : null,
+        currentRecentSession.dayLabel,
+        recentSessionDate ? formatDate(recentSessionDate) : null,
+      ]
+        .filter((value): value is string => Boolean(value))
+        .join(' · ')
+    : null
+  const recentReferenceTarget = currentRecentSession
+    ? formatRepTarget(
+        currentRecentSession.referenceSet.repsPrescribed,
+        currentRecentSession.referenceSet.repsPrescribedMax ?? undefined,
+        currentRecentSession.referenceSet.isAmrap,
+      )
+    : null
 
   const renderBlock = (block: WorkoutDisplayBlock, nested = false) => {
     const distinctWeightsLbs = [...new Set(block.sets.map((set) => set.weight_lbs).filter((weight) => weight > 0))]
@@ -297,42 +359,74 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
               </div>
             </div>
 
-            <div className="rounded-[22px] border border-border/70 bg-background/70 p-4">
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Rest timer</span>
-                  {isRestTimerForCurrentWorkout && remainingRestSeconds !== null ? (
-                    <>
-                      <p className="text-3xl font-semibold tracking-[-0.06em] text-foreground">{formatDurationClock(remainingRestSeconds)}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {isRestComplete
-                          ? 'Rest is complete. Start the next set when you are ready.'
-                          : 'Stay with the timer, then hit the next set.'}
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-sm text-muted-foreground">Start a quick rest timer and keep the workout moving.</p>
-                      <div className="flex flex-wrap gap-2">
-                        {REST_TIMER_PRESET_SECONDS.map((durationSeconds) => (
-                          <Button key={durationSeconds} type="button" size="sm" variant="outline" onClick={() => startManualRestTimer(durationSeconds)}>
-                            {formatDurationClock(durationSeconds)}
-                          </Button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-                {isRestTimerForCurrentWorkout && restTimer.durationSeconds ? (
-                  <div className="flex flex-wrap gap-2">
-                    <Button type="button" size="sm" variant="outline" onClick={() => startManualRestTimer(restTimer.durationSeconds!)}>
-                      Restart rest
-                    </Button>
-                    <Button type="button" size="sm" variant="ghost" onClick={clearRestTimer}>
-                      Skip rest
-                    </Button>
+            <div className="flex flex-col gap-4">
+              <div className="rounded-[22px] border border-border/70 bg-background/70 p-4">
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Rest timer</span>
+                    {isRestTimerForCurrentWorkout && remainingRestSeconds !== null ? (
+                      <>
+                        <p className="text-3xl font-semibold tracking-[-0.06em] text-foreground">{formatDurationClock(remainingRestSeconds)}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {isRestComplete
+                            ? 'Rest is complete. Start the next set when you are ready.'
+                            : 'Stay with the timer, then hit the next set.'}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm text-muted-foreground">Start a quick rest timer and keep the workout moving.</p>
+                        <div className="flex flex-wrap gap-2">
+                          {REST_TIMER_PRESET_SECONDS.map((durationSeconds) => (
+                            <Button key={durationSeconds} type="button" size="sm" variant="outline" onClick={() => startManualRestTimer(durationSeconds)}>
+                              {formatDurationClock(durationSeconds)}
+                            </Button>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
-                ) : null}
+                  {isRestTimerForCurrentWorkout && restTimer.durationSeconds ? (
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" size="sm" variant="outline" onClick={() => startManualRestTimer(restTimer.durationSeconds!)}>
+                        Restart rest
+                      </Button>
+                      <Button type="button" size="sm" variant="ghost" onClick={clearRestTimer}>
+                        Skip rest
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="rounded-[22px] border border-border/70 bg-background/70 p-4">
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Exercise context</span>
+                    <p className="text-sm font-medium text-foreground">{nextSet.exerciseName}</p>
+                  </div>
+
+                  {exerciseContext.isLoading ? (
+                    <p className="text-sm text-muted-foreground">Loading recent context…</p>
+                  ) : currentExerciseId === null ? (
+                    <p className="text-sm text-muted-foreground">Exercise mapping is required before context can load.</p>
+                  ) : currentRecentSession ? (
+                    <div className="rounded-xl border border-border/70 bg-background/70 p-3">
+                      <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Last completed session</p>
+                      {recentSessionLabel ? <p className="mt-1 text-sm font-medium text-foreground">{recentSessionLabel}</p> : null}
+                      <p className="text-sm text-muted-foreground">
+                        {formatWeight(currentRecentSession.referenceSet.weightLbs, preferredUnit, rounding)} × {currentRecentSession.referenceSet.repsActual} reps
+                      </p>
+                      {recentReferenceTarget ? <p className="text-xs text-muted-foreground">Target {recentReferenceTarget} reps.</p> : null}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No recent completed session yet for this exercise.</p>
+                  )}
+
+                  {exerciseContext.isError ? (
+                    <p className="text-xs text-muted-foreground">Context is temporarily unavailable. Logging still works as usual.</p>
+                  ) : null}
+                </div>
               </div>
             </div>
 

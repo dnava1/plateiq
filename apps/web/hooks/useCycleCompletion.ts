@@ -151,8 +151,8 @@ function resolvePreviewIncrement(
 
       if (bestMargin <= -2) {
         return {
-          incrementLbs: -baseIncrementLbs,
-          reason: `Best AMRAP performance missed the target by ${Math.abs(bestMargin)} reps, so the preview applies a deload.`,
+          incrementLbs: 0,
+          reason: `Best AMRAP performance missed the target by ${Math.abs(bestMargin)} reps, so the training max holds for the next cycle while you decide whether to deload manually.`,
         }
       }
 

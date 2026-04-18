@@ -177,8 +177,7 @@ export function ReviewStep() {
         {progressionIncrements && (
           <p>Upper: +{formatWeight(progressionIncrements.upper, preferredUnit)} · Lower: +{formatWeight(progressionIncrements.lower, preferredUnit)}</p>
         )}
-        {draft.progression.deload_trigger && <p>Deload trigger: {draft.progression.deload_trigger}</p>}
-        {draft.progression.deload_strategy && <p>Deload strategy: {draft.progression.deload_strategy}</p>}
+        <p>Deload decisions stay manual and happen during cycle review.</p>
       </div>
 
       {saveStrategy === 'revision' && (

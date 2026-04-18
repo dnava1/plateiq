@@ -44,7 +44,7 @@ describe('buildCycleCompletionPreview', () => {
     })
   })
 
-  it('applies an autoregulated deload when AMRAP performance clearly misses the target', () => {
+  it('holds the training max when AMRAP performance clearly misses the target', () => {
     const customProgramConfig: CustomProgramConfig = {
       type: 'custom',
       level: 'intermediate',
@@ -107,9 +107,10 @@ describe('buildCycleCompletionPreview', () => {
     expect(rows[0]).toMatchObject({
       exerciseName: 'Squat',
       currentTmLbs: 300,
-      incrementLbs: -10,
-      newTmLbs: 290,
+      incrementLbs: 0,
+      newTmLbs: 300,
     })
-    expect(rows[0].reason).toMatch(/deload/i)
+    expect(rows[0].reason).toMatch(/holds/i)
+    expect(rows[0].reason).toMatch(/deload manually/i)
   })
 })

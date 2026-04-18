@@ -51,7 +51,8 @@ describe('ReviewStep', () => {
 
     expect(screen.getByText('Progression')).toBeInTheDocument()
     expect(screen.getByText('Style: Wave')).toBeInTheDocument()
-    expect(screen.getByText('Deload trigger: Two stalled weeks')).toBeInTheDocument()
-    expect(screen.getByText('Deload strategy: Reduce volume by 50% for one week')).toBeInTheDocument()
+    expect(screen.getByText('Deload decisions stay manual and happen during cycle review.')).toBeInTheDocument()
+    expect(screen.queryByText('Deload trigger: Two stalled weeks')).not.toBeInTheDocument()
+    expect(screen.queryByText('Deload strategy: Reduce volume by 50% for one week')).not.toBeInTheDocument()
   })
 })

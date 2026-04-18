@@ -1,8 +1,15 @@
 'use client'
 
+import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getTemplate } from '@/lib/constants/templates'
+import {
+  buildExerciseContextById,
+  type ExerciseContextById,
+  type ExerciseContextTargetById,
+  type ExerciseHistoryRow,
+} from '@/lib/workout-exercise-context'
 import { getExerciseLookupKeys } from '@/hooks/useExercises'
 import { analyticsQueryKeys } from '@/hooks/useAnalytics'
 import { dashboardQueryKeys } from '@/hooks/useDashboard'
@@ -35,6 +42,9 @@ export const workoutQueryKeys = {
   cycle: (cycleId: number | undefined) => ['workouts', 'cycle', cycleId] as const,
   sets: (workoutId: number | undefined) => ['workout-sets', workoutId] as const,
   amrapHistory: (exerciseId: number | undefined) => ['workout-sets', 'amrap-history', exerciseId] as const,
+  exerciseHistoryRoot: () => ['workout-sets', 'recent-history'] as const,
+  exerciseHistory: (userId: string | undefined, workoutId: number | undefined, exerciseIds: readonly number[]) =>
+    [...workoutQueryKeys.exerciseHistoryRoot(), userId ?? null, workoutId ?? null, ...exerciseIds] as const,
 }
 
 export const workoutMutationKeys = {
@@ -93,6 +103,14 @@ function parseProgramConfig(config: Json | null): ProgramConfig {
 
 function dedupeStrings(values: Array<string | undefined>) {
   return Array.from(new Set(values.filter((value): value is string => Boolean(value))))
+}
+
+function getUniqueSortedExerciseIds(exerciseIds: Array<number | null | undefined> | readonly number[]) {
+  return Array.from(
+    new Set(
+      exerciseIds.filter((exerciseId): exerciseId is number => Number.isInteger(exerciseId)),
+    ),
+  ).sort((left, right) => left - right)
 }
 
 export function resolveWorkoutProgram(program: TrainingProgram | null | undefined, preferredRounding?: number | null): ResolvedWorkoutProgram {
@@ -220,6 +238,33 @@ export async function fetchHistoricalAmrapSets(supabase: AppSupabaseClient, exer
 
   if (error) throw error
   return (data ?? []) as HistoricalAmrapSet[]
+}
+
+export async function fetchRecentExerciseHistory(
+  supabase: AppSupabaseClient,
+  userId: string,
+  workoutId: number,
+  exerciseIds: readonly number[],
+) {
+  if (!exerciseIds.length) {
+    return [] as ExerciseHistoryRow[]
+  }
+
+  const historyWindowSize = Math.max(24, exerciseIds.length * 12)
+  const { data, error } = await supabase
+    .from('workout_sets')
+    .select('exercise_id, workout_id, set_order, weight_lbs, reps_actual, reps_prescribed, reps_prescribed_max, is_amrap, logged_at, workouts!inner(completed_at, day_label, scheduled_date, week_number)')
+    .eq('user_id', userId)
+    .in('exercise_id', exerciseIds)
+    .neq('workout_id', workoutId)
+    .not('reps_actual', 'is', null)
+    .not('logged_at', 'is', null)
+    .not('workouts.completed_at', 'is', null)
+    .order('logged_at', { ascending: false })
+    .limit(historyWindowSize)
+
+  if (error) throw error
+  return (data ?? []) as ExerciseHistoryRow[]
 }
 
 export async function ensureWorkoutMutation(supabase: AppSupabaseClient, input: EnsureWorkoutInput) {
@@ -363,6 +408,47 @@ export function useHistoricalAmrapSets(exerciseId: number | undefined) {
   })
 }
 
+export function useRecentExerciseHistory(
+  workoutId: number | undefined,
+  exerciseIds: readonly number[],
+  userId: string | undefined,
+) {
+  const supabase = useSupabase()
+
+  return useQuery({
+    queryKey: workoutQueryKeys.exerciseHistory(userId, workoutId, exerciseIds),
+    queryFn: async () => fetchRecentExerciseHistory(supabase, userId!, workoutId!, exerciseIds),
+    enabled: Boolean(userId && workoutId && exerciseIds.length > 0),
+    staleTime: 60 * 1000,
+    gcTime: Infinity,
+  })
+}
+
+export function useWorkoutExerciseContext(
+  workoutId: number | undefined,
+  exerciseIds: Array<number | null | undefined>,
+  userId: string | undefined,
+  targetsByExercise: ExerciseContextTargetById = {},
+) {
+  const normalizedExerciseIds = useMemo(
+    () => getUniqueSortedExerciseIds(exerciseIds),
+    [exerciseIds],
+  )
+  const historyQuery = useRecentExerciseHistory(workoutId, normalizedExerciseIds, userId)
+  const data = useMemo<ExerciseContextById>(
+    () => buildExerciseContextById(normalizedExerciseIds, historyQuery.data ?? [], targetsByExercise),
+    [historyQuery.data, normalizedExerciseIds, targetsByExercise],
+  )
+
+  return {
+    data,
+    error: historyQuery.error ?? null,
+    isError: historyQuery.isError,
+    isFetching: historyQuery.isFetching,
+    isLoading: historyQuery.isLoading,
+  }
+}
+
 export function useEnsureWorkout() {
   const supabase = useSupabase()
   const queryClient = useQueryClient()
@@ -473,6 +559,7 @@ export function useCompleteWorkout() {
       queryClient.invalidateQueries({ queryKey: ['workouts'] })
       queryClient.invalidateQueries({ queryKey: workoutQueryKeys.cycle(variables.cycleId) })
       queryClient.invalidateQueries({ queryKey: workoutQueryKeys.sets(variables.workoutId) })
+      queryClient.invalidateQueries({ queryKey: workoutQueryKeys.exerciseHistoryRoot() })
       queryClient.invalidateQueries({ queryKey: analyticsQueryKeys.all() })
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() })
     },

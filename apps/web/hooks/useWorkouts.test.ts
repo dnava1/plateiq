@@ -2,7 +2,12 @@ import * as React from 'react'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { useActiveCycle, useLogSet } from './useWorkouts'
+import {
+  fetchRecentExerciseHistory,
+  useActiveCycle,
+  useCompleteWorkout,
+  useLogSet,
+} from './useWorkouts'
 
 const useSupabaseMock = vi.fn()
 
@@ -21,6 +26,21 @@ function createWrapper() {
   return function Wrapper({ children }: { children: React.ReactNode }) {
     return React.createElement(QueryClientProvider, { client: queryClient }, children)
   }
+}
+
+function createWrapperWithClient() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  })
+
+  const wrapper = function Wrapper({ children }: { children: React.ReactNode }) {
+    return React.createElement(QueryClientProvider, { client: queryClient }, children)
+  }
+
+  return { queryClient, wrapper }
 }
 
 function createCycleBuilder(data: unknown) {
@@ -185,5 +205,87 @@ describe('useWorkouts', () => {
     ).rejects.toThrow('Logged reps must be a whole number.')
 
     expect(upsert).not.toHaveBeenCalled()
+  })
+
+  it('fetchRecentExerciseHistory excludes the current workout and limits to completed logged history', async () => {
+    const limit = vi.fn().mockResolvedValue({ data: [{ workout_id: 55 }], error: null })
+    const order = vi.fn(() => ({ limit }))
+    const notChain = {
+      not: vi.fn(),
+      order,
+    }
+    notChain.not.mockReturnValue(notChain)
+    const neq = vi.fn(() => ({ not: notChain.not }))
+    const inMock = vi.fn(() => ({ neq }))
+    const eq = vi.fn(() => ({ in: inMock }))
+    const select = vi.fn(() => ({ eq }))
+    const from = vi.fn(() => ({ select }))
+
+    const result = await fetchRecentExerciseHistory(
+      { from } as unknown as ReturnType<typeof useSupabaseMock>,
+      'user-1',
+      44,
+      [2, 5],
+    )
+
+    expect(from).toHaveBeenCalledWith('workout_sets')
+    expect(eq).toHaveBeenCalledWith('user_id', 'user-1')
+    expect(inMock).toHaveBeenCalledWith('exercise_id', [2, 5])
+    expect(neq).toHaveBeenCalledWith('workout_id', 44)
+    expect(notChain.not).toHaveBeenCalledWith('reps_actual', 'is', null)
+    expect(notChain.not).toHaveBeenCalledWith('logged_at', 'is', null)
+    expect(notChain.not).toHaveBeenCalledWith('workouts.completed_at', 'is', null)
+    expect(limit).toHaveBeenCalledWith(24)
+    expect(result).toEqual([{ workout_id: 55 }])
+  })
+
+  it('useCompleteWorkout invalidates recent exercise history after completion settles', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-10T12:34:56.000Z'))
+
+    const single = vi.fn().mockResolvedValue({
+      data: {
+        id: 44,
+        user_id: 'user-1',
+        cycle_id: 9,
+        day_index: 0,
+        week_number: 1,
+        day_label: 'Lower A',
+        scheduled_date: '2026-04-10',
+        completed_at: '2026-04-10T12:34:56.000Z',
+        notes: 'Solid work',
+        created_at: null,
+        updated_at: null,
+      },
+      error: null,
+    })
+    const select = vi.fn(() => ({ single }))
+    const eq = vi.fn(() => ({ select }))
+    const update = vi.fn(() => ({ eq }))
+
+    useSupabaseMock.mockReturnValue({
+      from: vi.fn((table: string) => {
+        expect(table).toBe('workouts')
+        return { update }
+      }),
+    })
+
+    const { queryClient, wrapper } = createWrapperWithClient()
+    const invalidateQueriesSpy = vi.spyOn(queryClient, 'invalidateQueries')
+    queryClient.setQueryData(['workouts', 'cycle', 9], [
+      { id: 44, completed_at: null, notes: null },
+    ])
+
+    const { result } = renderHook(() => useCompleteWorkout(), { wrapper })
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        workoutId: 44,
+        cycleId: 9,
+        notes: 'Solid work',
+      })
+    })
+
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ['workout-sets', 'recent-history'] })
   })
 })

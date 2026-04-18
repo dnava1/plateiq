@@ -106,6 +106,10 @@ vi.mock('@/hooks/usePreferredWeightRounding', () => ({
   usePreferredWeightRounding: () => 5,
 }))
 
+vi.mock('@/hooks/usePreferredUnit', () => ({
+  usePreferredUnit: () => 'lbs',
+}))
+
 vi.mock('@/hooks/useExercises', () => ({
   buildExerciseKeyMap: () => new Map(),
   resolveExerciseIdFromMap: () => null,
@@ -138,6 +142,31 @@ vi.mock('@/hooks/useWorkouts', () => ({
   useActiveCycle: () => ({ data: { cycle_number: 2, id: 9 } }),
   useCycleWorkouts: () => ({
     data: [{ completed_at: null, day_label: 'Upper A', id: 44, week_number: 1 }],
+  }),
+  useWorkoutExerciseContext: () => ({
+    data: {
+      2: {
+        exerciseId: 2,
+        recentSession: {
+          completedAt: '2026-04-15T10:00:00.000Z',
+          dayLabel: 'Upper A',
+          loggedSetCount: 2,
+          referenceSet: {
+            isAmrap: false,
+            repsActual: 12,
+            repsPrescribed: 10,
+            repsPrescribedMax: null,
+            setOrder: 4,
+            weightLbs: 25,
+          },
+          scheduledDate: '2026-04-15',
+          weekNumber: 1,
+          workoutId: 33,
+        },
+      },
+    },
+    isError: false,
+    isLoading: false,
   }),
   useWorkoutSets: () => ({
     data: [
@@ -245,6 +274,9 @@ describe('ActiveWorkoutPanel', () => {
     expect(screen.getByText('Workout 1 of 4 sets logged. 3 sets left.')).toBeInTheDocument()
     expect(screen.getByText('Superset step 2 of 2 in Press + Pull. 1 of 4 grouped sets logged.')).toBeInTheDocument()
     expect(screen.getByText('After this, go back to Overhead Press for round 2.')).toBeInTheDocument()
+    expect(screen.getByText('Last completed session')).toBeInTheDocument()
+    expect(screen.getByText('Week 1 · Upper A · Apr 15, 2026')).toBeInTheDocument()
+    expect(screen.getByText('25 lbs × 12 reps')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /back to workouts/i }))
 

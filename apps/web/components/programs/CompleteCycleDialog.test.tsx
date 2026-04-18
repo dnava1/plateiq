@@ -5,6 +5,7 @@ import { CompleteCycleDialog } from './CompleteCycleDialog'
 
 const clearSessionMock = vi.fn()
 const mutateMock = vi.fn()
+const useCycleCompletionPreviewMock = vi.fn()
 
 vi.mock('@/hooks/usePreferredUnit', () => ({
   usePreferredUnit: () => 'lbs',
@@ -17,21 +18,7 @@ vi.mock('@/hooks/useCycleCompletion', () => ({
     mutate: mutateMock,
     isPending: false,
   }),
-  useCycleCompletionPreview: () => ({
-    activeCycle: { id: 7, cycle_number: 4 },
-    previewRows: [
-      {
-        exerciseId: 1,
-        exerciseKey: 'squat',
-        exerciseName: 'Squat',
-        currentTmLbs: 300,
-        incrementLbs: 10,
-        newTmLbs: 310,
-        reason: 'Cycle completion applies one base increment for the next block.',
-      },
-    ],
-    isLoading: false,
-  }),
+  useCycleCompletionPreview: () => useCycleCompletionPreviewMock(),
 }))
 
 vi.mock('@/store/workoutSessionStore', () => ({
@@ -47,7 +34,40 @@ vi.mock('sonner', () => ({
 }))
 
 describe('CompleteCycleDialog', () => {
-  it('renders the preview rows for the next cycle', async () => {
+  it.each([
+    {
+      currentTmLbs: 300,
+      incrementLbs: 10,
+      newTmLbs: 310,
+      reason: 'Cycle completion applies one base increment for the next block.',
+      expectedBadge: '+10 lbs',
+      expectedNextTm: '310 lbs',
+    },
+    {
+      currentTmLbs: 300,
+      incrementLbs: 0,
+      newTmLbs: 300,
+      reason: 'Best AMRAP performance missed the target by 2 reps, so the training max holds for the next cycle while you decide whether to deload manually.',
+      expectedBadge: 'Hold',
+      expectedNextTm: '300 lbs',
+    },
+  ])('renders the preview rows for the next cycle', async ({ currentTmLbs, incrementLbs, newTmLbs, reason, expectedBadge, expectedNextTm }) => {
+    useCycleCompletionPreviewMock.mockReturnValue({
+      activeCycle: { id: 7, cycle_number: 4 },
+      previewRows: [
+        {
+          exerciseId: 1,
+          exerciseKey: 'squat',
+          exerciseName: 'Squat',
+          currentTmLbs,
+          incrementLbs,
+          newTmLbs,
+          reason,
+        },
+      ],
+      isLoading: false,
+    })
+
     const user = userEvent.setup()
 
     render(
@@ -70,8 +90,9 @@ describe('CompleteCycleDialog', () => {
 
     expect(screen.getByText('Squat')).toBeInTheDocument()
     expect(screen.getByText('Current TM')).toBeInTheDocument()
-    expect(screen.getByText('300 lbs')).toBeInTheDocument()
-    expect(screen.getAllByText('+10 lbs')).toHaveLength(2)
-    expect(screen.getByText('310 lbs')).toBeInTheDocument()
+    expect(screen.getAllByText('300 lbs').length).toBeGreaterThan(0)
+    expect(screen.getAllByText(expectedBadge)).toHaveLength(2)
+    expect(screen.getAllByText(expectedNextTm).length).toBeGreaterThan(0)
+    expect(screen.getByText(reason)).toBeInTheDocument()
   })
 })
