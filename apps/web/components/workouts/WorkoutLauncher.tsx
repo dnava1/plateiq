@@ -318,7 +318,7 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
               <Badge variant="outline">Week {currentWeekNumber}</Badge>
             </div>
             <CardDescription>
-              Preview the generated plan before you start. Variation blocks are already folded in for the active program config.
+              Preview the generated plan before you start. Support blocks are already folded in for the active program config.
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-0">

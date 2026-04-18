@@ -18,6 +18,7 @@ import {
   formatRepTarget,
   formatSetTypeLabel,
   getRecommendedRestSeconds,
+  isBackoffDisplayType,
   isEstimatedOneRepMaxPr,
   isQuickLoggableSet,
   type WorkoutDisplaySet,
@@ -99,9 +100,11 @@ export function SetRow({
   const estimatedOneRepMax = set.repsActual !== null
     ? estimateOneRepMax(set.weight_lbs, set.repsActual)
     : null
+  const isBackoffSet = isBackoffDisplayType(set.display_type)
   const syncLabel = getSyncLabel(syncState)
   const recommendedRestSeconds = getRecommendedRestSeconds(set)
   const supportsQuickLogging = isQuickLoggableSet(set)
+  const setTypeLabel = formatSetTypeLabel(set.set_type, set.display_type)
   const plannedWeightLabel = formatWeight(set.prescribedWeightLbs, preferredUnit, weightRoundingLbs)
   const loggedWeightLabel = formatWeight(set.weight_lbs, preferredUnit, weightRoundingLbs)
   const roundedPlannedWeight = roundWeightForDisplay(set.prescribedWeightLbs, weightRoundingLbs)
@@ -218,8 +221,11 @@ export function SetRow({
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium text-foreground">Set {set.set_order}</span>
             <Badge variant="outline">{formatBlockRoleLabel(set.block_role)}</Badge>
-            <Badge variant={set.set_type === 'main' ? 'secondary' : set.is_amrap ? 'default' : 'outline'}>
-              {formatSetTypeLabel(set.set_type)}
+            <Badge
+              variant={set.set_type === 'main' ? 'secondary' : set.is_amrap ? 'default' : 'outline'}
+              className={cn(isBackoffSet ? 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200' : null)}
+            >
+              {setTypeLabel}
             </Badge>
             {syncLabel ? <Badge variant="outline">{syncLabel}</Badge> : null}
           </div>

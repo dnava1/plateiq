@@ -117,6 +117,7 @@ function expandBlock(
         exercise_key: exerciseKey,
         exercise_id: exerciseId,
         execution_group: block.execution_group,
+        display_type: prescription.display_type,
         set_order: order++,
         set_type: actualIsAmrap ? 'amrap' : (block.role === 'primary' ? 'main' : block.role) as GeneratedSet['set_type'],
         weight_lbs: weight,

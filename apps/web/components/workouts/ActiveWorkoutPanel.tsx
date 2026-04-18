@@ -33,11 +33,14 @@ import {
   formatDurationClock,
   formatExecutionGroupTypeLabel,
   formatRepTarget,
+  formatSetTypeLabel,
   hasRemainingPendingWork,
+  isBackoffDisplayType,
   shouldAutoStartRestTimer,
   type WorkoutDisplayBlock,
   type WorkoutDisplaySet,
 } from './types'
+import { WorkoutSessionNoteCard } from './WorkoutSessionNoteCard'
 
 interface ActiveWorkoutPanelProps {
   program: TrainingProgram
@@ -84,7 +87,6 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
   const startRestTimer = useWorkoutSessionStore((state) => state.startRestTimer)
   const syncStates = useWorkoutSessionStore((state) => state.syncStates)
   const setSyncState = useWorkoutSessionStore((state) => state.setSyncState)
-  const clearSession = useWorkoutSessionStore((state) => state.clearSession)
   const { data: fallbackCycle } = useActiveCycle(program.id)
   const cycleId = activeCycleId ?? fallbackCycle?.id
   const { data: cycleWorkouts } = useCycleWorkouts(cycleId)
@@ -105,12 +107,6 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
     (template && currentWorkout?.day_label
       ? template.days.findIndex((day) => day.label === currentWorkout.day_label)
       : 0)
-
-  useEffect(() => {
-    if (currentWorkout?.completed_at) {
-      clearSession()
-    }
-  }, [clearSession, currentWorkout?.completed_at])
 
   useEffect(() => {
     const isTimerForCurrentWorkout = restTimer.workoutId === activeWorkoutId && restTimer.endsAt !== null
@@ -205,6 +201,9 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
     [execution.groups, nextBlock?.blockId],
   )
   const executionCue = useMemo(() => buildWorkoutExecutionCue(execution), [execution])
+  const nextSetTypeLabel = nextSet ? formatSetTypeLabel(nextSet.set_type, nextSet.display_type) : null
+  const nextSetIsBackoff = nextSet ? isBackoffDisplayType(nextSet.display_type) : false
+  const nextBlockRoleLabel = nextBlock ? formatBlockRoleLabel(nextBlock.role) : null
   const currentExerciseContext = currentExerciseId !== null
     ? exerciseContext.data[currentExerciseId] ?? null
     : null
@@ -334,7 +333,15 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
           <CardHeader className="gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <Badge>Next up</Badge>
-              <Badge variant="outline">{formatBlockRoleLabel(nextBlock.role)}</Badge>
+              {nextBlockRoleLabel && nextBlockRoleLabel !== nextSetTypeLabel ? <Badge variant="outline">{nextBlockRoleLabel}</Badge> : null}
+              {nextSetTypeLabel ? (
+                <Badge
+                  variant={nextSet.set_type === 'main' ? 'secondary' : nextSet.is_amrap ? 'default' : 'outline'}
+                  className={cn(nextSetIsBackoff ? 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200' : null)}
+                >
+                  {nextSetTypeLabel}
+                </Badge>
+              ) : null}
               {nextGroup && nextGroup.kind !== 'single' ? <Badge variant="secondary">{nextGroup.label}</Badge> : null}
               {executionCue?.roundLabel ? <Badge variant="outline">{executionCue.roundLabel}</Badge> : null}
               {isRestTimerForCurrentWorkout ? <Badge variant={isRestComplete ? 'secondary' : 'outline'}>{isRestComplete ? 'Rest complete' : 'Resting'}</Badge> : null}
@@ -445,6 +452,8 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
         </Card>
       ) : null}
 
+      <WorkoutSessionNoteCard workoutId={activeWorkoutId} />
+
       {execution.groups.map((group) =>
         group.kind === 'single'
           ? renderBlock(group.blocks[0]!)
@@ -475,7 +484,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
       ) : null}
 
       {cycleId ? (
-        <CompleteWorkoutButton cycleId={cycleId} onComplete={clearSession} workoutId={activeWorkoutId} />
+        <CompleteWorkoutButton cycleId={cycleId} workoutId={activeWorkoutId} />
       ) : null}
     </div>
   )

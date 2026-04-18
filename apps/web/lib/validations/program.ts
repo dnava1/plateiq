@@ -49,6 +49,7 @@ const setPrescriptionSchema = z.object({
   reps_max: z.number().int().min(1).max(100).optional(),
   intensity: z.number().min(MIN_INTENSITY, INTENSITY_ERROR_MESSAGE).max(MAX_INTENSITY, INTENSITY_ERROR_MESSAGE),
   intensity_type: z.enum(['percentage_tm', 'percentage_1rm', 'rpe', 'fixed_weight', 'bodyweight', 'percentage_work_set']),
+  display_type: z.enum(['backoff']).optional(),
   is_amrap: z.boolean().optional(),
   rest_seconds: z.number().int().min(0).max(600).optional(),
 })

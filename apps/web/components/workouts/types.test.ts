@@ -3,6 +3,7 @@ import {
   buildWorkoutExecutionCue,
   buildWorkoutExecutionSnapshot,
   estimateOneRepMax,
+  formatSetTypeLabel,
   formatDurationClock,
   getRecommendedRestSeconds,
   hasRemainingPendingWork,
@@ -151,6 +152,10 @@ describe('workout type helpers', () => {
     expect(formatDurationClock(125)).toBe('2:05')
   })
 
+  it('formats backoff display work distinctly from generic variations', () => {
+    expect(formatSetTypeLabel('variation', 'backoff')).toBe('Backoff')
+  })
+
   it('only returns rest timing when the program explicitly defines it', () => {
     expect(getRecommendedRestSeconds({ block_role: 'primary', rest_seconds: undefined })).toBeNull()
     expect(getRecommendedRestSeconds({ block_role: 'accessory', rest_seconds: 45 })).toBe(45)
@@ -282,6 +287,21 @@ describe('workout type helpers', () => {
     expect(buildWorkoutExecutionSnapshot(buildGroupedSupersetSets([1, 3])).nextSet?.set_order).toBe(2)
     expect(buildWorkoutExecutionSnapshot(buildGroupedSupersetSets([1, 3, 2])).nextSet?.set_order).toBe(4)
     expect(buildWorkoutExecutionSnapshot(buildGroupedSupersetSets([1, 2, 3, 4])).nextSet).toBeNull()
+  })
+
+  it('uses the same grouped execution flow for circuits', () => {
+    const circuitSets = buildGroupedSupersetSets().map((set) => ({
+      ...set,
+      execution_group: {
+        ...set.execution_group!,
+        label: 'Upper Circuit',
+        type: 'circuit' as const,
+      },
+    }))
+
+    const cue = buildWorkoutExecutionCue(buildWorkoutExecutionSnapshot(circuitSets))
+
+    expect(cue?.groupProgressLabel).toBe('Circuit step 1 of 2 in Upper Circuit. 0 of 4 grouped sets logged.')
   })
 
   it('keeps the next block aligned with grouped execution order', () => {

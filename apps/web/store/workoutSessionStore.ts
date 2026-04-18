@@ -13,12 +13,14 @@ export interface RestTimerState {
   workoutId: number | null
 }
 
-const EMPTY_REST_TIMER: RestTimerState = {
-  durationSeconds: null,
-  endsAt: null,
-  label: null,
-  sourceSetOrder: null,
-  workoutId: null,
+function createEmptyRestTimer(): RestTimerState {
+  return {
+    durationSeconds: null,
+    endsAt: null,
+    label: null,
+    sourceSetOrder: null,
+    workoutId: null,
+  }
 }
 
 interface WorkoutSessionState {
@@ -29,37 +31,114 @@ interface WorkoutSessionState {
   prToastLedger: Record<string, true>
   restTimer: RestTimerState
   syncStates: Record<number, SetSyncState>
+  completeWorkoutSession: (workoutId: number, options?: { preserveDraft?: boolean }) => void
   clearRestTimer: () => void
+  clearWorkoutNoteDraft: (workoutId: number) => void
   exitActiveWorkout: () => void
   hasShownPrToast: (toastKey: string) => boolean
   markPrToastShown: (toastKey: string) => void
   setActiveWorkout: (id: number | null) => void
   setActiveContext: (context: { cycleId: number; dayIndex: number; weekNumber: number }) => void
   setSyncState: (setOrder: number, state: SetSyncState) => void
+  setWorkoutNoteDraft: (workoutId: number, note: string) => void
   startRestTimer: (timer: {
     durationSeconds: number
     label?: string | null
     sourceSetOrder?: number | null
     workoutId?: number | null
   }) => void
+  workoutNoteDrafts: Record<number, string>
   clearSession: () => void
+}
+
+type PersistedWorkoutSessionState = Pick<
+  WorkoutSessionState,
+  'activeWorkoutId'
+  | 'activeCycleId'
+  | 'activeDayIndex'
+  | 'activeWeekNumber'
+  | 'prToastLedger'
+  | 'restTimer'
+  | 'syncStates'
+  | 'workoutNoteDrafts'
+>
+
+function createPersistedWorkoutSessionState(): PersistedWorkoutSessionState {
+  return {
+    activeWorkoutId: null,
+    activeCycleId: null,
+    activeDayIndex: null,
+    activeWeekNumber: null,
+    prToastLedger: {},
+    restTimer: createEmptyRestTimer(),
+    syncStates: {},
+    workoutNoteDrafts: {},
+  }
+}
+
+function normalizePersistedWorkoutSessionState(
+  persistedState: unknown,
+): PersistedWorkoutSessionState {
+  const defaults = createPersistedWorkoutSessionState()
+  const persisted = typeof persistedState === 'object' && persistedState !== null
+    ? persistedState as Partial<PersistedWorkoutSessionState>
+    : {}
+  const persistedRestTimer = typeof persisted.restTimer === 'object' && persisted.restTimer !== null
+    ? persisted.restTimer
+    : {}
+
+  return {
+    ...defaults,
+    ...persisted,
+    prToastLedger: persisted.prToastLedger ?? defaults.prToastLedger,
+    restTimer: {
+      ...defaults.restTimer,
+      ...persistedRestTimer,
+    },
+    syncStates: persisted.syncStates ?? defaults.syncStates,
+    workoutNoteDrafts: persisted.workoutNoteDrafts ?? defaults.workoutNoteDrafts,
+  }
 }
 
 export const useWorkoutSessionStore = create<WorkoutSessionState>()(
   persist(
     (set, get) => ({
-      activeWorkoutId: null,
-      activeCycleId: null,
-      activeDayIndex: null,
-      activeWeekNumber: null,
-      prToastLedger: {},
-      restTimer: EMPTY_REST_TIMER,
-      syncStates: {},
-      clearRestTimer: () => set({ restTimer: EMPTY_REST_TIMER }),
+      ...createPersistedWorkoutSessionState(),
+      completeWorkoutSession: (workoutId, options) =>
+        set((current) => {
+          const isActiveWorkout = current.activeWorkoutId === workoutId
+          const workoutNoteDrafts = { ...current.workoutNoteDrafts }
+
+          if (!options?.preserveDraft) {
+            delete workoutNoteDrafts[workoutId]
+          }
+
+          return {
+            activeWorkoutId: isActiveWorkout ? null : current.activeWorkoutId,
+            activeCycleId: isActiveWorkout ? null : current.activeCycleId,
+            activeDayIndex: isActiveWorkout ? null : current.activeDayIndex,
+            activeWeekNumber: isActiveWorkout ? null : current.activeWeekNumber,
+            prToastLedger: isActiveWorkout ? {} : current.prToastLedger,
+            restTimer:
+              isActiveWorkout || current.restTimer.workoutId === workoutId
+                ? createEmptyRestTimer()
+                : current.restTimer,
+            syncStates: isActiveWorkout ? {} : current.syncStates,
+            workoutNoteDrafts,
+          }
+        }),
+      clearRestTimer: () => set({ restTimer: createEmptyRestTimer() }),
+      clearWorkoutNoteDraft: (workoutId) =>
+        set((current) => {
+          const workoutNoteDrafts = { ...current.workoutNoteDrafts }
+          delete workoutNoteDrafts[workoutId]
+
+          return { workoutNoteDrafts }
+        }),
       exitActiveWorkout: () =>
         set({
           activeWorkoutId: null,
-          restTimer: EMPTY_REST_TIMER,
+          restTimer: createEmptyRestTimer(),
           syncStates: {},
         }),
       hasShownPrToast: (toastKey) => get().prToastLedger[toastKey] === true,
@@ -77,7 +156,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
             current.restTimer.workoutId !== null
             && activeWorkoutId !== null
             && current.restTimer.workoutId !== activeWorkoutId
-              ? EMPTY_REST_TIMER
+              ? createEmptyRestTimer()
               : current.restTimer,
         })),
       setActiveContext: (context) =>
@@ -93,6 +172,13 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
             [setOrder]: state,
           },
         })),
+      setWorkoutNoteDraft: (workoutId, note) =>
+        set((current) => ({
+          workoutNoteDrafts: {
+            ...current.workoutNoteDrafts,
+            [workoutId]: note,
+          },
+        })),
       startRestTimer: ({ durationSeconds, label = null, sourceSetOrder = null, workoutId = null }) =>
         set({
           restTimer: {
@@ -105,18 +191,13 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
         }),
       clearSession: () =>
         set({
-          activeWorkoutId: null,
-          activeCycleId: null,
-          activeDayIndex: null,
-          activeWeekNumber: null,
-          prToastLedger: {},
-          restTimer: EMPTY_REST_TIMER,
-          syncStates: {},
+          ...createPersistedWorkoutSessionState(),
         }),
     }),
     {
       name: 'plateiq-workout-session',
-      version: 2,
+      version: 3,
+      migrate: (persistedState) => normalizePersistedWorkoutSessionState(persistedState),
     }
   )
 )

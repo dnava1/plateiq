@@ -170,7 +170,7 @@ describe('generateWorkoutPlan', () => {
             {
               role: 'variation' as const,
               exercise_key: undefined,
-              sets: [{ sets: 2, reps: 5, intensity: 0.9, intensity_type: 'percentage_work_set' as const }],
+              sets: [{ sets: 2, reps: 5, intensity: 0.9, intensity_type: 'percentage_work_set' as const, display_type: 'backoff' as const }],
             },
           ],
         },
@@ -183,6 +183,7 @@ describe('generateWorkoutPlan', () => {
     expect(backoffSets).toHaveLength(2)
     expect(backoffSets[0].weight_lbs).toBe(175)
     expect(backoffSets[0].exercise_key).toBe('squat')
+    expect(backoffSets[0].display_type).toBe('backoff')
   })
 
   it('preserves block metadata, rest timing, and execution groups through generation', () => {

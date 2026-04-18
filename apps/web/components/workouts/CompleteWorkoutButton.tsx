@@ -4,30 +4,34 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Flag } from 'lucide-react'
 import { useCompleteWorkout } from '@/hooks/useWorkouts'
+import { useWorkoutSessionStore } from '@/store/workoutSessionStore'
 import { Button } from '@/components/ui/button'
 
 interface CompleteWorkoutButtonProps {
   cycleId: number
-  onComplete: () => void
   workoutId: number
 }
 
-export function CompleteWorkoutButton({ cycleId, onComplete, workoutId }: CompleteWorkoutButtonProps) {
+export function CompleteWorkoutButton({ cycleId, workoutId }: CompleteWorkoutButtonProps) {
   const router = useRouter()
   const completeWorkout = useCompleteWorkout()
+  const completeWorkoutSession = useWorkoutSessionStore((state) => state.completeWorkoutSession)
+  const noteDraft = useWorkoutSessionStore((state) => state.workoutNoteDrafts[workoutId] ?? '')
 
   const handleComplete = () => {
     const isOnline = typeof navigator === 'undefined' ? true : navigator.onLine
+    const notes = noteDraft.trim() || undefined
 
     completeWorkout.mutate(
       {
         workoutId,
         cycleId,
+        notes,
       },
       {
         onSuccess: () => {
           toast.success('Workout completed')
-          onComplete()
+          completeWorkoutSession(workoutId)
           router.replace('/workouts')
         },
         onError: (error) => {
@@ -38,7 +42,7 @@ export function CompleteWorkoutButton({ cycleId, onComplete, workoutId }: Comple
 
     if (!isOnline) {
       toast('Workout completion queued. It will sync when you reconnect.')
-      onComplete()
+      completeWorkoutSession(workoutId, { preserveDraft: true })
       router.replace('/workouts')
     }
   }

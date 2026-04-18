@@ -118,6 +118,23 @@ describe('SetRow', () => {
     expect(screen.getByText('Main')).toBeInTheDocument()
   })
 
+  it('renders backoff work distinctly from generic variation work', () => {
+    render(
+      <SetRow
+        set={{
+          ...baseSet,
+          block_role: 'primary',
+          display_type: 'backoff',
+          set_type: 'variation',
+        }}
+        userId="user-1"
+      />,
+    )
+
+    expect(screen.getByText('Backoff')).toBeInTheDocument()
+    expect(screen.queryByText('Variation')).not.toBeInTheDocument()
+  })
+
   it('log button triggers the mutation', async () => {
     const user = userEvent.setup()
     const onSyncStateChange = vi.fn()

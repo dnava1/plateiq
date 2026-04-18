@@ -97,7 +97,7 @@ export const wendler531: ProgramTemplate = {
         {
           role: 'variation',
           exercise_key: undefined,
-          sets: [{ sets: 5, reps: 10, intensity: 0.5, intensity_type: 'percentage_tm' }],
+          sets: [{ sets: 5, reps: 10, intensity: 0.5, intensity_type: 'percentage_tm', display_type: 'backoff' }],
           notes: 'BBB — same lift as main, 50% TM',
         },
       ],
@@ -110,7 +110,7 @@ export const wendler531: ProgramTemplate = {
         {
           role: 'variation',
           exercise_key: undefined,
-          sets: [{ sets: 5, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' }],
+          sets: [{ sets: 5, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm', display_type: 'backoff' }],
           notes: 'FSL — 5×5 at first working set weight',
         },
       ],

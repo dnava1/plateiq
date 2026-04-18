@@ -9,6 +9,23 @@ const mocks = vi.hoisted(() => ({
   exitActiveWorkout: vi.fn(),
   setSyncState: vi.fn(),
   startRestTimer: vi.fn(),
+  workoutSets: [
+    {
+      exercise_id: 3,
+      exercises: { name: 'Overhead Press' },
+      logged_at: '2026-04-17T10:00:00.000Z',
+      reps_actual: 8,
+      set_order: 1,
+      weight_lbs: 95,
+    },
+  ] as Array<{
+    exercise_id: number
+    exercises: { name: string }
+    logged_at: string | null
+    reps_actual: number | null
+    set_order: number
+    weight_lbs: number
+  }>,
 }))
 
 const mockGeneratedSets = [
@@ -169,16 +186,7 @@ vi.mock('@/hooks/useWorkouts', () => ({
     isLoading: false,
   }),
   useWorkoutSets: () => ({
-    data: [
-      {
-        exercise_id: 3,
-        exercises: { name: 'Overhead Press' },
-        logged_at: '2026-04-17T10:00:00.000Z',
-        reps_actual: 8,
-        set_order: 1,
-        weight_lbs: 95,
-      },
-    ],
+    data: mocks.workoutSets,
   }),
 }))
 
@@ -247,6 +255,10 @@ vi.mock('./SetRow', () => ({
   ),
 }))
 
+vi.mock('./WorkoutSessionNoteCard', () => ({
+  WorkoutSessionNoteCard: () => <div>Session note card</div>,
+}))
+
 describe('ActiveWorkoutPanel', () => {
   beforeEach(() => {
     mocks.clearRestTimer.mockReset()
@@ -254,6 +266,16 @@ describe('ActiveWorkoutPanel', () => {
     mocks.exitActiveWorkout.mockReset()
     mocks.setSyncState.mockReset()
     mocks.startRestTimer.mockReset()
+    mocks.workoutSets = [
+      {
+        exercise_id: 3,
+        exercises: { name: 'Overhead Press' },
+        logged_at: '2026-04-17T10:00:00.000Z',
+        reps_actual: 8,
+        set_order: 1,
+        weight_lbs: 95,
+      },
+    ]
   })
 
   it('renders the grouped execution cue and lets the user return to the launcher', async () => {
@@ -281,5 +303,56 @@ describe('ActiveWorkoutPanel', () => {
     await user.click(screen.getByRole('button', { name: /back to workouts/i }))
 
     expect(mocks.exitActiveWorkout).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the session note card visible after all planned sets are logged', () => {
+    mocks.workoutSets = [
+      {
+        exercise_id: 3,
+        exercises: { name: 'Overhead Press' },
+        logged_at: '2026-04-17T10:00:00.000Z',
+        reps_actual: 8,
+        set_order: 1,
+        weight_lbs: 95,
+      },
+      {
+        exercise_id: 3,
+        exercises: { name: 'Overhead Press' },
+        logged_at: '2026-04-17T10:04:00.000Z',
+        reps_actual: 8,
+        set_order: 2,
+        weight_lbs: 95,
+      },
+      {
+        exercise_id: 2,
+        exercises: { name: 'Chin-Up' },
+        logged_at: '2026-04-17T10:08:00.000Z',
+        reps_actual: 10,
+        set_order: 3,
+        weight_lbs: 0,
+      },
+      {
+        exercise_id: 2,
+        exercises: { name: 'Chin-Up' },
+        logged_at: '2026-04-17T10:12:00.000Z',
+        reps_actual: 10,
+        set_order: 4,
+        weight_lbs: 0,
+      },
+    ]
+
+    render(
+      <ActiveWorkoutPanel
+        program={{
+          config: null,
+          id: 1,
+          name: 'Test Program',
+          template_key: 'test-program',
+        } as never}
+      />,
+    )
+
+    expect(screen.getByText('Session note card')).toBeInTheDocument()
+    expect(screen.getByText('All prescribed sets are logged. Ready to finish the workout.')).toBeInTheDocument()
   })
 })

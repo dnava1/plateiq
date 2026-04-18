@@ -6,6 +6,7 @@ export interface SetPrescription {
   reps_max?: number
   intensity: number // 0.85 = 85% TM, 8.0 = RPE 8, 135 = fixed lbs
   intensity_type: IntensityType
+  display_type?: 'backoff'
   is_amrap?: boolean
   rest_seconds?: number
 }
@@ -81,6 +82,7 @@ export interface GeneratedSet {
   exercise_key: string
   exercise_id?: number
   execution_group?: ExecutionGroupMetadata
+  display_type?: 'backoff'
   set_order: number
   set_type: 'warmup' | 'main' | 'amrap' | 'variation' | 'accessory'
   weight_lbs: number

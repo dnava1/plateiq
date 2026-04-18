@@ -75,7 +75,18 @@ export function formatRepTarget(
   return String(repsPrescribed)
 }
 
-export function formatSetTypeLabel(setType: WorkoutDisplaySet['set_type']) {
+export function isBackoffDisplayType(displayType: WorkoutDisplaySet['display_type'] | undefined) {
+  return displayType === 'backoff'
+}
+
+export function formatSetTypeLabel(
+  setType: WorkoutDisplaySet['set_type'],
+  displayType?: WorkoutDisplaySet['display_type'],
+) {
+  if (isBackoffDisplayType(displayType)) {
+    return 'Backoff'
+  }
+
   switch (setType) {
     case 'main':
       return 'Main'

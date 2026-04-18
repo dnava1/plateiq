@@ -34,7 +34,7 @@ export const buildingTheMonolith: ProgramTemplate = {
             { sets: 1, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' },
             { sets: 1, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' },
             { sets: 1, reps: '5+', intensity: 0.85, intensity_type: 'percentage_tm', is_amrap: true },
-            { sets: 1, reps: '20+', intensity: 0.65, intensity_type: 'percentage_tm', is_amrap: true },
+            { sets: 1, reps: '20+', intensity: 0.65, intensity_type: 'percentage_tm', display_type: 'backoff', is_amrap: true },
           ],
           notes: 'Standard 5/3/1 sets + Widowmaker set @ first-set-last weight (65%) for 20 reps',
         },
@@ -46,7 +46,7 @@ export const buildingTheMonolith: ProgramTemplate = {
             type: 'superset',
           },
           exercise_key: 'ohp',
-          sets: [{ sets: 5, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' }],
+          sets: [{ sets: 5, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm', display_type: 'backoff' }],
           notes: 'OHP 5×5 at FSL (65% OHP TM)',
         },
         {
@@ -90,7 +90,7 @@ export const buildingTheMonolith: ProgramTemplate = {
         {
           role: 'variation',
           exercise_key: 'bench',
-          sets: [{ sets: 5, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' }],
+          sets: [{ sets: 5, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm', display_type: 'backoff' }],
           notes: 'Bench 5×5 @ FSL (65% bench TM)',
         },
         {
@@ -123,7 +123,7 @@ export const buildingTheMonolith: ProgramTemplate = {
         {
           role: 'variation',
           exercise_key: 'squat',
-          sets: [{ sets: 5, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' }],
+          sets: [{ sets: 5, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm', display_type: 'backoff' }],
           notes: 'Squat 5×5 @ FSL (65% squat TM)',
         },
         {
