@@ -18,12 +18,38 @@ export interface InsightSnapshot {
     windowDays: number
     exerciseScope: string
   }
+  coverage: Array<{
+    family: string
+    signalCount: number
+    status: string
+  }>
   consistency: {
     totalSessions: number
     weeksActive: number
     averageSessionsPerWeek: number
     firstSession: string | null
     lastSession: string | null
+  }
+  bodyweight: {
+    exercises: Array<{
+      exerciseName: string
+      latestAddedLoadLbs: number | null
+      latestStrictRepBest: number | null
+      strictSessionCount: number
+      weightedSessionCount: number
+    }>
+    recentStrictRepTrend: Array<{
+      bestReps: number
+      date: string
+      exerciseName: string
+    }>
+    recentWeightedLoadTrend: Array<{
+      addedWeightLbs: number
+      date: string
+      exerciseName: string
+      reps: number
+    }>
+    relevant: boolean
   }
   strength: {
     recentPrs: Array<{

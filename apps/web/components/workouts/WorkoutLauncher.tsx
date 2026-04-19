@@ -95,7 +95,9 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
           : formatExerciseKey(set.exercise_key),
         loggedAt: null,
         prescribedWeightLbs: set.weight_lbs,
+        prescribedRpe: set.rpe ?? null,
         repsActual: null,
+        rpe: null,
         workoutId: null,
       }
     })

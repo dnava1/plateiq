@@ -3,12 +3,14 @@ import { estimateBenchmarkOneRepMax } from '@/lib/strength-benchmarks'
 
 export const ESTIMATED_ONE_REP_MAX_PR_EPSILON_LBS = 0.5
 
-export interface WorkoutDisplaySet extends GeneratedSet {
+export interface WorkoutDisplaySet extends Omit<GeneratedSet, 'rpe'> {
   exerciseId: number | null
   exerciseName: string
   loggedAt: string | null
   prescribedWeightLbs: number
+  prescribedRpe: number | null
   repsActual: number | null
+  rpe: number | null
   workoutId: number | null
 }
 
@@ -138,6 +140,10 @@ export function isQuickLoggableSet(
   set: Pick<WorkoutDisplaySet, 'intensity_type' | 'is_amrap' | 'weight_lbs'>,
 ) {
   if (set.is_amrap) {
+    return false
+  }
+
+  if (set.intensity_type === 'rpe') {
     return false
   }
 

@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createEmptyAnalyticsBodyweightLane, createEmptyAnalyticsCoverage } from './analytics'
 import { createEmptyStrengthProfile } from './strength-profile'
 import { buildAnalyticsInsightSnapshot, generateTrainingInsight, parseTrainingInsightResponse } from './insights'
 import type { AnalyticsData } from '@/types/analytics'
 
 const analyticsFixture: AnalyticsData = {
+  bodyweightLane: createEmptyAnalyticsBodyweightLane(),
+  coverage: createEmptyAnalyticsCoverage(),
   e1rmTrend: [
     { date: '2026-03-01', exerciseId: 1, exerciseName: 'Bench Press', weight: 205, reps: 5, e1rm: 230.6 },
     { date: '2026-03-20', exerciseId: 1, exerciseName: 'Bench Press', weight: 215, reps: 5, e1rm: 241.9 },

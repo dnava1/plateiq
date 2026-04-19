@@ -3,9 +3,18 @@ import { buildStrengthProfile, createEmptyStrengthProfile } from '@/lib/strength
 import { estimateBenchmarkOneRepMax } from '@/lib/strength-benchmarks'
 import { DEFAULT_WEIGHT_ROUNDING_LBS } from '@/lib/utils'
 import type {
+  AnalyticsBodyweightExerciseSummary,
+  AnalyticsBodyweightLane,
+  AnalyticsBodyweightLoadPoint,
+  AnalyticsBodyweightStrictRepPoint,
   AnalyticsConsistency,
+  AnalyticsCoverage,
+  AnalyticsCoverageFamily,
+  AnalyticsCoverageReasonCode,
+  AnalyticsCoverageStatus,
   AnalyticsData,
   AnalyticsE1rmPoint,
+  AnalyticsMetricCoverage,
   AnalyticsMuscleBalancePoint,
   AnalyticsPrPoint,
   AnalyticsStallPoint,
@@ -27,6 +36,19 @@ import type {
 const RECENT_PR_EPSILON_LBS = 0.5
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000
 const MILLISECONDS_PER_WEEK = 7 * MILLISECONDS_PER_DAY
+
+const COVERAGE_REASON_CODES = new Set<AnalyticsCoverageReasonCode>([
+  'bodyweight_only_scope',
+  'limited_history',
+  'no_amrap_sets',
+  'no_bodyweight_sets',
+  'no_completed_sessions',
+  'no_external_load_sets',
+  'no_main_lift_sets',
+  'no_training_max_history',
+  'strength_profile_insufficient_data',
+  'strength_profile_missing_profile',
+])
 
 export interface DashboardSourceProgram {
   id: number
@@ -68,6 +90,7 @@ export interface AnalyticsSourceWorkout {
 
 export interface AnalyticsSourceSet {
   exerciseId: number
+  intensityType?: string | null
   isAmrap: boolean
   repsActual: number | null
   repsPrescribed: number
@@ -93,6 +116,57 @@ function mapArray<T>(value: unknown, mapper: (entry: unknown) => T | null) {
   }
 
   return value.map(mapper).filter((entry): entry is T => entry !== null)
+}
+
+function parseStringArray(value: unknown) {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0)
+}
+
+function isCoverageStatus(value: string | null): value is AnalyticsCoverageStatus {
+  return value === 'ready' || value === 'limited' || value === 'not_applicable'
+}
+
+function createMetricCoverage(
+  family: AnalyticsCoverageFamily,
+  status: AnalyticsCoverageStatus,
+  signalCount: number,
+  reasonCodes: AnalyticsCoverageReasonCode[] = [],
+): AnalyticsMetricCoverage {
+  return {
+    family,
+    reasonCodes,
+    signalCount,
+    status,
+  }
+}
+
+export function createEmptyAnalyticsBodyweightLane(): AnalyticsBodyweightLane {
+  return {
+    exerciseSummaries: [],
+    relevant: false,
+    strictRepTrend: [],
+    weightedLoadTrend: [],
+  }
+}
+
+export function createEmptyAnalyticsCoverage(): AnalyticsCoverage {
+  return {
+    metrics: {
+      bodyweightLane: createMetricCoverage('bodyweight_specific', 'not_applicable', 0, ['no_bodyweight_sets']),
+      consistency: createMetricCoverage('general_logging', 'not_applicable', 0, ['no_completed_sessions']),
+      e1rmTrend: createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['no_amrap_sets']),
+      muscleBalance: createMetricCoverage('general_logging', 'not_applicable', 0, ['no_external_load_sets']),
+      prHistory: createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['no_amrap_sets']),
+      stallDetection: createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['no_amrap_sets']),
+      strengthProfile: createMetricCoverage('benchmark_profile', 'not_applicable', 0, ['strength_profile_insufficient_data']),
+      tmProgression: createMetricCoverage('training_max', 'not_applicable', 0, ['no_training_max_history']),
+      volumeTrend: createMetricCoverage('general_logging', 'not_applicable', 0, ['no_external_load_sets']),
+    },
+  }
 }
 
 function parseDashboardProgramSummary(value: unknown): DashboardProgramSummary | null {
@@ -275,6 +349,121 @@ function parseAnalyticsTmProgressionPoint(value: unknown): AnalyticsTmProgressio
   return { effectiveDate, exerciseId, exerciseName, weightLbs }
 }
 
+function parseAnalyticsMetricCoverage(
+  value: unknown,
+  defaultFamily: AnalyticsCoverageFamily,
+): AnalyticsMetricCoverage | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const family = toString(value.family)
+  const status = toString(value.status)
+  const signalCount = toNumber(value.signal_count ?? value.signalCount)
+  const reasonCodes = parseStringArray(value.reason_codes ?? value.reasonCodes)
+    .filter((entry): entry is AnalyticsCoverageReasonCode => COVERAGE_REASON_CODES.has(entry as AnalyticsCoverageReasonCode))
+
+  if (!isCoverageStatus(status) || signalCount === null) {
+    return null
+  }
+
+  return {
+    family: family === 'general_logging'
+      || family === 'main_lift_amrap'
+      || family === 'training_max'
+      || family === 'benchmark_profile'
+      || family === 'bodyweight_specific'
+      ? family
+      : defaultFamily,
+    reasonCodes,
+    signalCount,
+    status,
+  }
+}
+
+function parseAnalyticsBodyweightExerciseSummary(value: unknown): AnalyticsBodyweightExerciseSummary | null {
+  if (!isRecord(value)) return null
+
+  const exerciseId = toNumber(value.exercise_id ?? value.exerciseId)
+  const exerciseName = toString(value.exercise_name ?? value.exerciseName)
+  const strictSessionCount = toNumber(value.strict_session_count ?? value.strictSessionCount)
+  const weightedSessionCount = toNumber(value.weighted_session_count ?? value.weightedSessionCount)
+
+  if (
+    exerciseId === null
+    || exerciseName === null
+    || strictSessionCount === null
+    || weightedSessionCount === null
+  ) {
+    return null
+  }
+
+  return {
+    exerciseId,
+    exerciseName,
+    lastSessionDate: toString(value.last_session_date ?? value.lastSessionDate),
+    latestAddedLoadLbs: toNumber(value.latest_added_load_lbs ?? value.latestAddedLoadLbs),
+    latestStrictRepBest: toNumber(value.latest_strict_rep_best ?? value.latestStrictRepBest),
+    strictSessionCount,
+    weightedSessionCount,
+  }
+}
+
+function parseAnalyticsBodyweightStrictRepPoint(value: unknown): AnalyticsBodyweightStrictRepPoint | null {
+  if (!isRecord(value)) return null
+
+  const bestReps = toNumber(value.best_reps ?? value.bestReps)
+  const date = toString(value.date)
+  const exerciseId = toNumber(value.exercise_id ?? value.exerciseId)
+  const exerciseName = toString(value.exercise_name ?? value.exerciseName)
+
+  if (bestReps === null || date === null || exerciseId === null || exerciseName === null) {
+    return null
+  }
+
+  return {
+    bestReps,
+    date,
+    exerciseId,
+    exerciseName,
+  }
+}
+
+function parseAnalyticsBodyweightLoadPoint(value: unknown): AnalyticsBodyweightLoadPoint | null {
+  if (!isRecord(value)) return null
+
+  const addedWeightLbs = toNumber(value.added_weight_lbs ?? value.addedWeightLbs)
+  const date = toString(value.date)
+  const exerciseId = toNumber(value.exercise_id ?? value.exerciseId)
+  const exerciseName = toString(value.exercise_name ?? value.exerciseName)
+  const reps = toNumber(value.reps)
+
+  if (addedWeightLbs === null || date === null || exerciseId === null || exerciseName === null || reps === null) {
+    return null
+  }
+
+  return {
+    addedWeightLbs,
+    date,
+    exerciseId,
+    exerciseName,
+    reps,
+  }
+}
+
+function parseAnalyticsBodyweightLane(value: unknown): AnalyticsBodyweightLane {
+  if (!isRecord(value)) {
+    return createEmptyAnalyticsBodyweightLane()
+  }
+
+  return {
+    exerciseSummaries: mapArray(value.exercise_summaries ?? value.exerciseSummaries, parseAnalyticsBodyweightExerciseSummary),
+    relevant: value.relevant === true,
+    strictRepTrend: mapArray(value.strict_rep_trend ?? value.strictRepTrend, parseAnalyticsBodyweightStrictRepPoint),
+    weightedLoadTrend: mapArray(value.weighted_load_trend ?? value.weightedLoadTrend, parseAnalyticsBodyweightLoadPoint),
+  }
+}
+
 function parseNumberRecord(value: unknown) {
   if (!isRecord(value)) {
     return {}
@@ -387,6 +576,124 @@ function parseStrengthProfileRawData(value: unknown): StrengthProfileRawData {
   }
 }
 
+function mergeAnalyticsCoverage(
+  fallbackCoverage: AnalyticsCoverage,
+  parsedCoverage: Partial<AnalyticsCoverage['metrics']>,
+): AnalyticsCoverage {
+  return {
+    metrics: {
+      bodyweightLane: parsedCoverage.bodyweightLane ?? fallbackCoverage.metrics.bodyweightLane,
+      consistency: parsedCoverage.consistency ?? fallbackCoverage.metrics.consistency,
+      e1rmTrend: parsedCoverage.e1rmTrend ?? fallbackCoverage.metrics.e1rmTrend,
+      muscleBalance: parsedCoverage.muscleBalance ?? fallbackCoverage.metrics.muscleBalance,
+      prHistory: parsedCoverage.prHistory ?? fallbackCoverage.metrics.prHistory,
+      stallDetection: parsedCoverage.stallDetection ?? fallbackCoverage.metrics.stallDetection,
+      strengthProfile: parsedCoverage.strengthProfile ?? fallbackCoverage.metrics.strengthProfile,
+      tmProgression: parsedCoverage.tmProgression ?? fallbackCoverage.metrics.tmProgression,
+      volumeTrend: parsedCoverage.volumeTrend ?? fallbackCoverage.metrics.volumeTrend,
+    },
+  }
+}
+
+function buildFallbackCoverage(analytics: {
+  bodyweightLane: AnalyticsBodyweightLane
+  consistency: AnalyticsConsistency
+  e1rmTrend: AnalyticsE1rmPoint[]
+  muscleBalance: AnalyticsMuscleBalancePoint[]
+  prHistory: AnalyticsPrPoint[]
+  stallDetection: AnalyticsStallPoint[]
+  strengthProfile: AnalyticsData['strengthProfile']
+  tmProgression: AnalyticsTmProgressionPoint[]
+  volumeTrend: AnalyticsVolumePoint[]
+}): AnalyticsCoverage {
+  const strengthSignalCount = Math.max(analytics.e1rmTrend.length, analytics.prHistory.length, analytics.stallDetection.length)
+  const bodyweightSignalCount = analytics.bodyweightLane.exerciseSummaries.length
+    + analytics.bodyweightLane.strictRepTrend.length
+    + analytics.bodyweightLane.weightedLoadTrend.length
+
+  return {
+    metrics: {
+      consistency: analytics.consistency.totalSessions > 1
+        ? createMetricCoverage('general_logging', 'ready', analytics.consistency.totalSessions)
+        : analytics.consistency.totalSessions === 1
+          ? createMetricCoverage('general_logging', 'limited', 1, ['limited_history'])
+          : createMetricCoverage('general_logging', 'not_applicable', 0, ['no_completed_sessions']),
+      volumeTrend: analytics.volumeTrend.length > 1
+        ? createMetricCoverage('general_logging', 'ready', analytics.volumeTrend.length)
+        : analytics.volumeTrend.length === 1
+          ? createMetricCoverage('general_logging', 'limited', 1, ['limited_history'])
+          : analytics.bodyweightLane.relevant
+            ? createMetricCoverage('general_logging', 'not_applicable', 0, ['bodyweight_only_scope'])
+            : createMetricCoverage('general_logging', 'not_applicable', 0, ['no_external_load_sets']),
+      muscleBalance: analytics.muscleBalance.length > 1
+        ? createMetricCoverage('general_logging', 'ready', analytics.muscleBalance.length)
+        : analytics.muscleBalance.length === 1
+          ? createMetricCoverage('general_logging', 'limited', 1, ['limited_history'])
+          : analytics.bodyweightLane.relevant
+            ? createMetricCoverage('general_logging', 'not_applicable', 0, ['bodyweight_only_scope'])
+            : createMetricCoverage('general_logging', 'not_applicable', 0, ['no_external_load_sets']),
+      e1rmTrend: analytics.e1rmTrend.length > 1
+        ? createMetricCoverage('main_lift_amrap', 'ready', analytics.e1rmTrend.length)
+        : analytics.e1rmTrend.length === 1
+          ? createMetricCoverage('main_lift_amrap', 'limited', 1, ['limited_history'])
+          : analytics.bodyweightLane.relevant
+            ? createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['bodyweight_only_scope'])
+            : createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['no_amrap_sets']),
+      prHistory: analytics.prHistory.length > 1
+        ? createMetricCoverage('main_lift_amrap', 'ready', analytics.prHistory.length)
+        : analytics.prHistory.length === 1
+          ? createMetricCoverage('main_lift_amrap', 'limited', 1, ['limited_history'])
+          : analytics.bodyweightLane.relevant
+            ? createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['bodyweight_only_scope'])
+            : createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['no_amrap_sets']),
+      stallDetection: strengthSignalCount > 1
+        ? createMetricCoverage('main_lift_amrap', 'ready', strengthSignalCount)
+        : strengthSignalCount === 1
+          ? createMetricCoverage('main_lift_amrap', 'limited', 1, ['limited_history'])
+          : analytics.bodyweightLane.relevant
+            ? createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['bodyweight_only_scope'])
+            : createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['no_amrap_sets']),
+      tmProgression: analytics.tmProgression.length > 1
+        ? createMetricCoverage('training_max', 'ready', analytics.tmProgression.length)
+        : analytics.tmProgression.length === 1
+          ? createMetricCoverage('training_max', 'limited', 1, ['limited_history'])
+          : createMetricCoverage('training_max', 'not_applicable', 0, ['no_training_max_history']),
+      strengthProfile: analytics.strengthProfile.status === 'ready'
+        ? createMetricCoverage('benchmark_profile', 'ready', analytics.strengthProfile.availableLiftCount)
+        : analytics.strengthProfile.status === 'missing_profile'
+          ? createMetricCoverage('benchmark_profile', 'limited', analytics.strengthProfile.availableLiftCount, ['strength_profile_missing_profile'])
+          : analytics.strengthProfile.status === 'insufficient_data'
+            ? createMetricCoverage('benchmark_profile', 'limited', analytics.strengthProfile.availableLiftCount, ['strength_profile_insufficient_data'])
+            : createMetricCoverage('benchmark_profile', 'not_applicable', 0, ['strength_profile_insufficient_data']),
+      bodyweightLane: bodyweightSignalCount > 1
+        ? createMetricCoverage('bodyweight_specific', 'ready', bodyweightSignalCount)
+        : analytics.bodyweightLane.relevant
+          ? createMetricCoverage('bodyweight_specific', 'limited', bodyweightSignalCount, ['limited_history'])
+          : createMetricCoverage('bodyweight_specific', 'not_applicable', 0, ['no_bodyweight_sets']),
+    },
+  }
+}
+
+function parseAnalyticsCoverage(value: unknown, fallbackCoverage: AnalyticsCoverage): AnalyticsCoverage {
+  if (!isRecord(value)) {
+    return fallbackCoverage
+  }
+
+  const metrics = value.metrics && isRecord(value.metrics) ? value.metrics : null
+
+  return mergeAnalyticsCoverage(fallbackCoverage, {
+    bodyweightLane: parseAnalyticsMetricCoverage(metrics?.bodyweight_lane ?? metrics?.bodyweightLane, 'bodyweight_specific') ?? undefined,
+    consistency: parseAnalyticsMetricCoverage(metrics?.consistency, 'general_logging') ?? undefined,
+    e1rmTrend: parseAnalyticsMetricCoverage(metrics?.e1rm_trend ?? metrics?.e1rmTrend, 'main_lift_amrap') ?? undefined,
+    muscleBalance: parseAnalyticsMetricCoverage(metrics?.muscle_balance ?? metrics?.muscleBalance, 'general_logging') ?? undefined,
+    prHistory: parseAnalyticsMetricCoverage(metrics?.pr_history ?? metrics?.prHistory, 'main_lift_amrap') ?? undefined,
+    stallDetection: parseAnalyticsMetricCoverage(metrics?.stall_detection ?? metrics?.stallDetection, 'main_lift_amrap') ?? undefined,
+    strengthProfile: parseAnalyticsMetricCoverage(metrics?.strength_profile ?? metrics?.strengthProfile, 'benchmark_profile') ?? undefined,
+    tmProgression: parseAnalyticsMetricCoverage(metrics?.tm_progression ?? metrics?.tmProgression, 'training_max') ?? undefined,
+    volumeTrend: parseAnalyticsMetricCoverage(metrics?.volume_trend ?? metrics?.volumeTrend, 'general_logging') ?? undefined,
+  })
+}
+
 function sortByDate<T extends { date: string }>(entries: T[]) {
   return [...entries].sort((left, right) => left.date.localeCompare(right.date))
 }
@@ -455,25 +762,165 @@ export function parseDashboardData(value: Json | null): DashboardData {
 export function parseAnalyticsData(value: Json | null, weightRoundingLbs: number = DEFAULT_WEIGHT_ROUNDING_LBS): AnalyticsData {
   const record = isRecord(value) ? value : {}
 
-  return {
-    e1rmTrend: mapArray(record.e1rm_trend, parseAnalyticsE1rmPoint),
-    volumeTrend: mapArray(record.volume_trend, parseAnalyticsVolumePoint),
-    prHistory: mapArray(record.pr_history, parseAnalyticsPrPoint),
+  const bodyweightLane = parseAnalyticsBodyweightLane(record.bodyweight_lane)
+  const analyticsCore = {
+    bodyweightLane,
     consistency: parseAnalyticsConsistency(record.consistency),
+    e1rmTrend: mapArray(record.e1rm_trend, parseAnalyticsE1rmPoint),
     muscleBalance: mapArray(record.muscle_balance, parseAnalyticsMuscleBalancePoint),
+    prHistory: mapArray(record.pr_history, parseAnalyticsPrPoint),
     stallDetection: mapArray(record.stall_detection, parseAnalyticsStallPoint),
     tmProgression: mapArray(record.tm_progression, parseAnalyticsTmProgressionPoint),
+    volumeTrend: mapArray(record.volume_trend, parseAnalyticsVolumePoint),
     strengthProfile: buildStrengthProfile(parseStrengthProfileRawData(record.strength_profile), weightRoundingLbs),
+  }
+  const coverage = parseAnalyticsCoverage(record.coverage, buildFallbackCoverage(analyticsCore))
+
+  return {
+    bodyweightLane,
+    coverage,
+    e1rmTrend: analyticsCore.e1rmTrend,
+    volumeTrend: analyticsCore.volumeTrend,
+    prHistory: analyticsCore.prHistory,
+    consistency: analyticsCore.consistency,
+    muscleBalance: analyticsCore.muscleBalance,
+    stallDetection: analyticsCore.stallDetection,
+    tmProgression: analyticsCore.tmProgression,
+    strengthProfile: analyticsCore.strengthProfile,
   }
 }
 
-export function hasAnalyticsData(analytics: AnalyticsData) {
+export function hasRenderableAnalyticsData(analytics: AnalyticsData) {
   return analytics.e1rmTrend.length > 0
     || analytics.volumeTrend.length > 0
     || analytics.prHistory.length > 0
     || analytics.muscleBalance.length > 0
     || analytics.stallDetection.length > 0
     || analytics.consistency.totalSessions > 0
+    || analytics.tmProgression.length > 0
+    || analytics.bodyweightLane.relevant
+    || analytics.strengthProfile.status !== 'missing_profile'
+}
+
+export function hasInsightEligibleAnalyticsData(analytics: AnalyticsData) {
+  return analytics.coverage.metrics.consistency.signalCount > 0
+    || analytics.coverage.metrics.volumeTrend.signalCount > 0
+    || analytics.coverage.metrics.e1rmTrend.signalCount > 0
+    || analytics.coverage.metrics.prHistory.signalCount > 0
+    || analytics.coverage.metrics.stallDetection.signalCount > 0
+    || analytics.coverage.metrics.tmProgression.signalCount > 0
+    || analytics.coverage.metrics.bodyweightLane.signalCount > 0
+    || analytics.coverage.metrics.strengthProfile.signalCount > 0
+}
+
+export function hasAnalyticsData(analytics: AnalyticsData) {
+  return hasRenderableAnalyticsData(analytics)
+}
+
+export function formatAnalyticsCoverageFamily(family: AnalyticsCoverageFamily) {
+  switch (family) {
+    case 'general_logging':
+      return 'General logging'
+    case 'main_lift_amrap':
+      return 'Main-lift AMRAP'
+    case 'training_max':
+      return 'Training max'
+    case 'benchmark_profile':
+      return 'Strength profile'
+    case 'bodyweight_specific':
+      return 'Bodyweight review'
+    default:
+      return 'Coverage'
+  }
+}
+
+export function describeAnalyticsCoverageReasons(reasonCodes: AnalyticsCoverageReasonCode[]) {
+  if (reasonCodes.includes('bodyweight_only_scope')) {
+    return 'This scope is bodyweight-led, so load-based metrics are intentionally withheld.'
+  }
+
+  if (reasonCodes.includes('no_completed_sessions')) {
+    return 'Finish more sessions to build this view.'
+  }
+
+  if (reasonCodes.includes('no_external_load_sets')) {
+    return 'This metric needs logged external-load sets.'
+  }
+
+  if (reasonCodes.includes('no_amrap_sets')) {
+    return 'This metric depends on main-lift AMRAP history.'
+  }
+
+  if (reasonCodes.includes('no_training_max_history')) {
+    return 'Training max history has not been recorded for this scope.'
+  }
+
+  if (reasonCodes.includes('strength_profile_missing_profile')) {
+    return 'Complete the strength profile inputs to unlock this view.'
+  }
+
+  if (reasonCodes.includes('strength_profile_insufficient_data')) {
+    return 'More benchmark-ready lift history is needed here.'
+  }
+
+  if (reasonCodes.includes('no_bodyweight_sets')) {
+    return 'No bodyweight work landed in this filter window.'
+  }
+
+  if (reasonCodes.includes('limited_history')) {
+    return 'The signal is present, but the history is still thin.'
+  }
+
+  if (reasonCodes.includes('no_main_lift_sets')) {
+    return 'This metric only applies to main-lift work.'
+  }
+
+  return 'Coverage depends on the selected method and available signal.'
+}
+
+export function summarizeAnalyticsCoverageFamilies(coverage: AnalyticsCoverage) {
+  const summaries = new Map<AnalyticsCoverageFamily, {
+    family: AnalyticsCoverageFamily
+    reasonCodes: AnalyticsCoverageReasonCode[]
+    signalCount: number
+    status: AnalyticsCoverageStatus
+  }>()
+
+  for (const metric of Object.values(coverage.metrics)) {
+    const current = summaries.get(metric.family)
+
+    if (!current) {
+      summaries.set(metric.family, {
+        family: metric.family,
+        reasonCodes: [...metric.reasonCodes],
+        signalCount: metric.signalCount,
+        status: metric.status,
+      })
+      continue
+    }
+
+    current.signalCount += metric.signalCount
+    current.reasonCodes = Array.from(new Set([...current.reasonCodes, ...metric.reasonCodes]))
+
+    if (current.status !== 'ready' && metric.status === 'ready') {
+      current.status = 'ready'
+    } else if (current.status === 'not_applicable' && metric.status === 'limited') {
+      current.status = 'limited'
+    }
+  }
+
+  return [
+    'general_logging',
+    'main_lift_amrap',
+    'training_max',
+    'benchmark_profile',
+    'bodyweight_specific',
+  ].map((family) => summaries.get(family as AnalyticsCoverageFamily) ?? {
+    family: family as AnalyticsCoverageFamily,
+    reasonCodes: [],
+    signalCount: 0,
+    status: 'not_applicable' as AnalyticsCoverageStatus,
+  })
 }
 
 export function deriveRecentPrs(prHistory: AnalyticsPrPoint[], limit: number = 4): DerivedRecentPr[] {
@@ -557,6 +1004,135 @@ export function buildDashboardData({
   }
 }
 
+function isBodyweightSet(set: Pick<AnalyticsSourceSet, 'intensityType'>) {
+  return set.intensityType === 'bodyweight'
+}
+
+function buildBodyweightLane(
+  scopedSets: AnalyticsSourceSet[],
+  exerciseById: Map<number, AnalyticsSourceExercise>,
+  workoutById: Map<number, AnalyticsSourceWorkout>,
+): AnalyticsBodyweightLane {
+  const bodyweightSets = scopedSets.filter((set) => isBodyweightSet(set) && set.repsActual !== null)
+
+  if (!bodyweightSets.length) {
+    return createEmptyAnalyticsBodyweightLane()
+  }
+
+  const summaries = new Map<number, {
+    exerciseId: number
+    exerciseName: string
+    lastSessionDate: string | null
+    latestAddedLoadLbs: number | null
+    latestStrictDate: string | null
+    latestStrictRepBest: number | null
+    strictWorkoutIds: Set<number>
+    weightedWorkoutIds: Set<number>
+  }>()
+  const strictTrend = new Map<string, AnalyticsBodyweightStrictRepPoint>()
+  const weightedTrend = new Map<string, AnalyticsBodyweightLoadPoint>()
+
+  for (const set of bodyweightSets) {
+    const exercise = exerciseById.get(set.exerciseId)
+    const workout = workoutById.get(set.workoutId)
+
+    if (!exercise || !workout || set.repsActual === null) {
+      continue
+    }
+
+    const currentSummary = summaries.get(set.exerciseId) ?? {
+      exerciseId: set.exerciseId,
+      exerciseName: exercise.name,
+      lastSessionDate: null,
+      latestAddedLoadLbs: null,
+      latestStrictDate: null,
+      latestStrictRepBest: null,
+      strictWorkoutIds: new Set<number>(),
+      weightedWorkoutIds: new Set<number>(),
+    }
+    const isWeighted = set.weightLbs > 0
+
+    if (!currentSummary.lastSessionDate || workout.scheduledDate > currentSummary.lastSessionDate) {
+      currentSummary.lastSessionDate = workout.scheduledDate
+    }
+
+    if (isWeighted) {
+      currentSummary.weightedWorkoutIds.add(set.workoutId)
+
+      if (
+        currentSummary.latestAddedLoadLbs === null
+        || set.weightLbs > currentSummary.latestAddedLoadLbs
+        || currentSummary.lastSessionDate === workout.scheduledDate
+      ) {
+        currentSummary.latestAddedLoadLbs = set.weightLbs
+      }
+
+      const weightedKey = `${workout.scheduledDate}:${set.exerciseId}`
+      const existingWeightedPoint = weightedTrend.get(weightedKey)
+
+      if (
+        !existingWeightedPoint
+        || set.weightLbs > existingWeightedPoint.addedWeightLbs
+        || (set.weightLbs === existingWeightedPoint.addedWeightLbs && set.repsActual > existingWeightedPoint.reps)
+      ) {
+        weightedTrend.set(weightedKey, {
+          addedWeightLbs: set.weightLbs,
+          date: workout.scheduledDate,
+          exerciseId: set.exerciseId,
+          exerciseName: exercise.name,
+          reps: set.repsActual,
+        })
+      }
+    } else {
+      currentSummary.strictWorkoutIds.add(set.workoutId)
+
+      if (!currentSummary.latestStrictDate || workout.scheduledDate > currentSummary.latestStrictDate) {
+        currentSummary.latestStrictDate = workout.scheduledDate
+        currentSummary.latestStrictRepBest = set.repsActual
+      } else if (workout.scheduledDate === currentSummary.latestStrictDate) {
+        currentSummary.latestStrictRepBest = Math.max(currentSummary.latestStrictRepBest ?? 0, set.repsActual)
+      }
+
+      const strictKey = `${workout.scheduledDate}:${set.exerciseId}`
+      const existingStrictPoint = strictTrend.get(strictKey)
+
+      if (!existingStrictPoint || set.repsActual > existingStrictPoint.bestReps) {
+        strictTrend.set(strictKey, {
+          bestReps: set.repsActual,
+          date: workout.scheduledDate,
+          exerciseId: set.exerciseId,
+          exerciseName: exercise.name,
+        })
+      }
+    }
+
+    summaries.set(set.exerciseId, currentSummary)
+  }
+
+  return {
+    exerciseSummaries: Array.from(summaries.values())
+      .map((summary) => ({
+        exerciseId: summary.exerciseId,
+        exerciseName: summary.exerciseName,
+        lastSessionDate: summary.lastSessionDate,
+        latestAddedLoadLbs: summary.latestAddedLoadLbs,
+        latestStrictRepBest: summary.latestStrictRepBest,
+        strictSessionCount: summary.strictWorkoutIds.size,
+        weightedSessionCount: summary.weightedWorkoutIds.size,
+      }))
+      .sort((left, right) => {
+        if (left.lastSessionDate && right.lastSessionDate && left.lastSessionDate !== right.lastSessionDate) {
+          return right.lastSessionDate.localeCompare(left.lastSessionDate)
+        }
+
+        return left.exerciseName.localeCompare(right.exerciseName)
+      }),
+    relevant: true,
+    strictRepTrend: Array.from(strictTrend.values()).sort((left, right) => left.date.localeCompare(right.date)),
+    weightedLoadTrend: Array.from(weightedTrend.values()).sort((left, right) => left.date.localeCompare(right.date)),
+  }
+}
+
 export function buildAnalyticsData({
   currentDate = new Date(),
   dateFrom,
@@ -587,8 +1163,14 @@ export function buildAnalyticsData({
 
     return isWithinRange(workout.scheduledDate, normalizedDateFrom, normalizedDateTo)
   })
-  const e1rmTrend = inRangeSets
-    .filter((set) => set.isAmrap && set.repsActual !== null && set.repsActual > 0 && (!exerciseId || set.exerciseId === exerciseId))
+  const scopedSets = inRangeSets.filter((set) => !exerciseId || set.exerciseId === exerciseId)
+  const externalLoadScopedSets = scopedSets.filter((set) => !isBodyweightSet(set))
+  const mainLiftAmrapScopedSets = externalLoadScopedSets.filter((set) => {
+    const exercise = exerciseById.get(set.exerciseId)
+    return Boolean(exercise?.isMainLift && set.isAmrap && set.repsActual !== null && set.repsActual > 0)
+  })
+  const bodyweightLane = buildBodyweightLane(scopedSets, exerciseById, workoutById)
+  const e1rmTrend = mainLiftAmrapScopedSets
     .map((set) => {
       const exercise = exerciseById.get(set.exerciseId)
       const workout = workoutById.get(set.workoutId)!
@@ -604,11 +1186,7 @@ export function buildAnalyticsData({
     .sort((left, right) => left.date.localeCompare(right.date))
   const volumeByWeekAndExercise = new Map<string, AnalyticsVolumePoint>()
 
-  for (const set of inRangeSets) {
-    if (exerciseId && set.exerciseId !== exerciseId) {
-      continue
-    }
-
+  for (const set of externalLoadScopedSets) {
     const exercise = exerciseById.get(set.exerciseId)
     const workout = workoutById.get(set.workoutId)
 
@@ -647,13 +1225,18 @@ export function buildAnalyticsData({
     }
   }
 
+  const scopedWorkoutIds = new Set(scopedSets.map((set) => set.workoutId))
   const completedWorkoutsInRange = workouts
-    .filter((workout) => workout.completedAt && isWithinRange(workout.scheduledDate, normalizedDateFrom, normalizedDateTo))
+    .filter(
+      (workout) => workout.completedAt
+        && isWithinRange(workout.scheduledDate, normalizedDateFrom, normalizedDateTo)
+        && (!exerciseId || scopedWorkoutIds.has(workout.id)),
+    )
     .sort((left, right) => left.scheduledDate.localeCompare(right.scheduledDate))
   const activeWeeks = new Set(completedWorkoutsInRange.map((workout) => formatWeekStart(startOfWeek(workout.scheduledDate))))
   const muscleBalanceTotals = new Map<string, number>()
 
-  for (const set of inRangeSets) {
+  for (const set of externalLoadScopedSets) {
     const exercise = exerciseById.get(set.exerciseId)
     const movementPattern = exercise?.movementPattern ?? 'other'
     const totalVolume = muscleBalanceTotals.get(movementPattern) ?? 0
@@ -666,7 +1249,7 @@ export function buildAnalyticsData({
   const lastPrByExercise = new Map<number, { exerciseName: string; lastPrDate: string }>()
 
   for (const set of sets) {
-    if (!set.isAmrap || set.repsActual === null) {
+    if (!set.isAmrap || set.repsActual === null || isBodyweightSet(set) || (exerciseId && set.exerciseId !== exerciseId)) {
       continue
     }
 
@@ -686,7 +1269,8 @@ export function buildAnalyticsData({
     }
   }
 
-  return {
+  const analytics = {
+    bodyweightLane,
     e1rmTrend,
     volumeTrend: Array.from(volumeByWeekAndExercise.values()).sort((left, right) => left.weekStart.localeCompare(right.weekStart)),
     prHistory: Array.from(prByExerciseAndDate.values()).sort((left, right) => left.date.localeCompare(right.date)),
@@ -718,6 +1302,11 @@ export function buildAnalyticsData({
       .sort((left, right) => left.lastPrDate.localeCompare(right.lastPrDate)),
     tmProgression: [],
     strengthProfile: createEmptyStrengthProfile(),
+  }
+
+  return {
+    ...analytics,
+    coverage: buildFallbackCoverage(analytics),
   }
 }
 

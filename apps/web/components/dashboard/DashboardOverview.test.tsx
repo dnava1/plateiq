@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, beforeEach, vi } from 'vitest'
+import { createEmptyAnalyticsBodyweightLane, createEmptyAnalyticsCoverage } from '@/lib/analytics'
 import { createEmptyStrengthProfile } from '@/lib/strength-profile'
 import { DashboardOverview } from './DashboardOverview'
 
@@ -71,6 +72,8 @@ describe('DashboardOverview', () => {
     mocks.useCycleWorkouts.mockReturnValue({ data: [] })
     mocks.useAnalytics.mockReturnValue({
       data: {
+        bodyweightLane: createEmptyAnalyticsBodyweightLane(),
+        coverage: createEmptyAnalyticsCoverage(),
         e1rmTrend: [],
         volumeTrend: [],
         prHistory: [],
@@ -286,5 +289,83 @@ describe('DashboardOverview', () => {
     render(<DashboardOverview />)
 
     expect(screen.getByText(/\+2.5 kg over the prior best/i)).toBeInTheDocument()
+  })
+
+  it('shows a compact bodyweight review teaser when bodyweight analytics are available', () => {
+    const coverage = createEmptyAnalyticsCoverage()
+    coverage.metrics.bodyweightLane = {
+      family: 'bodyweight_specific',
+      reasonCodes: [],
+      signalCount: 3,
+      status: 'ready',
+    }
+
+    mocks.useActiveProgram.mockReturnValue({
+      data: {
+        id: 12,
+        name: '5/3/1 Beefcake',
+        config: { variation_key: 'bbb' },
+      },
+      isLoading: false,
+    })
+    mocks.resolveWorkoutProgram.mockReturnValue({
+      isCustom: false,
+      template: {
+        cycle_length_weeks: 2,
+        days_per_week: 2,
+        days: [{ label: 'Day A' }, { label: 'Day B' }],
+        variation_options: [{ key: 'bbb', name: 'Boring But Big' }],
+      },
+    })
+    mocks.useDashboard.mockReturnValue({
+      data: {
+        activeProgram: { id: 12, name: '5/3/1 Beefcake', templateKey: 'wendler_531' },
+        currentCycle: { id: 3, cycleNumber: 2 },
+        currentTms: [],
+        recentWorkouts: [],
+      },
+      isLoading: false,
+    })
+    mocks.useAnalytics.mockReturnValue({
+      data: {
+        bodyweightLane: {
+          relevant: true,
+          exerciseSummaries: [
+            {
+              exerciseId: 7,
+              exerciseName: 'Pull-Up',
+              lastSessionDate: '2026-04-05',
+              latestAddedLoadLbs: 25,
+              latestStrictRepBest: 12,
+              strictSessionCount: 2,
+              weightedSessionCount: 1,
+            },
+          ],
+          strictRepTrend: [],
+          weightedLoadTrend: [],
+        },
+        coverage,
+        e1rmTrend: [],
+        volumeTrend: [],
+        prHistory: [],
+        consistency: {
+          totalSessions: 4,
+          weeksActive: 2,
+          firstSession: '2026-03-20',
+          lastSession: '2026-04-05',
+        },
+        muscleBalance: [],
+        stallDetection: [],
+        tmProgression: [],
+        strengthProfile: createEmptyStrengthProfile(),
+      },
+      isLoading: false,
+    })
+
+    render(<DashboardOverview />)
+
+    expect(screen.getByText('Bodyweight Review')).toBeInTheDocument()
+    expect(screen.getByText('Open bodyweight analytics')).toBeInTheDocument()
+    expect(screen.getByText(/Strict best 12 reps/i)).toBeInTheDocument()
   })
 })

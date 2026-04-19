@@ -6,6 +6,7 @@ import { CheckCircle2, CloudAlert, CloudUpload, PencilLine } from 'lucide-react'
 import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { useHistoricalAmrapSets, useLogSet } from '@/hooks/useWorkouts'
+import { formatCanonicalEffort, formatTargetEffort } from '@/lib/effort'
 import { useWorkoutSessionStore, type SetSyncState } from '@/store/workoutSessionStore'
 import { cn, formatWeight, roundWeightForDisplay } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -117,6 +118,8 @@ export function SetRow({
     ? `${loggedWeightLabel} × ${set.repsActual} reps`
     : null
   const shouldShowLoggedOutcome = Boolean(loggedOutcomeLabel) && (set.is_amrap || !matchesPrescription)
+  const prescribedEffortLabel = set.prescribedRpe !== null ? formatTargetEffort(set.prescribedRpe) : null
+  const loggedEffortLabel = set.rpe !== null ? formatCanonicalEffort(set.rpe) : null
 
   const updateSyncState = (status: SetSyncState['status']) => {
     onSyncStateChange?.({ status })
@@ -163,7 +166,11 @@ export function SetRow({
     })
   }
 
-  const submitLog = (repsActual: number, weightLbs: number = set.weight_lbs) => {
+  const submitLog = (
+    repsActual: number,
+    weightLbs: number = set.weight_lbs,
+    actualRpe: number | null = set.rpe ?? null,
+  ) => {
     if (!set.exerciseId || !set.workoutId || !userId) {
       toast.error(`Couldn't resolve the exercise for set ${set.set_order}.`)
       return
@@ -185,7 +192,7 @@ export function SetRow({
         repsPrescribedMax: set.reps_prescribed_max,
         repsActual,
         isAmrap: set.is_amrap,
-        rpe: set.rpe,
+        actualRpe,
         intensityType: set.intensity_type,
       },
       {
@@ -241,6 +248,12 @@ export function SetRow({
             ) : (
               <p className="text-sm text-muted-foreground">{plannedOutcomeLabel}</p>
             )}
+            {prescribedEffortLabel ? (
+              <p className="text-xs text-muted-foreground">{prescribedEffortLabel}</p>
+            ) : null}
+            {isCompleted && loggedEffortLabel ? (
+              <p className="text-xs text-muted-foreground">Logged {loggedEffortLabel}</p>
+            ) : null}
             {!isCompleted && usesAdjustedLoad ? (
               <p className="text-xs text-muted-foreground">
                 Suggested {formatWeight(set.prescribedWeightLbs, preferredUnit, weightRoundingLbs)}
@@ -276,7 +289,7 @@ export function SetRow({
           </div>
         ) : supportsQuickLogging ? (
           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-            <Button type="button" size={layout === 'focus' ? 'default' : 'sm'} onClick={() => submitLog(set.reps_prescribed, set.prescribedWeightLbs)} disabled={logSet.isPending}>
+            <Button type="button" size={layout === 'focus' ? 'default' : 'sm'} onClick={() => submitLog(set.reps_prescribed, set.prescribedWeightLbs, null)} disabled={logSet.isPending}>
               {syncState === 'queued' ? <CloudAlert data-icon="inline-start" /> : <CloudUpload data-icon="inline-start" />}
               {logSet.isPending ? 'Saving…' : 'Log planned'}
             </Button>
@@ -296,11 +309,13 @@ export function SetRow({
       {showSetEntry ? (
         <SetEntry
           allowZeroWeight={set.intensity_type === 'bodyweight'}
+          defaultActualRpe={set.rpe}
           defaultReps={set.repsActual ?? set.reps_prescribed}
           defaultWeightLbs={set.weight_lbs}
           isPending={logSet.isPending}
           onCancel={() => setShowSetEntry(false)}
-          onSubmit={({ reps, weightLbs }) => submitLog(reps, weightLbs)}
+          onSubmit={({ actualRpe, reps, weightLbs }) => submitLog(reps, weightLbs, actualRpe)}
+          prescribedRpe={set.prescribedRpe}
           showEstimatedOneRepMax={set.is_amrap}
         />
       ) : null}

@@ -94,6 +94,50 @@ describe('parseAnalyticsData', () => {
           weight_lbs: 315,
         },
       ],
+      coverage: {
+        metrics: {
+          bodyweight_lane: { family: 'bodyweight_specific', status: 'ready', signal_count: 2, reason_codes: [] },
+          consistency: { family: 'general_logging', status: 'ready', signal_count: 3, reason_codes: [] },
+          e1rm_trend: { family: 'main_lift_amrap', status: 'limited', signal_count: 1, reason_codes: ['limited_history'] },
+          muscle_balance: { family: 'general_logging', status: 'ready', signal_count: 2, reason_codes: [] },
+          pr_history: { family: 'main_lift_amrap', status: 'limited', signal_count: 1, reason_codes: ['limited_history'] },
+          stall_detection: { family: 'main_lift_amrap', status: 'limited', signal_count: 1, reason_codes: ['limited_history'] },
+          strength_profile: { family: 'benchmark_profile', status: 'limited', signal_count: 0, reason_codes: ['strength_profile_missing_profile'] },
+          tm_progression: { family: 'training_max', status: 'limited', signal_count: 1, reason_codes: ['limited_history'] },
+          volume_trend: { family: 'general_logging', status: 'ready', signal_count: 4, reason_codes: [] },
+        },
+      },
+      bodyweight_lane: {
+        relevant: true,
+        exercise_summaries: [
+          {
+            exercise_id: 7,
+            exercise_name: 'Pull-Up',
+            strict_session_count: 2,
+            weighted_session_count: 1,
+            latest_strict_rep_best: 12,
+            latest_added_load_lbs: 25,
+            last_session_date: '2026-04-02',
+          },
+        ],
+        strict_rep_trend: [
+          {
+            date: '2026-04-02',
+            exercise_id: 7,
+            exercise_name: 'Pull-Up',
+            best_reps: 12,
+          },
+        ],
+        weighted_load_trend: [
+          {
+            date: '2026-04-03',
+            exercise_id: 7,
+            exercise_name: 'Pull-Up',
+            added_weight_lbs: 25,
+            reps: 6,
+          },
+        ],
+      },
     })
 
     expect(result.consistency).toEqual({
@@ -114,6 +158,43 @@ describe('parseAnalyticsData', () => {
       { effectiveDate: '2026-03-01', exerciseId: 1, exerciseName: 'Squat', weightLbs: 315 },
     ])
     expect(result.strengthProfile).toEqual(createEmptyStrengthProfile())
+    expect(result.coverage.metrics.bodyweightLane).toEqual({
+      family: 'bodyweight_specific',
+      reasonCodes: [],
+      signalCount: 2,
+      status: 'ready',
+    })
+    expect(result.bodyweightLane).toEqual({
+      relevant: true,
+      exerciseSummaries: [
+        {
+          exerciseId: 7,
+          exerciseName: 'Pull-Up',
+          strictSessionCount: 2,
+          weightedSessionCount: 1,
+          latestStrictRepBest: 12,
+          latestAddedLoadLbs: 25,
+          lastSessionDate: '2026-04-02',
+        },
+      ],
+      strictRepTrend: [
+        {
+          bestReps: 12,
+          date: '2026-04-02',
+          exerciseId: 7,
+          exerciseName: 'Pull-Up',
+        },
+      ],
+      weightedLoadTrend: [
+        {
+          addedWeightLbs: 25,
+          date: '2026-04-03',
+          exerciseId: 7,
+          exerciseName: 'Pull-Up',
+          reps: 6,
+        },
+      ],
+    })
   })
 })
 

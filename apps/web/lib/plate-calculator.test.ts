@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { createEmptyAnalyticsBodyweightLane, createEmptyAnalyticsCoverage } from './analytics'
 import { createEmptyStrengthProfile } from './strength-profile'
 import {
   buildPlateCalculatorSuggestion,
@@ -9,6 +10,8 @@ import type { AnalyticsData } from '@/types/analytics'
 import { displayToLbs, lbsToDisplay } from './utils'
 
 const analyticsFixture: AnalyticsData = {
+  bodyweightLane: createEmptyAnalyticsBodyweightLane(),
+  coverage: createEmptyAnalyticsCoverage(),
   e1rmTrend: [
     { date: '2026-04-05', exerciseId: 1, exerciseName: 'Bench Press', weight: 205, reps: 6, e1rm: 246 },
     { date: '2026-04-07', exerciseId: 2, exerciseName: 'Squat', weight: 315, reps: 5, e1rm: 367.5 },

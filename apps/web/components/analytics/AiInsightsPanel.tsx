@@ -3,7 +3,9 @@
 import { useState } from 'react'
 import { RefreshCw, Sparkles } from 'lucide-react'
 import { useInsights } from '@/hooks/useInsights'
+import { formatAnalyticsCoverageFamily, summarizeAnalyticsCoverageFamilies } from '@/lib/analytics'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import {
   Card,
   CardContent,
@@ -11,17 +13,18 @@ import {
   CardHeader,
 } from '@/components/ui/card'
 import type { AnalyticsDateRange } from '@/hooks/useAnalytics'
+import type { AnalyticsCoverage } from '@/types/analytics'
 import type { TrainingInsight } from '@/types/insights'
 import { formatDateAsLocalIso } from '@/lib/utils'
 
 interface AiInsightsPanelProps {
+  coverage: AnalyticsCoverage
   dateRange: AnalyticsDateRange
   dateRangeLabel: string
   hasAnalyticsData: boolean
-  recentPrCount: number
+  isInsightEligible: boolean
   selectedExerciseId: number | null
   selectedExerciseName: string | null
-  stallCount: number
 }
 
 function InsightList({ items }: { items: string[] }) {
@@ -37,17 +40,20 @@ function InsightList({ items }: { items: string[] }) {
 }
 
 export function AiInsightsPanel({
+  coverage,
   dateRange,
   dateRangeLabel,
   hasAnalyticsData,
-  recentPrCount,
+  isInsightEligible,
   selectedExerciseId,
   selectedExerciseName,
-  stallCount,
 }: AiInsightsPanelProps) {
   const insightMutation = useInsights()
   const [insight, setInsight] = useState<TrainingInsight | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const coverageFamilies = summarizeAnalyticsCoverageFamilies(coverage)
+  const readyFamilyCount = coverageFamilies.filter((family) => family.status === 'ready').length
+  const bodyweightCoverage = coverage.metrics.bodyweightLane.status
 
   const handleGenerate = () => {
     setInsight(null)
@@ -87,14 +93,24 @@ export function AiInsightsPanel({
           <div className="flex flex-col gap-4">
             <div className="rounded-[22px] border border-border/70 bg-background/45 p-4">
               <p className="text-sm leading-6 text-muted-foreground">
-                {hasAnalyticsData
-                  ? `This request uses the ${dateRangeLabel.toLowerCase()} analytics snapshot${selectedExerciseName ? ` for ${selectedExerciseName}` : ''}, not raw workout history.`
-                  : 'Build a little more training history first. AI insights depend on the aggregated analytics snapshot shown in the other tabs.'}
+                {isInsightEligible
+                  ? `This request uses the ${dateRangeLabel.toLowerCase()} method-aware analytics snapshot${selectedExerciseName ? ` for ${selectedExerciseName}` : ''}, not raw workout history.`
+                  : hasAnalyticsData
+                    ? 'The current snapshot is still too thin or too method-specific to support a useful AI read. Build a little more comparable signal first.'
+                    : 'Build a little more training history first. AI insights depend on the aggregated analytics snapshot shown in the other tabs.'}
               </p>
             </div>
 
+            <div className="flex flex-wrap gap-2">
+              {coverageFamilies.map((family) => (
+                <Badge key={family.family} variant="outline">
+                  {formatAnalyticsCoverageFamily(family.family)}: {family.status}
+                </Badge>
+              ))}
+            </div>
+
             <div className="flex flex-wrap items-center gap-3">
-              <Button onClick={handleGenerate} disabled={!hasAnalyticsData || insightMutation.isPending} aria-label={generateLabel}>
+              <Button onClick={handleGenerate} disabled={!isInsightEligible || insightMutation.isPending} aria-label={generateLabel}>
                 {insightMutation.isPending ? (
                   <RefreshCw className="animate-spin" data-icon="inline-start" />
                 ) : (
@@ -122,16 +138,16 @@ export function AiInsightsPanel({
 
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
             <div className="rounded-[20px] border border-border/70 bg-background/45 p-4">
-              <span className="eyebrow">Snapshot Ready</span>
-              <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-foreground">{hasAnalyticsData ? 'Yes' : 'Not yet'}</p>
+              <span className="eyebrow">Insight Ready</span>
+              <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-foreground">{isInsightEligible ? 'Yes' : 'Not yet'}</p>
             </div>
             <div className="rounded-[20px] border border-border/70 bg-background/45 p-4">
-              <span className="eyebrow">PR Signals</span>
-              <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-foreground">{recentPrCount}</p>
+              <span className="eyebrow">Ready Families</span>
+              <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-foreground">{readyFamilyCount}</p>
             </div>
             <div className="rounded-[20px] border border-border/70 bg-background/45 p-4">
-              <span className="eyebrow">Plateaus Flagged</span>
-              <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-foreground">{stallCount}</p>
+              <span className="eyebrow">Bodyweight Lane</span>
+              <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-foreground">{bodyweightCoverage === 'ready' ? 'Ready' : bodyweightCoverage === 'limited' ? 'Limited' : 'Off'}</p>
             </div>
           </div>
         </CardContent>

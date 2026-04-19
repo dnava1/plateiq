@@ -16,6 +16,8 @@ interface ChartCardProps {
   className?: string
   description?: string
   emptyMessage: string
+  emptyStateNote?: string
+  headerBadge?: ReactNode
   heightClassName?: string
   isEmpty?: boolean
   isLoading?: boolean
@@ -27,6 +29,8 @@ export function ChartCard({
   className,
   description,
   emptyMessage,
+  emptyStateNote,
+  headerBadge,
   heightClassName = 'h-64',
   isEmpty,
   isLoading,
@@ -35,8 +39,13 @@ export function ChartCard({
   return (
     <Card className={cn('surface-panel', className)}>
       <CardHeader className="gap-2">
-        <CardTitle className="text-base">{title}</CardTitle>
-        {description ? <CardDescription>{description}</CardDescription> : null}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 space-y-2">
+            <CardTitle className="text-base">{title}</CardTitle>
+            {description ? <CardDescription>{description}</CardDescription> : null}
+          </div>
+          {headerBadge ? <div className="shrink-0">{headerBadge}</div> : null}
+        </div>
       </CardHeader>
       <CardContent className="pt-0">
         {isLoading ? (
@@ -46,7 +55,10 @@ export function ChartCard({
           </div>
         ) : isEmpty ? (
           <div className={cn('flex items-center justify-center rounded-[22px] border border-border/70 bg-background/45 px-4 text-center text-sm text-muted-foreground', heightClassName)}>
-            {emptyMessage}
+            <div className="flex flex-col gap-2">
+              <p>{emptyMessage}</p>
+              {emptyStateNote ? <p className="text-xs text-muted-foreground">{emptyStateNote}</p> : null}
+            </div>
           </div>
         ) : (
           children

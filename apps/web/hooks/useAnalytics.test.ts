@@ -2,6 +2,7 @@ import * as React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createEmptyAnalyticsBodyweightLane, createEmptyAnalyticsCoverage } from '@/lib/analytics'
 import { createEmptyStrengthProfile } from '@/lib/strength-profile'
 import { analyticsQueryKeys, useAnalytics } from './useAnalytics'
 
@@ -87,6 +88,37 @@ describe('useAnalytics', () => {
       p_date_to: '2026-04-01',
     })
     expect(result.current.data).toEqual({
+      bodyweightLane: createEmptyAnalyticsBodyweightLane(),
+      coverage: {
+        ...createEmptyAnalyticsCoverage(),
+        metrics: {
+          ...createEmptyAnalyticsCoverage().metrics,
+          consistency: {
+            family: 'general_logging',
+            reasonCodes: [],
+            signalCount: 5,
+            status: 'ready',
+          },
+          e1rmTrend: {
+            family: 'main_lift_amrap',
+            reasonCodes: ['limited_history'],
+            signalCount: 1,
+            status: 'limited',
+          },
+          stallDetection: {
+            family: 'main_lift_amrap',
+            reasonCodes: ['limited_history'],
+            signalCount: 1,
+            status: 'limited',
+          },
+          strengthProfile: {
+            family: 'benchmark_profile',
+            reasonCodes: ['strength_profile_missing_profile'],
+            signalCount: 0,
+            status: 'limited',
+          },
+        },
+      },
       e1rmTrend: [
         {
           date: '2026-03-20',

@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { getExerciseLookupKeys, useExercises, type Exercise } from '@/hooks/useExercises'
 import { useCurrentTrainingMaxes } from '@/hooks/useTrainingMaxes'
 import { getProgressionIncrements } from '@/lib/constants/templates/engine'
+import { formatEffortValue } from '@/lib/effort'
 import { isCustomProgramConfig, type CustomProgramConfig, type ProgressionRule } from '@/types/template'
 import type { Database } from '@/types/database'
 import { analyticsQueryKeys } from './useAnalytics'
@@ -58,6 +59,20 @@ interface CompleteCycleInput {
   cycleId: number
   progression: CycleProgressionPayloadRow[]
 }
+
+interface PreviewIncrement {
+  incrementLbs: number
+  reason: string
+}
+
+interface ExerciseEffortSummary {
+  representativeRpe: number | null
+  sampleCount: number
+}
+
+type CycleWorkoutSet = NonNullable<CycleWorkout['workout_sets']>[number]
+
+const EFFORT_GUARDRAIL_HOLD_RPE = 9.75
 
 function buildTrainingMaxLookup(trainingMaxes: CurrentTrainingMaxSnapshot[] | undefined) {
   const lookup = new Map<string, CurrentTrainingMaxSnapshot>()
@@ -118,90 +133,271 @@ function getBestAmrapMargin(cycleWorkouts: CycleWorkout[] | undefined, exerciseI
   return bestMargin
 }
 
+function getEffortSetPriority(set: Pick<CycleWorkoutSet, 'intensity_type' | 'is_amrap' | 'set_type'>) {
+  let priority = 0
+
+  if (set.is_amrap) {
+    priority += 4
+  }
+
+  switch (set.set_type) {
+    case 'main':
+      priority += 3
+      break
+    case 'variation':
+      priority += 2
+      break
+    case 'accessory':
+      priority += 1
+      break
+    case 'warmup':
+      priority -= 1
+      break
+    default:
+      break
+  }
+
+  switch (set.intensity_type) {
+    case 'rpe':
+      priority += 2
+      break
+    case 'percentage_tm':
+    case 'percentage_1rm':
+    case 'percentage_work_set':
+    case 'fixed_weight':
+    case 'bodyweight':
+      priority += 1
+      break
+    default:
+      break
+  }
+
+  return priority
+}
+
+function getExerciseEffortSummary(cycleWorkouts: CycleWorkout[] | undefined, exerciseId: number): ExerciseEffortSummary {
+  const candidates: Array<{ priority: number; rpe: number }> = []
+
+  for (const workout of cycleWorkouts ?? []) {
+    for (const set of workout.workout_sets ?? []) {
+      if (
+        set.exercise_id !== exerciseId
+        || typeof set.reps_actual !== 'number'
+        || typeof set.rpe !== 'number'
+      ) {
+        continue
+      }
+
+      const priority = getEffortSetPriority(set)
+      if (priority < 2) {
+        continue
+      }
+
+      candidates.push({ priority, rpe: Number(set.rpe) })
+    }
+  }
+
+  if (!candidates.length) {
+    return {
+      representativeRpe: null,
+      sampleCount: 0,
+    }
+  }
+
+  const totalPriority = candidates.reduce((sum, candidate) => sum + candidate.priority, 0)
+  const weightedAverageRpe = candidates.reduce(
+    (sum, candidate) => sum + candidate.rpe * candidate.priority,
+    0,
+  ) / totalPriority
+
+  return {
+    representativeRpe: Math.round(weightedAverageRpe * 2) / 2,
+    sampleCount: candidates.length,
+  }
+}
+
+function capitalizeSentence(value: string) {
+  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`
+}
+
+function describeEffortSummary(summary: ExerciseEffortSummary) {
+  if (summary.representativeRpe === null || summary.sampleCount < 1) {
+    return null
+  }
+
+  const setLabel = summary.sampleCount === 1 ? '1 high-value set' : `${summary.sampleCount} high-value sets`
+  return `logged effort averaged RPE ${formatEffortValue(summary.representativeRpe)} across ${setLabel}`
+}
+
+function formatProgressionStyleLabel(style: ProgressionRule['style']) {
+  switch (style) {
+    case 'linear_per_session':
+      return 'Linear per-session progression'
+    case 'linear_per_week':
+      return 'Linear weekly progression'
+    case 'linear_per_cycle':
+      return 'Linear per-cycle progression'
+    case 'percentage_cycle':
+      return 'Percentage-cycle progression'
+    case 'wave':
+      return 'Wave loading'
+    case 'autoregulated':
+      return 'Autoregulated progression'
+    case 'custom':
+      return 'Custom progression'
+    default:
+      return 'The selected progression rule'
+  }
+}
+
+function applyEffortGuardrail(
+  style: ProgressionRule['style'],
+  preview: PreviewIncrement,
+  summary: ExerciseEffortSummary,
+): PreviewIncrement {
+  const effortSummary = describeEffortSummary(summary)
+
+  if (!effortSummary) {
+    return preview
+  }
+
+  if (summary.representativeRpe !== null && summary.representativeRpe >= EFFORT_GUARDRAIL_HOLD_RPE) {
+    return {
+      incrementLbs: 0,
+      reason: `${capitalizeSentence(effortSummary)}. ${formatProgressionStyleLabel(style)} would normally advance, but the next cycle holds as a guardrail.`,
+    }
+  }
+
+  return {
+    incrementLbs: preview.incrementLbs,
+    reason: `${preview.reason} ${capitalizeSentence(effortSummary)}.`,
+  }
+}
+
+function resolveAutoregulatedPreview(
+  baseIncrementLbs: number,
+  bestMargin: number | null,
+  effortSummary: ExerciseEffortSummary,
+): PreviewIncrement {
+  const describedEffort = describeEffortSummary(effortSummary)
+
+  if (bestMargin === null) {
+    if (effortSummary.representativeRpe === null) {
+      return {
+        incrementLbs: baseIncrementLbs,
+        reason: 'No current-cycle AMRAP or effort data was found, so the base increment is applied.',
+      }
+    }
+
+    if (effortSummary.representativeRpe >= EFFORT_GUARDRAIL_HOLD_RPE) {
+      return {
+        incrementLbs: 0,
+        reason: `${capitalizeSentence(describedEffort!)}. No current-cycle AMRAP data was found, so the training max holds as a guardrail.`,
+      }
+    }
+
+    return {
+      incrementLbs: baseIncrementLbs,
+      reason: `No current-cycle AMRAP data was found. ${capitalizeSentence(describedEffort!)}.`,
+    }
+  }
+
+  if (bestMargin <= -2) {
+    return {
+      incrementLbs: 0,
+      reason: describedEffort
+        ? `Best AMRAP performance missed the target by ${Math.abs(bestMargin)} reps, so the training max holds for the next cycle while you decide whether to deload manually. ${capitalizeSentence(describedEffort)}.`
+        : `Best AMRAP performance missed the target by ${Math.abs(bestMargin)} reps, so the training max holds for the next cycle while you decide whether to deload manually.`,
+    }
+  }
+
+  if (bestMargin < 0) {
+    return {
+      incrementLbs: 0,
+      reason: describedEffort
+        ? `Best AMRAP performance finished below target, so the training max holds for the next cycle. ${capitalizeSentence(describedEffort)}.`
+        : 'Best AMRAP performance finished below target, so the training max holds for the next cycle.',
+    }
+  }
+
+  if (bestMargin === 0 && effortSummary.representativeRpe !== null && effortSummary.representativeRpe >= EFFORT_GUARDRAIL_HOLD_RPE) {
+    return {
+      incrementLbs: 0,
+      reason: `${capitalizeSentence(describedEffort!)}. AMRAP target was met, but the training max holds as a guardrail.`,
+    }
+  }
+
+  const performanceReason = bestMargin === 0
+    ? 'AMRAP target met, so the base increment is applied.'
+    : `Best AMRAP performance beat the target by ${bestMargin} reps, so the base increment is applied.`
+
+  return {
+    incrementLbs: baseIncrementLbs,
+    reason: describedEffort
+      ? `${performanceReason} ${capitalizeSentence(describedEffort)}.`
+      : performanceReason,
+  }
+}
+
 function resolvePreviewIncrement(
   progression: ProgressionRule,
   baseIncrementLbs: number,
   cycleWorkouts: CycleWorkout[] | undefined,
   lift: ResolvedProgressionLift,
 ) {
+  const effortSummary = getExerciseEffortSummary(cycleWorkouts, lift.exerciseId)
+
   switch (progression.style) {
     case 'linear_per_session': {
       const completedSessions = countCompletedPrimarySessions(cycleWorkouts, lift.exerciseId)
       const appliedSessions = completedSessions > 0 ? completedSessions : 1
       const sessionLabel = appliedSessions === 1 ? 'session' : 'sessions'
 
-      return {
+      return applyEffortGuardrail(progression.style, {
         incrementLbs: baseIncrementLbs * appliedSessions,
         reason:
           completedSessions > 0
             ? `${completedSessions} completed primary ${sessionLabel} this cycle, so the base increment is applied each time.`
             : 'No completed primary sessions were derived from the current cycle, so one base increment is applied.',
-      }
+      }, effortSummary)
     }
 
     case 'autoregulated': {
       const bestMargin = getBestAmrapMargin(cycleWorkouts, lift.exerciseId)
 
-      if (bestMargin === null) {
-        return {
-          incrementLbs: baseIncrementLbs,
-          reason: 'No current-cycle AMRAP data was found, so the base increment is applied.',
-        }
-      }
-
-      if (bestMargin <= -2) {
-        return {
-          incrementLbs: 0,
-          reason: `Best AMRAP performance missed the target by ${Math.abs(bestMargin)} reps, so the training max holds for the next cycle while you decide whether to deload manually.`,
-        }
-      }
-
-      if (bestMargin < 0) {
-        return {
-          incrementLbs: 0,
-          reason: 'Best AMRAP performance finished below target, so the training max holds for the next cycle.',
-        }
-      }
-
-      return {
-        incrementLbs: baseIncrementLbs,
-        reason:
-          bestMargin === 0
-            ? 'AMRAP target met, so the base increment is applied.'
-            : `Best AMRAP performance beat the target by ${bestMargin} reps, so the base increment is applied.`,
-      }
+      return resolveAutoregulatedPreview(baseIncrementLbs, bestMargin, effortSummary)
     }
 
     case 'linear_per_cycle':
-      return {
+      return applyEffortGuardrail(progression.style, {
         incrementLbs: baseIncrementLbs,
         reason: 'Cycle completion applies one base increment for the next block.',
-      }
+      }, effortSummary)
     case 'linear_per_week':
-      return {
+      return applyEffortGuardrail(progression.style, {
         incrementLbs: baseIncrementLbs,
         reason: 'Weekly progression rolls forward as one base increment at cycle completion.',
-      }
+      }, effortSummary)
     case 'wave':
-      return {
+      return applyEffortGuardrail(progression.style, {
         incrementLbs: baseIncrementLbs,
         reason: 'Wave loading rolls into the next cycle with one base increment.',
-      }
+      }, effortSummary)
     case 'percentage_cycle':
-      return {
+      return applyEffortGuardrail(progression.style, {
         incrementLbs: baseIncrementLbs,
         reason: 'Percentage-driven progression uses one base increment for the next cycle.',
-      }
+      }, effortSummary)
     case 'custom':
-      return {
+      return applyEffortGuardrail(progression.style, {
         incrementLbs: baseIncrementLbs,
         reason: 'Custom progression uses the configured base increment for the next cycle.',
-      }
+      }, effortSummary)
     default:
-      return {
+      return applyEffortGuardrail(progression.style, {
         incrementLbs: baseIncrementLbs,
         reason: 'The base increment is applied for the next cycle.',
-      }
+      }, effortSummary)
   }
 }
 

@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createEmptyAnalyticsBodyweightLane, createEmptyAnalyticsCoverage } from '@/lib/analytics'
 import { createEmptyStrengthProfile } from '@/lib/strength-profile'
 import { AnalyticsDashboard } from './AnalyticsDashboard'
 
@@ -61,6 +62,8 @@ describe('AnalyticsDashboard', () => {
     })
     mocks.useAnalytics.mockReturnValue({
       data: {
+        bodyweightLane: createEmptyAnalyticsBodyweightLane(),
+        coverage: createEmptyAnalyticsCoverage(),
         e1rmTrend: [
           { date: '2026-03-20', exerciseId: 1, exerciseName: 'Bench Press', weight: 205, reps: 6, e1rm: 246 },
         ],
@@ -130,5 +133,63 @@ describe('AnalyticsDashboard', () => {
     await user.click(screen.getByRole('tab', { name: 'Volume' }))
 
     expect(screen.getByText('1451.5 kg')).toBeInTheDocument()
+  })
+
+  it('shows the method coverage summary and dedicated bodyweight review lane when bodyweight data exists', () => {
+    const coverage = createEmptyAnalyticsCoverage()
+    coverage.metrics.bodyweightLane = {
+      family: 'bodyweight_specific',
+      reasonCodes: [],
+      signalCount: 3,
+      status: 'ready',
+    }
+
+    mocks.useAnalytics.mockReturnValue({
+      data: {
+        bodyweightLane: {
+          relevant: true,
+          exerciseSummaries: [
+            {
+              exerciseId: 7,
+              exerciseName: 'Pull-Up',
+              lastSessionDate: '2026-03-22',
+              latestAddedLoadLbs: 25,
+              latestStrictRepBest: 12,
+              strictSessionCount: 2,
+              weightedSessionCount: 1,
+            },
+          ],
+          strictRepTrend: [
+            { bestReps: 12, date: '2026-03-22', exerciseId: 7, exerciseName: 'Pull-Up' },
+          ],
+          weightedLoadTrend: [
+            { addedWeightLbs: 25, date: '2026-03-23', exerciseId: 7, exerciseName: 'Pull-Up', reps: 6 },
+          ],
+        },
+        coverage,
+        e1rmTrend: [],
+        volumeTrend: [],
+        prHistory: [],
+        consistency: {
+          totalSessions: 3,
+          weeksActive: 2,
+          firstSession: '2026-03-10',
+          lastSession: '2026-03-23',
+        },
+        muscleBalance: [],
+        stallDetection: [],
+        tmProgression: [],
+        strengthProfile: createEmptyStrengthProfile(),
+      },
+      isLoading: false,
+    })
+
+    render(<AnalyticsDashboard />)
+
+    expect(screen.getByText('Method Coverage')).toBeInTheDocument()
+    expect(screen.getByText('Bodyweight Review')).toBeInTheDocument()
+    expect(screen.getAllByText('Pull-Up').length).toBeGreaterThan(0)
+    expect(screen.getByText('Strict Rep Trend')).toBeInTheDocument()
+    expect(screen.getByText('Added Load Trend')).toBeInTheDocument()
   })
 })

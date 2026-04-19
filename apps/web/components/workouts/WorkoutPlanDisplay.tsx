@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
+import { formatTargetEffort } from '@/lib/effort'
 import { cn, formatWeight } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -85,6 +86,9 @@ export function WorkoutPlanDisplay({ sets }: WorkoutPlanDisplayProps) {
                   {formatWeight(set.weight_lbs, preferredUnit, weightRoundingLbs)} × {formatRepTarget(set.reps_prescribed, set.reps_prescribed_max, set.is_amrap)}
                 </p>
               </div>
+              {set.prescribedRpe !== null ? (
+                <p className="mt-2 text-xs text-muted-foreground">{formatTargetEffort(set.prescribedRpe)}</p>
+              ) : null}
               {recommendedRestSeconds ? (
                 <p className="mt-2 text-xs text-muted-foreground">Rest {formatDurationClock(recommendedRestSeconds)} after this set.</p>
               ) : null}

@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getTemplate } from '@/lib/constants/templates'
+import { isValidRpe } from '@/lib/effort'
 import {
   buildExerciseContextById,
   type ExerciseContextById,
@@ -79,7 +80,7 @@ export interface LogSetInput {
   repsPrescribedMax?: number
   repsActual: number | null
   isAmrap: boolean
-  rpe?: number
+  actualRpe?: number | null
   intensityType: string
 }
 
@@ -312,6 +313,10 @@ export async function logSetMutation(supabase: AppSupabaseClient, input: LogSetI
     throw new Error('Logged reps must be a whole number.')
   }
 
+  if (input.actualRpe !== undefined && input.actualRpe !== null && !isValidRpe(input.actualRpe)) {
+    throw new Error('Logged effort must be a valid RPE between 1 and 10.')
+  }
+
   const { data, error } = await supabase
     .from('workout_sets')
     .upsert(
@@ -326,7 +331,7 @@ export async function logSetMutation(supabase: AppSupabaseClient, input: LogSetI
         reps_prescribed_max: input.repsPrescribedMax ?? null,
         reps_actual: input.repsActual,
         is_amrap: input.isAmrap,
-        rpe: input.rpe ?? null,
+        rpe: input.actualRpe ?? null,
         intensity_type: input.intensityType,
         logged_at: input.repsActual !== null ? new Date().toISOString() : null,
       },
@@ -493,7 +498,7 @@ export function useLogSet() {
           reps_prescribed_max: input.repsPrescribedMax ?? null,
           reps_actual: input.repsActual,
           is_amrap: input.isAmrap,
-          rpe: input.rpe ?? null,
+          rpe: input.actualRpe ?? null,
           intensity_type: input.intensityType,
           logged_at: input.repsActual !== null ? now : null,
           updated_at: now,

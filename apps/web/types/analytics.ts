@@ -86,6 +86,73 @@ export interface AnalyticsTmProgressionPoint {
   weightLbs: number
 }
 
+export type AnalyticsCoverageFamily = 'general_logging' | 'main_lift_amrap' | 'training_max' | 'benchmark_profile' | 'bodyweight_specific'
+export type AnalyticsCoverageStatus = 'ready' | 'limited' | 'not_applicable'
+export type AnalyticsCoverageReasonCode =
+  | 'no_completed_sessions'
+  | 'limited_history'
+  | 'bodyweight_only_scope'
+  | 'no_external_load_sets'
+  | 'no_main_lift_sets'
+  | 'no_amrap_sets'
+  | 'no_training_max_history'
+  | 'strength_profile_missing_profile'
+  | 'strength_profile_insufficient_data'
+  | 'no_bodyweight_sets'
+
+export interface AnalyticsMetricCoverage {
+  family: AnalyticsCoverageFamily
+  reasonCodes: AnalyticsCoverageReasonCode[]
+  signalCount: number
+  status: AnalyticsCoverageStatus
+}
+
+export interface AnalyticsCoverage {
+  metrics: {
+    bodyweightLane: AnalyticsMetricCoverage
+    consistency: AnalyticsMetricCoverage
+    e1rmTrend: AnalyticsMetricCoverage
+    muscleBalance: AnalyticsMetricCoverage
+    prHistory: AnalyticsMetricCoverage
+    stallDetection: AnalyticsMetricCoverage
+    strengthProfile: AnalyticsMetricCoverage
+    tmProgression: AnalyticsMetricCoverage
+    volumeTrend: AnalyticsMetricCoverage
+  }
+}
+
+export interface AnalyticsBodyweightExerciseSummary {
+  exerciseId: number
+  exerciseName: string
+  lastSessionDate: string | null
+  latestAddedLoadLbs: number | null
+  latestStrictRepBest: number | null
+  strictSessionCount: number
+  weightedSessionCount: number
+}
+
+export interface AnalyticsBodyweightStrictRepPoint {
+  bestReps: number
+  date: string
+  exerciseId: number
+  exerciseName: string
+}
+
+export interface AnalyticsBodyweightLoadPoint {
+  addedWeightLbs: number
+  date: string
+  exerciseId: number
+  exerciseName: string
+  reps: number
+}
+
+export interface AnalyticsBodyweightLane {
+  exerciseSummaries: AnalyticsBodyweightExerciseSummary[]
+  relevant: boolean
+  strictRepTrend: AnalyticsBodyweightStrictRepPoint[]
+  weightedLoadTrend: AnalyticsBodyweightLoadPoint[]
+}
+
 export type StrengthProfileStatus = 'missing_profile' | 'insufficient_data' | 'ready'
 export type StrengthProfileMissingField = 'sex' | 'ageYears' | 'bodyweightLbs'
 
@@ -177,6 +244,8 @@ export interface StrengthProfileData {
 }
 
 export interface AnalyticsData {
+  bodyweightLane: AnalyticsBodyweightLane
+  coverage: AnalyticsCoverage
   e1rmTrend: AnalyticsE1rmPoint[]
   volumeTrend: AnalyticsVolumePoint[]
   prHistory: AnalyticsPrPoint[]

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { hasAnalyticsData, parseAnalyticsData } from '@/lib/analytics'
+import { hasInsightEligibleAnalyticsData, parseAnalyticsData } from '@/lib/analytics'
 import { buildAnalyticsInsightSnapshot, generateTrainingInsight } from '@/lib/insights'
 import { createClient } from '@/lib/supabase/server'
 import { generateInsightRequestSchema } from '@/lib/validations/insights'
@@ -80,9 +80,9 @@ export async function POST(request: Request) {
 
   const analytics = parseAnalyticsData(data)
 
-  if (!hasAnalyticsData(analytics)) {
+  if (!hasInsightEligibleAnalyticsData(analytics)) {
     return NextResponse.json(
-      { error: 'There is not enough analytics data to generate an insight yet.' },
+      { error: 'There is not enough method-aware analytics data to generate an insight yet.' },
       { status: 400, headers: NO_STORE_HEADERS },
     )
   }

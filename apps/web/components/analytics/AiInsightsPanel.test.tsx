@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createEmptyAnalyticsCoverage } from '@/lib/analytics'
 import { AiInsightsPanel } from './AiInsightsPanel'
 
 const mocks = vi.hoisted(() => ({
@@ -27,6 +28,17 @@ describe('AiInsightsPanel', () => {
     mocks.useInsights.mockReset()
   })
 
+  function createCoverage() {
+    const coverage = createEmptyAnalyticsCoverage()
+    coverage.metrics.consistency = {
+      family: 'general_logging',
+      reasonCodes: [],
+      signalCount: 6,
+      status: 'ready',
+    }
+    return coverage
+  }
+
   it('submits the current filter and renders structured insight sections', async () => {
     const user = userEvent.setup()
     const reset = vi.fn()
@@ -47,13 +59,13 @@ describe('AiInsightsPanel', () => {
 
     render(
       <AiInsightsPanel
+        coverage={createCoverage()}
         dateRange={{ from: createMockDate('2026-02-01', '2026-01-31'), to: createMockDate('2026-04-01', '2026-03-31') }}
         dateRangeLabel="Last 8 weeks"
         hasAnalyticsData
-        recentPrCount={2}
+        isInsightEligible
         selectedExerciseId={1}
         selectedExerciseName="Bench Press"
-        stallCount={1}
       />, 
     )
 
@@ -88,13 +100,13 @@ describe('AiInsightsPanel', () => {
 
     render(
       <AiInsightsPanel
+        coverage={createCoverage()}
         dateRange={{ from: createMockDate('2026-02-01', '2026-01-31'), to: createMockDate('2026-04-01', '2026-03-31') }}
         dateRangeLabel="Last 8 weeks"
         hasAnalyticsData
-        recentPrCount={2}
+        isInsightEligible
         selectedExerciseId={1}
         selectedExerciseName="Bench Press"
-        stallCount={1}
       />,
     )
 
@@ -124,13 +136,13 @@ describe('AiInsightsPanel', () => {
     const { rerender } = render(
       <AiInsightsPanel
         key="bench"
+        coverage={createCoverage()}
         dateRange={{ from: createMockDate('2026-02-01', '2026-01-31'), to: createMockDate('2026-04-01', '2026-03-31') }}
         dateRangeLabel="Last 8 weeks"
         hasAnalyticsData
-        recentPrCount={2}
+        isInsightEligible
         selectedExerciseId={1}
         selectedExerciseName="Bench Press"
-        stallCount={1}
       />,
     )
 
@@ -140,13 +152,13 @@ describe('AiInsightsPanel', () => {
     rerender(
       <AiInsightsPanel
         key="squat"
+        coverage={createCoverage()}
         dateRange={{ from: createMockDate('2026-02-01', '2026-01-31'), to: createMockDate('2026-04-01', '2026-03-31') }}
         dateRangeLabel="Last 8 weeks"
         hasAnalyticsData
-        recentPrCount={1}
+        isInsightEligible
         selectedExerciseId={2}
         selectedExerciseName="Squat"
-        stallCount={2}
       />,
     )
 
@@ -165,13 +177,13 @@ describe('AiInsightsPanel', () => {
 
     render(
       <AiInsightsPanel
+        coverage={createEmptyAnalyticsCoverage()}
         dateRange={{ from: createMockDate('2026-02-01', '2026-01-31'), to: createMockDate('2026-04-01', '2026-03-31') }}
         dateRangeLabel="Last 8 weeks"
         hasAnalyticsData={false}
-        recentPrCount={0}
+        isInsightEligible={false}
         selectedExerciseId={null}
         selectedExerciseName={null}
-        stallCount={0}
       />,
     )
 

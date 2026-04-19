@@ -121,7 +121,7 @@ describe('useWorkouts', () => {
         reps_prescribed_max: null,
         reps_actual: 5,
         is_amrap: false,
-        rpe: null,
+        rpe: 8.5,
         intensity_type: 'percentage_tm',
         logged_at: '2026-04-10T12:34:56.000Z',
         updated_at: '2026-04-10T12:34:56.000Z',
@@ -152,6 +152,7 @@ describe('useWorkouts', () => {
         repsPrescribed: 5,
         repsActual: 5,
         isAmrap: false,
+        actualRpe: 8.5,
         intensityType: 'percentage_tm',
       })
     })
@@ -168,12 +169,44 @@ describe('useWorkouts', () => {
         reps_prescribed_max: null,
         reps_actual: 5,
         is_amrap: false,
-        rpe: null,
+        rpe: 8.5,
         intensity_type: 'percentage_tm',
         logged_at: '2026-04-10T12:34:56.000Z',
       },
       { onConflict: 'workout_id,set_order' },
     )
+  })
+
+  it('useLogSet rejects invalid effort before calling Supabase', async () => {
+    const upsert = vi.fn()
+
+    useSupabaseMock.mockReturnValue({
+      from: vi.fn((table: string) => {
+        expect(table).toBe('workout_sets')
+        return { upsert }
+      }),
+    })
+
+    const { result } = renderHook(() => useLogSet(), { wrapper: createWrapper() })
+
+    await expect(
+      result.current.mutateAsync({
+        workoutId: 44,
+        exerciseId: 2,
+        exerciseName: 'Squat',
+        userId: 'user-1',
+        setOrder: 3,
+        setType: 'main',
+        weightLbs: 225,
+        repsPrescribed: 5,
+        repsActual: 5,
+        isAmrap: false,
+        actualRpe: 10.5,
+        intensityType: 'percentage_tm',
+      }),
+    ).rejects.toThrow('Logged effort must be a valid RPE between 1 and 10.')
+
+    expect(upsert).not.toHaveBeenCalled()
   })
 
   it('useLogSet rejects fractional reps before calling Supabase', async () => {

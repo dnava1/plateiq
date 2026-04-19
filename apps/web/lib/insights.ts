@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, type Schema } from '@google/genai'
-import { aggregateWeeklyVolume, deriveRecentPrs } from '@/lib/analytics'
+import { aggregateWeeklyVolume, deriveRecentPrs, formatAnalyticsCoverageFamily, summarizeAnalyticsCoverageFamilies } from '@/lib/analytics'
 import { trainingInsightSchema } from '@/lib/validations/insights'
 import type { AnalyticsData, AnalyticsE1rmPoint } from '@/types/analytics'
 import type { GenerateInsightInput, InsightSnapshot, TrainingInsight } from '@/types/insights'
@@ -130,6 +130,10 @@ function buildDataGaps(analytics: AnalyticsData) {
     gaps.push('No movement balance data is available in the current filter.')
   }
 
+  if (analytics.bodyweightLane.relevant && analytics.bodyweightLane.exerciseSummaries.length === 0) {
+    gaps.push('Bodyweight work is present, but there is not enough comparable strict or weighted history yet.')
+  }
+
   return gaps
 }
 
@@ -253,6 +257,11 @@ export function buildAnalyticsInsightSnapshot(
       windowDays: calculateWindowDays(filter.dateFrom, filter.dateTo),
       exerciseScope: resolveExerciseScope(filter, analytics),
     },
+    coverage: summarizeAnalyticsCoverageFamilies(analytics.coverage).map((family) => ({
+      family: formatAnalyticsCoverageFamily(family.family),
+      signalCount: family.signalCount,
+      status: family.status,
+    })),
     consistency: {
       totalSessions: analytics.consistency.totalSessions,
       weeksActive: analytics.consistency.weeksActive,
@@ -261,6 +270,31 @@ export function buildAnalyticsInsightSnapshot(
         : 0,
       firstSession: analytics.consistency.firstSession,
       lastSession: analytics.consistency.lastSession,
+    },
+    bodyweight: {
+      exercises: analytics.bodyweightLane.exerciseSummaries.slice(0, 4).map((entry) => ({
+        exerciseName: entry.exerciseName,
+        latestAddedLoadLbs: entry.latestAddedLoadLbs === null ? null : roundToTenth(entry.latestAddedLoadLbs),
+        latestStrictRepBest: entry.latestStrictRepBest,
+        strictSessionCount: entry.strictSessionCount,
+        weightedSessionCount: entry.weightedSessionCount,
+      })),
+      recentStrictRepTrend: [...analytics.bodyweightLane.strictRepTrend]
+        .slice(Math.max(0, analytics.bodyweightLane.strictRepTrend.length - 4))
+        .map((entry) => ({
+          bestReps: entry.bestReps,
+          date: entry.date,
+          exerciseName: entry.exerciseName,
+        })),
+      recentWeightedLoadTrend: [...analytics.bodyweightLane.weightedLoadTrend]
+        .slice(Math.max(0, analytics.bodyweightLane.weightedLoadTrend.length - 4))
+        .map((entry) => ({
+          addedWeightLbs: roundToTenth(entry.addedWeightLbs),
+          date: entry.date,
+          exerciseName: entry.exerciseName,
+          reps: entry.reps,
+        })),
+      relevant: analytics.bodyweightLane.relevant,
     },
     strength: {
       recentPrs: recentPrs.map((entry) => ({

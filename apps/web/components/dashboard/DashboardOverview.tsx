@@ -9,7 +9,14 @@ import { useActiveProgram } from '@/hooks/usePrograms'
 import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { resolveWorkoutProgram, useActiveCycle, useCycleWorkouts } from '@/hooks/useWorkouts'
-import { aggregateWeeklyVolume, buildWeeklyActivity, deriveRecentPrs } from '@/lib/analytics'
+import {
+  aggregateWeeklyVolume,
+  buildWeeklyActivity,
+  createEmptyAnalyticsBodyweightLane,
+  createEmptyAnalyticsCoverage,
+  describeAnalyticsCoverageReasons,
+  deriveRecentPrs,
+} from '@/lib/analytics'
 import { calculateCycleProgress, findSuggestedWorkoutSelection } from '@/lib/workout-progress'
 import { buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -37,6 +44,41 @@ import { VolumeTrendChart } from '@/components/charts/VolumeTrendChart'
 import { formatDisplayLoad } from '@/components/charts/chart-utils'
 import { formatDate, formatDaysPerWeek, formatWeight, formatWeekCycle } from '@/lib/utils'
 import type { Json } from '@/types/database'
+import type { AnalyticsCoverageStatus, AnalyticsMetricCoverage } from '@/types/analytics'
+
+function coverageBadgeClassName(status: AnalyticsCoverageStatus) {
+  switch (status) {
+    case 'ready':
+      return 'border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+    case 'limited':
+      return 'border-amber-500/35 bg-amber-500/10 text-amber-800 dark:text-amber-200'
+    default:
+      return 'border-border/70 bg-background/40 text-muted-foreground'
+  }
+}
+
+function coverageStatusLabel(status: AnalyticsCoverageStatus) {
+  switch (status) {
+    case 'ready':
+      return 'Ready'
+    case 'limited':
+      return 'Limited'
+    default:
+      return 'Not applicable'
+  }
+}
+
+function CoverageBadge({ coverage }: { coverage: AnalyticsMetricCoverage }) {
+  if (coverage.status === 'ready') {
+    return null
+  }
+
+  return (
+    <Badge variant="outline" className={coverageBadgeClassName(coverage.status)}>
+      {coverageStatusLabel(coverage.status)}
+    </Badge>
+  )
+}
 
 interface ProgramConfig {
   variation_key?: string | null
@@ -68,6 +110,13 @@ export function DashboardOverview() {
     return { from, to }
   }, [])
   const { data: analytics, isLoading: isAnalyticsLoading } = useAnalytics(undefined, analyticsRange)
+  const analyticsSnapshot = analytics
+    ? {
+        bodyweightLane: createEmptyAnalyticsBodyweightLane(),
+        coverage: createEmptyAnalyticsCoverage(),
+        ...analytics,
+      }
+    : null
 
   const config = parseProgramConfig(program?.config ?? null)
   const variationName = config.variation_key && template?.variation_options
@@ -90,12 +139,13 @@ export function DashboardOverview() {
   const nextWorkoutLabel = cycleIsComplete
     ? 'Cycle ready to wrap'
     : template?.days[suggestedWorkout.dayIndex]?.label ?? 'Next workout'
-  const recentPrs = useMemo(() => deriveRecentPrs(analytics?.prHistory ?? [], 4), [analytics?.prHistory])
+  const recentPrs = useMemo(() => deriveRecentPrs(analyticsSnapshot?.prHistory ?? [], 4), [analyticsSnapshot?.prHistory])
+  const bodyweightSummaries = analyticsSnapshot?.bodyweightLane.exerciseSummaries ?? []
   const weeklyActivity = useMemo(
-    () => buildWeeklyActivity(analytics?.volumeTrend ?? [], 8, analyticsRange.to),
-    [analytics?.volumeTrend, analyticsRange.to],
+    () => buildWeeklyActivity(analyticsSnapshot?.volumeTrend ?? [], 8, analyticsRange.to),
+    [analyticsSnapshot?.volumeTrend, analyticsRange.to],
   )
-  const weeklyVolume = useMemo(() => aggregateWeeklyVolume(analytics?.volumeTrend ?? []), [analytics?.volumeTrend])
+  const weeklyVolume = useMemo(() => aggregateWeeklyVolume(analyticsSnapshot?.volumeTrend ?? []), [analyticsSnapshot?.volumeTrend])
   const currentWeekVolume = weeklyVolume.length > 0 ? weeklyVolume[weeklyVolume.length - 1].totalVolume : 0
   const priorWeeks = weeklyVolume.slice(Math.max(0, weeklyVolume.length - 5), weeklyVolume.length - 1)
   const rollingAverageVolume = priorWeeks.length > 0
@@ -331,13 +381,15 @@ export function DashboardOverview() {
           <div className="grid gap-4 xl:grid-cols-3">
             <ChartCard
               title="Strength Trend"
-              description="Recent estimated 1RM movement from logged AMRAPs."
+              description="Recent estimated 1RM movement from logged main-lift AMRAPs."
               emptyMessage="Log AMRAP work to light up the strength trend."
-              isEmpty={(analytics?.e1rmTrend.length ?? 0) === 0}
+              emptyStateNote={analyticsSnapshot?.coverage.metrics.e1rmTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analyticsSnapshot?.coverage.metrics.e1rmTrend.reasonCodes ?? [])}
+              headerBadge={analyticsSnapshot ? <CoverageBadge coverage={analyticsSnapshot.coverage.metrics.e1rmTrend} /> : null}
+              isEmpty={(analyticsSnapshot?.e1rmTrend.length ?? 0) === 0}
               isLoading={isAnalyticsLoading}
               heightClassName="h-28"
             >
-              <E1rmTrendChart compact data={analytics?.e1rmTrend ?? []} />
+              <E1rmTrendChart compact data={analyticsSnapshot?.e1rmTrend ?? []} />
             </ChartCard>
 
             <ChartCard
@@ -346,18 +398,22 @@ export function DashboardOverview() {
                 ? `This week ${formatDisplayLoad(currentWeekVolume, preferredUnit)} vs ${formatDisplayLoad(rollingAverageVolume, preferredUnit)} recent average.`
                 : 'Weekly logged volume across all exercises.'}
               emptyMessage="Log completed work sets to compare weekly volume."
-              isEmpty={(analytics?.volumeTrend.length ?? 0) === 0}
+              emptyStateNote={analyticsSnapshot?.coverage.metrics.volumeTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analyticsSnapshot?.coverage.metrics.volumeTrend.reasonCodes ?? [])}
+              headerBadge={analyticsSnapshot ? <CoverageBadge coverage={analyticsSnapshot.coverage.metrics.volumeTrend} /> : null}
+              isEmpty={(analyticsSnapshot?.volumeTrend.length ?? 0) === 0}
               isLoading={isAnalyticsLoading}
               heightClassName="h-28"
             >
-              <VolumeTrendChart compact data={analytics?.volumeTrend ?? []} />
+              <VolumeTrendChart compact data={analyticsSnapshot?.volumeTrend ?? []} />
             </ChartCard>
 
             <ChartCard
               title="Consistency"
-              description={`${analytics?.consistency.totalSessions ?? 0} sessions over ${analytics?.consistency.weeksActive ?? 0} active weeks.`}
+              description={`${analyticsSnapshot?.consistency.totalSessions ?? 0} sessions over ${analyticsSnapshot?.consistency.weeksActive ?? 0} active weeks.`}
               emptyMessage="Finish workouts to build a weekly consistency trail."
-              isEmpty={(analytics?.consistency.totalSessions ?? 0) === 0}
+              emptyStateNote={analyticsSnapshot?.coverage.metrics.consistency.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analyticsSnapshot?.coverage.metrics.consistency.reasonCodes ?? [])}
+              headerBadge={analyticsSnapshot ? <CoverageBadge coverage={analyticsSnapshot.coverage.metrics.consistency} /> : null}
+              isEmpty={(analyticsSnapshot?.consistency.totalSessions ?? 0) === 0}
               isLoading={isAnalyticsLoading}
               heightClassName="h-28"
             >
@@ -371,7 +427,7 @@ export function DashboardOverview() {
             <CardHeader className="gap-2">
               <CardTitle className="text-base">Recent PRs</CardTitle>
               <CardDescription>
-                Newly established estimated 1RM highs from your logged AMRAP work.
+                Newly established estimated 1RM highs from your logged main-lift AMRAP work.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
@@ -412,6 +468,45 @@ export function DashboardOverview() {
               )}
             </CardContent>
           </Card>
+
+          {bodyweightSummaries.length > 0 ? (
+            <Card className="surface-panel">
+              <CardHeader className="gap-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <CardTitle className="text-base">Bodyweight Review</CardTitle>
+                    <CardDescription>
+                      Strict-rep and added-load work stay separate here instead of disappearing into zero-load charts.
+                    </CardDescription>
+                  </div>
+                  {analyticsSnapshot ? <CoverageBadge coverage={analyticsSnapshot.coverage.metrics.bodyweightLane} /> : null}
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="flex flex-col gap-3">
+                  {bodyweightSummaries.slice(0, 3).map((summary) => (
+                    <div key={summary.exerciseId} className="rounded-[20px] border border-border/70 bg-background/45 p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{summary.exerciseName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {summary.lastSessionDate ? `Last logged ${formatDate(summary.lastSessionDate)}` : 'No completed sessions yet'}
+                          </p>
+                        </div>
+                        <Badge variant="outline">{summary.strictSessionCount + summary.weightedSessionCount} sessions</Badge>
+                      </div>
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        Strict best {summary.latestStrictRepBest ?? '—'} reps · latest added load {summary.latestAddedLoadLbs !== null ? formatWeight(summary.latestAddedLoadLbs, preferredUnit, weightRoundingLbs) : '—'}
+                      </p>
+                    </div>
+                  ))}
+                  <Link href="/analytics" className={buttonVariants({ variant: 'outline' })}>
+                    Open bodyweight analytics
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
 
           <Card className="surface-panel">
             <CardHeader className="gap-2">

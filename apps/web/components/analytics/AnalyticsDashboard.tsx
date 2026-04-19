@@ -6,7 +6,18 @@ import { useAnalytics, type AnalyticsDateRange } from '@/hooks/useAnalytics'
 import { useExercises } from '@/hooks/useExercises'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
-import { aggregateWeeklyVolume, buildWeeklyActivity, deriveRecentPrs, hasAnalyticsData as hasAnalyticsSnapshot } from '@/lib/analytics'
+import {
+  aggregateWeeklyVolume,
+  buildWeeklyActivity,
+  createEmptyAnalyticsBodyweightLane,
+  createEmptyAnalyticsCoverage,
+  deriveRecentPrs,
+  describeAnalyticsCoverageReasons,
+  formatAnalyticsCoverageFamily,
+  hasInsightEligibleAnalyticsData,
+  hasRenderableAnalyticsData,
+  summarizeAnalyticsCoverageFamilies,
+} from '@/lib/analytics'
 import { ChartCard } from '@/components/charts/ChartCard'
 import { ConsistencyHeatmap } from '@/components/charts/ConsistencyHeatmap'
 import { E1rmTrendChart } from '@/components/charts/E1rmTrendChart'
@@ -17,6 +28,7 @@ import { VolumeTrendChart } from '@/components/charts/VolumeTrendChart'
 import { formatDisplayLoad } from '@/components/charts/chart-utils'
 import { AiInsightsPanel } from './AiInsightsPanel'
 import { StrengthProfilePanel } from './StrengthProfilePanel'
+import { Badge } from '@/components/ui/badge'
 import {
   Card,
   CardContent,
@@ -35,9 +47,11 @@ import {
 import { createEmptyStrengthProfile } from '@/lib/strength-profile'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatDate, formatDateAsLocalIso, formatWeight } from '@/lib/utils'
-import type { AnalyticsData } from '@/types/analytics'
+import type { AnalyticsData, AnalyticsCoverageStatus, AnalyticsMetricCoverage } from '@/types/analytics'
 
 const EMPTY_ANALYTICS: AnalyticsData = {
+  bodyweightLane: createEmptyAnalyticsBodyweightLane(),
+  coverage: createEmptyAnalyticsCoverage(),
   e1rmTrend: [],
   volumeTrend: [],
   prHistory: [],
@@ -51,6 +65,40 @@ const EMPTY_ANALYTICS: AnalyticsData = {
   stallDetection: [],
   tmProgression: [],
   strengthProfile: createEmptyStrengthProfile(),
+}
+
+function coverageBadgeClassName(status: AnalyticsCoverageStatus) {
+  switch (status) {
+    case 'ready':
+      return 'border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+    case 'limited':
+      return 'border-amber-500/35 bg-amber-500/10 text-amber-800 dark:text-amber-200'
+    default:
+      return 'border-border/70 bg-background/40 text-muted-foreground'
+  }
+}
+
+function coverageStatusLabel(status: AnalyticsCoverageStatus) {
+  switch (status) {
+    case 'ready':
+      return 'Ready'
+    case 'limited':
+      return 'Limited'
+    default:
+      return 'Not applicable'
+  }
+}
+
+function CoverageBadge({ coverage }: { coverage: AnalyticsMetricCoverage }) {
+  if (coverage.status === 'ready') {
+    return null
+  }
+
+  return (
+    <Badge variant="outline" className={coverageBadgeClassName(coverage.status)}>
+      {coverageStatusLabel(coverage.status)}
+    </Badge>
+  )
 }
 
 const DATE_RANGE_PRESETS: Array<{ label: string; value: string; days: number }> = [
@@ -99,6 +147,7 @@ export function AnalyticsDashboard() {
     ? previousWeeks.reduce((total, entry) => total + entry.totalVolume, 0) / previousWeeks.length
     : 0
   const recentPrs = useMemo(() => deriveRecentPrs(analytics.prHistory, 6), [analytics.prHistory])
+  const coverageFamilies = useMemo(() => summarizeAnalyticsCoverageFamilies(analytics.coverage), [analytics.coverage])
   const selectedDateRangeLabel = DATE_RANGE_PRESETS.find((preset) => preset.value === rangeKey)?.label ?? 'Last 6 months'
   const selectedExerciseName = selectedExerciseId
     ? exercises?.find((exercise) => exercise.id === selectedExerciseId)?.name ?? null
@@ -119,7 +168,9 @@ export function AnalyticsDashboard() {
     formatDateAsLocalIso(dateRange.from),
     formatDateAsLocalIso(dateRange.to),
   ].join(':')
-  const hasAnalyticsData = hasAnalyticsSnapshot(analytics)
+  const hasAnalyticsData = hasRenderableAnalyticsData(analytics)
+  const isInsightEligible = hasInsightEligibleAnalyticsData(analytics)
+  const shouldShowBodyweightLane = analytics.bodyweightLane.relevant || analytics.coverage.metrics.bodyweightLane.status === 'limited'
 
   return (
     <div className="page-shell max-w-6xl">
@@ -187,7 +238,7 @@ export function AnalyticsDashboard() {
                 <p className="text-2xl font-semibold tracking-[-0.06em] text-foreground">{analytics.consistency.weeksActive}</p>
               </div>
               <div className="metric-tile flex flex-col gap-1">
-                <span className="eyebrow">Recent PRs</span>
+                <span className="eyebrow">AMRAP PRs</span>
                 <p className="text-2xl font-semibold tracking-[-0.06em] text-foreground">{recentPrs.length}</p>
               </div>
               <div className="metric-tile flex flex-col gap-1">
@@ -197,6 +248,29 @@ export function AnalyticsDashboard() {
                 </p>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="surface-panel">
+          <CardHeader className="gap-2">
+            <CardTitle className="text-base">Method Coverage</CardTitle>
+            <CardDescription>
+              PlateIQ separates broad logging signal from method-bound metrics and keeps bodyweight work in its own review lane.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 pt-0 md:grid-cols-2 xl:grid-cols-5">
+            {coverageFamilies.map((family) => (
+              <div key={family.family} className="rounded-[22px] border border-border/70 bg-background/45 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <p className="text-sm font-medium text-foreground">{formatAnalyticsCoverageFamily(family.family)}</p>
+                  <Badge variant="outline" className={coverageBadgeClassName(family.status)}>
+                    {coverageStatusLabel(family.status)}
+                  </Badge>
+                </div>
+                <p className="mt-3 text-2xl font-semibold tracking-[-0.06em] text-foreground">{family.signalCount}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{describeAnalyticsCoverageReasons(family.reasonCodes)}</p>
+              </div>
+            ))}
           </CardContent>
         </Card>
 
@@ -215,6 +289,8 @@ export function AnalyticsDashboard() {
                   title="Consistency Pulse"
                   description={`${analytics.consistency.totalSessions} finished sessions across ${analytics.consistency.weeksActive} active weeks.`}
                   emptyMessage="Finish workouts to build the consistency view."
+                  emptyStateNote={analytics.coverage.metrics.consistency.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.consistency.reasonCodes)}
+                  headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.consistency} />}
                   isEmpty={!hasAnalyticsData || analytics.consistency.totalSessions === 0}
                   isLoading={isLoading}
                   className="xl:col-span-2"
@@ -248,6 +324,8 @@ export function AnalyticsDashboard() {
                   title="Estimated 1RM Trend"
                   description={selectedExerciseName ?? 'Estimated 1RM progression for the currently filtered lifts.'}
                   emptyMessage="AMRAP history is required to plot estimated 1RM trend lines."
+                  emptyStateNote={analytics.coverage.metrics.e1rmTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.e1rmTrend.reasonCodes)}
+                  headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.e1rmTrend} />}
                   isEmpty={analytics.e1rmTrend.length === 0}
                   isLoading={isLoading}
                 >
@@ -258,6 +336,8 @@ export function AnalyticsDashboard() {
                   title="Muscle Balance"
                   description="Volume distribution by movement pattern in the current filter window."
                   emptyMessage="Logged work sets are required to compare movement balance."
+                  emptyStateNote={analytics.coverage.metrics.muscleBalance.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.muscleBalance.reasonCodes)}
+                  headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.muscleBalance} />}
                   isEmpty={analytics.muscleBalance.length === 0}
                   isLoading={isLoading}
                 >
@@ -268,6 +348,8 @@ export function AnalyticsDashboard() {
                   title="Plateau Watch"
                   description="Main lifts that have not produced a fresh PR in the last four weeks."
                   emptyMessage="No plateaus detected in the current snapshot."
+                  emptyStateNote={analytics.coverage.metrics.stallDetection.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.stallDetection.reasonCodes)}
+                  headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.stallDetection} />}
                   isEmpty={analytics.stallDetection.length === 0}
                   isLoading={isLoading}
                   className="xl:col-span-2"
@@ -290,6 +372,95 @@ export function AnalyticsDashboard() {
                     ))}
                   </div>
                 </ChartCard>
+
+                <ChartCard
+                  title="Bodyweight Review"
+                  description={selectedExerciseName
+                    ? `${selectedExerciseName} bodyweight work keeps strict-rep and added-load signal separate.`
+                    : 'Bodyweight work gets its own lane so strict-rep progress and added-load progress do not get flattened into zero-load charts.'}
+                  emptyMessage="No bodyweight review data landed in this filter window."
+                  emptyStateNote={analytics.coverage.metrics.bodyweightLane.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.bodyweightLane.reasonCodes)}
+                  headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.bodyweightLane} />}
+                  isEmpty={!shouldShowBodyweightLane || analytics.bodyweightLane.exerciseSummaries.length === 0}
+                  isLoading={isLoading}
+                  className="xl:col-span-2"
+                  heightClassName="h-48"
+                >
+                  <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {analytics.bodyweightLane.exerciseSummaries.map((summary) => (
+                        <div key={summary.exerciseId} className="rounded-[20px] border border-border/70 bg-background/45 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-medium text-foreground">{summary.exerciseName}</p>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {summary.lastSessionDate ? `Last logged ${formatDate(summary.lastSessionDate)}` : 'No completed sessions yet'}
+                              </p>
+                            </div>
+                            <Badge variant="outline">{summary.strictSessionCount + summary.weightedSessionCount} sessions</Badge>
+                          </div>
+                          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                            <div>
+                              <span className="eyebrow">Strict Rep Best</span>
+                              <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-foreground">
+                                {summary.latestStrictRepBest ?? '—'}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="eyebrow">Latest Added Load</span>
+                              <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-foreground">
+                                {summary.latestAddedLoadLbs !== null
+                                  ? formatWeight(summary.latestAddedLoadLbs, preferredUnit, weightRoundingLbs)
+                                  : '—'}
+                              </p>
+                            </div>
+                          </div>
+                          <p className="mt-3 text-xs text-muted-foreground">
+                            {summary.strictSessionCount} strict sessions · {summary.weightedSessionCount} weighted sessions
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="grid gap-3">
+                      <div className="rounded-[20px] border border-border/70 bg-background/45 p-4">
+                        <span className="eyebrow">Strict Rep Trend</span>
+                        <div className="mt-3 flex flex-col gap-2">
+                          {[...analytics.bodyweightLane.strictRepTrend].slice(-6).reverse().map((point) => (
+                            <div key={`${point.exerciseId}-${point.date}`} className="flex items-center justify-between gap-3 text-sm">
+                              <div>
+                                <p className="font-medium text-foreground">{point.exerciseName}</p>
+                                <p className="text-xs text-muted-foreground">{formatDate(point.date)}</p>
+                              </div>
+                              <p className="font-medium text-foreground">{point.bestReps} reps</p>
+                            </div>
+                          ))}
+                          {analytics.bodyweightLane.strictRepTrend.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">No strict bodyweight sessions in this window.</p>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="rounded-[20px] border border-border/70 bg-background/45 p-4">
+                        <span className="eyebrow">Added Load Trend</span>
+                        <div className="mt-3 flex flex-col gap-2">
+                          {[...analytics.bodyweightLane.weightedLoadTrend].slice(-6).reverse().map((point) => (
+                            <div key={`${point.exerciseId}-${point.date}-${point.addedWeightLbs}`} className="flex items-center justify-between gap-3 text-sm">
+                              <div>
+                                <p className="font-medium text-foreground">{point.exerciseName}</p>
+                                <p className="text-xs text-muted-foreground">{formatDate(point.date)} · {point.reps} reps</p>
+                              </div>
+                              <p className="font-medium text-foreground">{formatWeight(point.addedWeightLbs, preferredUnit, weightRoundingLbs)}</p>
+                            </div>
+                          ))}
+                          {analytics.bodyweightLane.weightedLoadTrend.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">No weighted bodyweight sessions in this window.</p>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </ChartCard>
               </div>
             </TabsContent>
 
@@ -301,6 +472,8 @@ export function AnalyticsDashboard() {
                   title="Estimated 1RM Trend"
                   description={selectedExerciseName ?? 'Line-level strength progression from the current filter.'}
                   emptyMessage="AMRAP history is required to render strength trend lines."
+                  emptyStateNote={analytics.coverage.metrics.e1rmTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.e1rmTrend.reasonCodes)}
+                  headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.e1rmTrend} />}
                   isEmpty={analytics.e1rmTrend.length === 0}
                   isLoading={isLoading}
                   className="xl:col-span-2"
@@ -312,6 +485,8 @@ export function AnalyticsDashboard() {
                   title="PR Timeline"
                   description="Daily best estimated 1RM points for the selected lifts."
                   emptyMessage="PR timeline will appear once the filter has enough AMRAP history."
+                  emptyStateNote={analytics.coverage.metrics.prHistory.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.prHistory.reasonCodes)}
+                  headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.prHistory} />}
                   isEmpty={analytics.prHistory.length === 0}
                   isLoading={isLoading}
                   className="xl:col-span-2"
@@ -327,6 +502,8 @@ export function AnalyticsDashboard() {
                   emptyMessage={selectedExerciseId
                     ? 'No training max history is available for this exercise yet.'
                     : 'Select an exercise to unlock the training max progression view.'}
+                  emptyStateNote={analytics.coverage.metrics.tmProgression.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.tmProgression.reasonCodes)}
+                  headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.tmProgression} />}
                   isEmpty={!selectedExerciseId || tmProgressionData.length === 0}
                   isLoading={isLoading}
                   className="xl:col-span-2"
@@ -338,6 +515,8 @@ export function AnalyticsDashboard() {
                   title="Recent PRs"
                   description="The freshest estimated 1RM highs in the current filter window."
                   emptyMessage="No recent PRs were detected in this filter window."
+                  emptyStateNote={analytics.coverage.metrics.prHistory.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.prHistory.reasonCodes)}
+                  headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.prHistory} />}
                   isEmpty={recentPrs.length === 0}
                   isLoading={isLoading}
                   className="xl:col-span-2"
@@ -363,6 +542,8 @@ export function AnalyticsDashboard() {
                   title="Weekly Volume"
                   description={selectedExerciseName ?? 'Logged weekly volume across the current filter window.'}
                   emptyMessage="Logged work sets are required to build the volume chart."
+                  emptyStateNote={analytics.coverage.metrics.volumeTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.volumeTrend.reasonCodes)}
+                  headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.volumeTrend} />}
                   isEmpty={analytics.volumeTrend.length === 0}
                   isLoading={isLoading}
                   className="xl:col-span-2"
@@ -374,6 +555,8 @@ export function AnalyticsDashboard() {
                   title="Movement Balance"
                   description="Volume share by movement pattern."
                   emptyMessage="Movement balance appears after enough logged work sets land in this range."
+                  emptyStateNote={analytics.coverage.metrics.muscleBalance.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.muscleBalance.reasonCodes)}
+                  headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.muscleBalance} />}
                   isEmpty={analytics.muscleBalance.length === 0}
                   isLoading={isLoading}
                 >
@@ -386,6 +569,8 @@ export function AnalyticsDashboard() {
                     ? `Current week ${formatDisplayLoad(currentWeekVolume, preferredUnit)} vs ${formatDisplayLoad(averageWeeklyVolume, preferredUnit)} trailing average.`
                     : 'Weekly activity for the selected filter window.'}
                   emptyMessage="Weekly activity appears after completed work sets are logged."
+                  emptyStateNote={analytics.coverage.metrics.volumeTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.volumeTrend.reasonCodes)}
+                  headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.volumeTrend} />}
                   isEmpty={weeklyActivity.every((entry) => !entry.isActive)}
                   isLoading={isLoading}
                 >
@@ -409,13 +594,13 @@ export function AnalyticsDashboard() {
             <TabsContent value="ai" className="mt-4">
               <AiInsightsPanel
                 key={aiInsightScopeKey}
+                coverage={analytics.coverage}
                 dateRange={dateRange}
                 dateRangeLabel={selectedDateRangeLabel}
                 hasAnalyticsData={hasAnalyticsData}
-                recentPrCount={recentPrs.length}
+                isInsightEligible={isInsightEligible}
                 selectedExerciseId={selectedExerciseId}
                 selectedExerciseName={selectedExerciseName}
-                stallCount={analytics.stallDetection.length}
               />
             </TabsContent>
           </Tabs>

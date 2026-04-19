@@ -88,7 +88,8 @@ const baseSet = {
   intensity_type: 'percentage_tm' as const,
   execution_group: undefined,
   rest_seconds: 180,
-  rpe: undefined,
+  prescribedRpe: null,
+  rpe: null,
   notes: undefined,
   exerciseId: 2,
   exerciseName: 'Squat',
@@ -166,6 +167,7 @@ describe('SetRow', () => {
         weightLbs: 225,
         repsPrescribed: 5,
         repsActual: 5,
+        actualRpe: null,
       }),
       expect.objectContaining({
         onError: expect.any(Function),
@@ -205,6 +207,36 @@ describe('SetRow', () => {
     )
   })
 
+  it('passes canonical actual effort when logging through the detailed editor', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <SetRow
+        set={{
+          ...baseSet,
+          intensity_type: 'rpe',
+          prescribedRpe: 8,
+        }}
+        userId="user-1"
+      />,
+    )
+
+    expect(screen.queryByRole('button', { name: /log planned/i })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /enter details/i }))
+    await user.click(screen.getByRole('radio', { name: 'RIR' }))
+    await user.type(screen.getByLabelText(/actual effort/i), '2')
+    await user.click(screen.getByRole('button', { name: /save set/i }))
+
+    expect(mutateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actualRpe: 8,
+        repsActual: 5,
+      }),
+      expect.any(Object),
+    )
+  })
+
   it('shows planned versus logged output after an adjusted set is saved', () => {
     render(
       <SetRow
@@ -220,6 +252,23 @@ describe('SetRow', () => {
     expect(screen.getByText('Planned 225 lbs × 5 reps')).toBeInTheDocument()
     expect(screen.getByText('Logged 215 lbs × 6 reps')).toBeInTheDocument()
     expect(screen.getByText('Logged with adjustments')).toBeInTheDocument()
+  })
+
+  it('shows prescribed and logged effort separately once a set is complete', () => {
+    render(
+      <SetRow
+        set={{
+          ...baseSet,
+          prescribedRpe: 8,
+          repsActual: 5,
+          rpe: 9,
+        }}
+        userId="user-1"
+      />,
+    )
+
+    expect(screen.getByText('Target RPE 8')).toBeInTheDocument()
+    expect(screen.getByText('Logged RPE 9 (1 RIR)')).toBeInTheDocument()
   })
 
   it('treats rounded-equivalent completed loads as planned work', () => {
