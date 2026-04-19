@@ -20,6 +20,10 @@ const DEFAULT_PROGRAM = {
 const DEFAULT_PROFILE = {
   displayName: 'Copilot Verify',
   preferredUnit: 'lbs',
+  strengthProfileAgeYears: 30,
+  strengthProfileBodyweightLbs: 181,
+  strengthProfileSex: 'male',
+  weightRoundingLbs: DEFAULT_ROUNDING_LBS,
 }
 
 const MAIN_SET_PRESCRIPTIONS = [
@@ -85,6 +89,30 @@ const ACCESSORY_TEMPLATES_BY_DAY = {
     { exerciseKey: 'hanging_leg_raise', reps: 12, sets: 3, weightLbs: 20 },
   ],
 }
+
+const BODYWEIGHT_VERIFICATION_TEMPLATES_BY_DAY = {
+  bench: {
+    exerciseKey: 'dip',
+    strictBaseReps: 10,
+    weightedBaseAddedLbs: 15,
+    weightedReps: 5,
+  },
+  deadlift: {
+    exerciseKey: 'pull_up',
+    strictBaseReps: 8,
+    weightedBaseAddedLbs: 0,
+    weightedReps: 5,
+  },
+  ohp: {
+    exerciseKey: 'chin_up',
+    strictBaseReps: 9,
+    weightedBaseAddedLbs: 5,
+    weightedReps: 5,
+  },
+}
+
+const BODYWEIGHT_WEIGHTED_INCREMENT_LBS = 5
+const BODYWEIGHT_STRICT_PROGRESS_INTERVAL = 4
 
 export const DEFAULT_VERIFICATION_EMAIL = 'copilot.verify@plateiq.local'
 
@@ -216,7 +244,7 @@ export function generateWendler531BbbSets(dayKey, weekNumber, trainingMaxes, rou
   return sets
 }
 
-function buildAccessorySets(dayKey, startOrder, loggedAtBase) {
+function buildAccessorySets(dayKey, startOrder, loggedAtBase, cycleNumber, weekNumber) {
   const accessories = ACCESSORY_TEMPLATES_BY_DAY[dayKey] ?? []
   const sets = []
   let setOrder = startOrder
@@ -239,16 +267,56 @@ function buildAccessorySets(dayKey, startOrder, loggedAtBase) {
     }
   }
 
+  const bodyweightVerificationTemplate = BODYWEIGHT_VERIFICATION_TEMPLATES_BY_DAY[dayKey]
+
+  if (bodyweightVerificationTemplate) {
+    const exposureIndex = ((cycleNumber - 1) * 4) + (weekNumber - 1)
+    const strictReps = bodyweightVerificationTemplate.strictBaseReps
+      + Math.floor(exposureIndex / BODYWEIGHT_STRICT_PROGRESS_INTERVAL)
+    const weightedAddedLbs = bodyweightVerificationTemplate.weightedBaseAddedLbs
+      + (exposureIndex * BODYWEIGHT_WEIGHTED_INCREMENT_LBS)
+
+    sets.push({
+      exerciseKey: bodyweightVerificationTemplate.exerciseKey,
+      intensityType: 'bodyweight',
+      isAmrap: false,
+      loggedAt: addMinutes(loggedAtBase, (setOrder - 1) * 4),
+      repsActual: strictReps,
+      repsPrescribed: strictReps,
+      repsPrescribedMax: null,
+      setOrder,
+      setType: 'accessory',
+      weightLbs: 0,
+    })
+    setOrder += 1
+
+    sets.push({
+      exerciseKey: bodyweightVerificationTemplate.exerciseKey,
+      intensityType: 'bodyweight',
+      isAmrap: false,
+      loggedAt: addMinutes(loggedAtBase, (setOrder - 1) * 4),
+      repsActual: bodyweightVerificationTemplate.weightedReps,
+      repsPrescribed: bodyweightVerificationTemplate.weightedReps,
+      repsPrescribedMax: null,
+      setOrder,
+      setType: 'accessory',
+      weightLbs: weightedAddedLbs,
+    })
+    setOrder += 1
+  }
+
   return sets
 }
 
 function materializeWorkoutSets({
   amrapActual,
   completedSetOrders,
+  cycleNumber,
   dayKey,
   generatedSets,
   includeAccessories,
   loggedAtBase,
+  weekNumber,
   weightAdjustmentsByOrder,
 }) {
   const loggedOrderSet = completedSetOrders ? new Set(completedSetOrders) : null
@@ -272,7 +340,7 @@ function materializeWorkoutSets({
     return sets
   }
 
-  return [...sets, ...buildAccessorySets(dayKey, generatedSets.length + 1, loggedAtBase)]
+  return [...sets, ...buildAccessorySets(dayKey, generatedSets.length + 1, loggedAtBase, cycleNumber, weekNumber)]
 }
 
 function createWorkout({
@@ -302,10 +370,12 @@ function createWorkout({
     sets: materializeWorkoutSets({
       amrapActual,
       completedSetOrders,
+      cycleNumber,
       dayKey: day.key,
       generatedSets,
       includeAccessories,
       loggedAtBase: startedAt,
+      weekNumber,
       weightAdjustmentsByOrder,
     }),
     startedAt,

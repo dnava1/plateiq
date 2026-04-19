@@ -152,14 +152,14 @@ describe('assertSeedInvariants', () => {
       incompleteWorkoutCount: 1,
       totalCycles: 3,
       totalPrograms: 1,
-      totalSets: 596,
+      totalSets: 660,
       totalTrainingMaxes: 12,
       totalWorkouts: 42,
     }, {
       completedWorkoutCount: 42,
       incompleteWorkoutCount: 1,
       totalCycles: 3,
-      totalSets: 596,
+      totalSets: 660,
       totalTrainingMaxes: 12,
       totalWorkouts: 43,
     })).toThrow(/Seed invariant mismatch/i)
@@ -171,14 +171,14 @@ describe('assertSeedInvariants', () => {
       incompleteWorkoutCount: 1,
       totalCycles: 3,
       totalPrograms: 1,
-      totalSets: 596,
+      totalSets: 660,
       totalTrainingMaxes: 12,
       totalWorkouts: 43,
     }, {
       completedWorkoutCount: 42,
       incompleteWorkoutCount: 1,
       totalCycles: 3,
-      totalSets: 596,
+      totalSets: 660,
       totalTrainingMaxes: 12,
       totalWorkouts: 43,
     })).not.toThrow()

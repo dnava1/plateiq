@@ -139,6 +139,86 @@ const partialStrengthProfile: StrengthProfileData = {
   weakestLift: null,
 }
 
+const bodyweightStrengthProfile: StrengthProfileData = {
+  ...readyStrengthProfile,
+  availableCategoryCount: 2,
+  availableLiftCount: 2,
+  categories: [
+    { categoryKey: 'pull', categoryLabel: 'Pull', liftSlug: 'chin_up', liftName: 'Chin-Up', score: 94, strengthLabel: 'Advanced' },
+    { categoryKey: 'horizontalPress', categoryLabel: 'Horizontal Press', liftSlug: 'dip', liftName: 'Dip', score: 98, strengthLabel: 'Advanced' },
+  ],
+  lifts: [
+    {
+      actualRepMaxes: [{ reps: 1, weightLbs: 250 }],
+      benchmarkOneRepMaxLbs: 285,
+      benchmarkRepMaxes: [{ reps: 1, weightLbs: 285 }],
+      bestDate: '2026-04-08',
+      bestExternalWeightLbs: 0,
+      bestOneRepMaxLbs: 250,
+      bestReps: 10,
+      bestTotalLoadLbs: 180,
+      categoryKey: 'pull',
+      categoryLabel: 'Pull',
+      deviationFromTotalPct: -2,
+      displayName: 'Chin-Up',
+      expectedAtTotalScoreLbs: 255,
+      expectedOneRepMaxLbs: 255,
+      expectedRepMaxes: [{ reps: 1, weightLbs: 255 }],
+      liftSlug: 'chin_up',
+      muscleWeights: {},
+      score: 94,
+      sourceExerciseId: 3,
+      sourceExerciseName: 'Chin-Up',
+      strengthLabel: 'Advanced',
+    },
+    {
+      actualRepMaxes: [{ reps: 1, weightLbs: 280 }],
+      benchmarkOneRepMaxLbs: 290,
+      benchmarkRepMaxes: [{ reps: 1, weightLbs: 290 }],
+      bestDate: '2026-04-07',
+      bestExternalWeightLbs: 55,
+      bestOneRepMaxLbs: 280,
+      bestReps: 5,
+      bestTotalLoadLbs: 235,
+      categoryKey: 'horizontalPress',
+      categoryLabel: 'Horizontal Press',
+      deviationFromTotalPct: 2,
+      displayName: 'Dip',
+      expectedAtTotalScoreLbs: 275,
+      expectedOneRepMaxLbs: 275,
+      expectedRepMaxes: [{ reps: 1, weightLbs: 275 }],
+      liftSlug: 'dip',
+      muscleWeights: {},
+      score: 98,
+      sourceExerciseId: 4,
+      sourceExerciseName: 'Dip',
+      strengthLabel: 'Advanced',
+    },
+  ],
+  minimumCategoryCount: 2,
+  minimumLiftCount: 2,
+  muscleGroups: [],
+  profile: { ageYears: 32, bodyweightLbs: 180, sex: 'male' },
+  status: 'ready',
+  strongestLift: {
+    actualOneRepMaxLbs: 280,
+    deviationFromTotalPct: 2,
+    displayName: 'Dip',
+    expectedOneRepMaxLbs: 275,
+    liftSlug: 'dip',
+  },
+  symmetryScore: 92,
+  totalLabel: 'Advanced',
+  totalScore: 96,
+  weakestLift: {
+    actualOneRepMaxLbs: 250,
+    deviationFromTotalPct: -2,
+    displayName: 'Chin-Up',
+    expectedOneRepMaxLbs: 255,
+    liftSlug: 'chin_up',
+  },
+}
+
 describe('StrengthProfilePanel', () => {
   it('renders summary metrics and lift standards for a ready profile', () => {
     render(<StrengthProfilePanel strengthProfile={readyStrengthProfile} />)
@@ -158,6 +238,15 @@ describe('StrengthProfilePanel', () => {
 
     expect(screen.getByText(/Add athlete sex, age, and bodyweight/i)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Complete Strength Profile' })).toHaveAttribute('href', '/settings')
+  })
+
+  it('describes bodyweight-only and weighted benchmark lifts with the right load language', () => {
+    render(<StrengthProfilePanel strengthProfile={bodyweightStrengthProfile} />)
+
+    expect(screen.getByText('Best logged set: Bodyweight x 10')).toBeInTheDocument()
+    expect(screen.getByText('1RM equivalent: 250 lbs total (+70 lbs added)')).toBeInTheDocument()
+    expect(screen.getByText('Best logged set: +55 lbs added / 235 lbs total x 5')).toBeInTheDocument()
+    expect(screen.getByText('1RM equivalent: 280 lbs total (+100 lbs added)')).toBeInTheDocument()
   })
 
   it('keeps summary metrics provisional while the profile is incomplete', () => {

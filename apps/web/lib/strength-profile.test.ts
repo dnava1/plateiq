@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { calculateBenchmarkMultiRepMax } from '@/lib/strength-benchmarks'
+import {
+  calculateBenchmarkMultiRepMax,
+  calculateLiftFromStrengthScoreFromBenchmark,
+  calculateSingleLiftStrengthScoreFromBenchmark,
+} from '@/lib/strength-benchmarks'
 import { DEFAULT_WEIGHT_ROUNDING_KG_LBS, roundToIncrement } from '@/lib/utils'
 import {
   buildStrengthProfile,
@@ -18,6 +22,39 @@ describe('strength profile helpers', () => {
 
   it('calculates symmetry from score variance', () => {
     expect(calculateSymmetryScore([95, 100, 105])).toBeCloseTo(83.3, 1)
+  })
+
+  it.each([
+    { benchmarkOneRepMaxLbs: 290, bodyweightLbs: 181, liftName: 'Dip', sex: 'Male' as const },
+    { benchmarkOneRepMaxLbs: 284, bodyweightLbs: 181, liftName: 'Chin-up', sex: 'Male' as const },
+    { benchmarkOneRepMaxLbs: 267, bodyweightLbs: 181, liftName: 'Pull-up', sex: 'Male' as const },
+    { benchmarkOneRepMaxLbs: 218, bodyweightLbs: 165, liftName: 'Dip', sex: 'Female' as const },
+  ])('anchors %s benchmark lifts to the stored 100-point standard', ({ benchmarkOneRepMaxLbs, bodyweightLbs, liftName, sex }) => {
+    expect(
+      calculateSingleLiftStrengthScoreFromBenchmark(
+        'Imperial',
+        sex,
+        30,
+        bodyweightLbs,
+        liftName,
+        benchmarkOneRepMaxLbs,
+        benchmarkOneRepMaxLbs,
+      ),
+    ).toBeCloseTo(100, 1)
+
+    expect(
+      Math.abs(
+        calculateLiftFromStrengthScoreFromBenchmark(
+          'Imperial',
+          sex,
+          30,
+          bodyweightLbs,
+          100,
+          liftName,
+          benchmarkOneRepMaxLbs,
+        )! - benchmarkOneRepMaxLbs,
+      ),
+    ).toBeLessThan(1.1)
   })
 
   it('builds benchmark category scores, totals, and lift expectations from raw lift data', () => {

@@ -11,7 +11,9 @@ import type {
 import {
   calculateBenchmarkMultiRepMax,
   calculateBenchmarkSymmetryScore,
+  calculateLiftFromStrengthScoreFromBenchmark,
   calculateLiftFromStrengthScore,
+  calculateSingleLiftStrengthScoreFromBenchmark,
   calculateSingleLiftStrengthScore,
   calculateWeightedMuscleGroupScore,
   estimateBenchmarkOneRepMax,
@@ -51,6 +53,8 @@ export const SUPPORTED_STRENGTH_LIFT_NAMES = [
   'Pendlay Row',
 ] as const
 
+const BODYWEIGHT_STRENGTH_LIFT_SLUGS = new Set(['dip', 'chin_up', 'pull_up'])
+
 type ScoredStrengthProfileLift = {
   lift: StrengthProfileLift
   rawScore: number
@@ -74,6 +78,10 @@ function roundStrengthProfileWeight(weightLbs: number, roundingLbs: number = DEF
   }
 
   return roundToIncrement(weightLbs, roundingLbs, 'down')
+}
+
+export function isBodyweightStrengthLift(liftSlug: string) {
+  return BODYWEIGHT_STRENGTH_LIFT_SLUGS.has(liftSlug)
 }
 
 function resolveMissingFields(profile: StrengthProfileRawData['profile']): StrengthProfileMissingField[] {
@@ -181,8 +189,19 @@ export function buildStrengthProfile(
     const category = getBenchmarkCategory(lift.liftSlug)
     const rawOneRepMaxLbs = estimateBenchmarkOneRepMax(lift.bestTotalLoadLbs, lift.bestReps) ?? lift.bestOneRepMaxLbs
     const bestOneRepMaxLbs = roundStrengthProfileWeight(rawOneRepMaxLbs, weightRoundingLbs)
+    const benchmarkOneRepMaxLbs = roundStrengthProfileWeight(lift.benchmarkOneRepMaxLbs, weightRoundingLbs)
     const rawScore = benchmarkSex && isPositiveNumber(bodyweightLbs)
-      ? calculateSingleLiftStrengthScore('Imperial', benchmarkSex, rawStrengthProfile.profile.ageYears, bodyweightLbs, displayName, bestOneRepMaxLbs)
+      ? isBodyweightStrengthLift(lift.liftSlug)
+        ? calculateSingleLiftStrengthScoreFromBenchmark(
+            'Imperial',
+            benchmarkSex,
+            rawStrengthProfile.profile.ageYears,
+            bodyweightLbs,
+            displayName,
+            bestOneRepMaxLbs,
+            benchmarkOneRepMaxLbs,
+          )
+        : calculateSingleLiftStrengthScore('Imperial', benchmarkSex, rawStrengthProfile.profile.ageYears, bodyweightLbs, displayName, bestOneRepMaxLbs)
       : 0
     const score = roundToSingleDecimal(rawScore)
 
@@ -190,6 +209,8 @@ export function buildStrengthProfile(
       lift: {
         ...lift,
         actualRepMaxes: buildStrengthRepMaxes(bestOneRepMaxLbs, weightRoundingLbs),
+        benchmarkOneRepMaxLbs,
+        benchmarkRepMaxes: buildStrengthRepMaxes(benchmarkOneRepMaxLbs, weightRoundingLbs),
         bestOneRepMaxLbs,
         categoryKey: category.key,
         categoryLabel: category.label,
@@ -254,14 +275,24 @@ export function buildStrengthProfile(
       return { lift, rawScore }
     }
 
-    const expectedOneRepMax = calculateLiftFromStrengthScore(
-      'Imperial',
-      benchmarkSex,
-      rawStrengthProfile.profile.ageYears,
-      bodyweightLbs,
-      rawTotalScore,
-      lift.displayName,
-    )
+    const expectedOneRepMax = isBodyweightStrengthLift(lift.liftSlug)
+      ? calculateLiftFromStrengthScoreFromBenchmark(
+          'Imperial',
+          benchmarkSex,
+          rawStrengthProfile.profile.ageYears,
+          bodyweightLbs,
+          rawTotalScore,
+          lift.displayName,
+          lift.benchmarkOneRepMaxLbs,
+        )
+      : calculateLiftFromStrengthScore(
+          'Imperial',
+          benchmarkSex,
+          rawStrengthProfile.profile.ageYears,
+          bodyweightLbs,
+          rawTotalScore,
+          lift.displayName,
+        )
     const expectedOneRepMaxLbs = isPositiveNumber(expectedOneRepMax)
       ? roundStrengthProfileWeight(expectedOneRepMax, weightRoundingLbs)
       : null

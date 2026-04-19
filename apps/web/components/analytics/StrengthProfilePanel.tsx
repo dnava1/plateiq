@@ -24,6 +24,7 @@ import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import {
   formatStrengthProfileMissingField,
   getStrengthRepMaxWeight,
+  isBodyweightStrengthLift,
   STRENGTH_REP_RANGE,
   SUPPORTED_STRENGTH_LIFT_NAMES,
 } from '@/lib/strength-profile'
@@ -40,19 +41,52 @@ function formatDeviation(deviationFromTotalPct: number) {
   return `${sign}${deviationFromTotalPct.toFixed(1)}%`
 }
 
+function hasConfiguredBodyweight(bodyweightLbs: number | null): bodyweightLbs is number {
+  return typeof bodyweightLbs === 'number' && Number.isFinite(bodyweightLbs) && bodyweightLbs > 0
+}
+
 function describeBestSet(
   lift: StrengthProfileLift,
+  bodyweightLbs: number | null,
   unit: ReturnType<typeof usePreferredUnit>,
   roundingLbs: ReturnType<typeof usePreferredWeightRounding>,
 ) {
   const bestExternal = formatWeight(lift.bestExternalWeightLbs, unit, roundingLbs)
   const bestTotal = formatWeight(lift.bestTotalLoadLbs, unit, roundingLbs)
 
+  if (isBodyweightStrengthLift(lift.liftSlug) && hasConfiguredBodyweight(bodyweightLbs)) {
+    if (lift.bestExternalWeightLbs <= 0.1) {
+      return `Bodyweight x ${lift.bestReps}`
+    }
+
+    return `+${bestExternal} added / ${bestTotal} total x ${lift.bestReps}`
+  }
+
   if (Math.abs(lift.bestExternalWeightLbs - lift.bestTotalLoadLbs) > 0.1) {
     return `${bestExternal} external / ${bestTotal} total x ${lift.bestReps}`
   }
 
   return `${bestExternal} x ${lift.bestReps}`
+}
+
+function describeOneRepEquivalent(
+  lift: StrengthProfileLift,
+  bodyweightLbs: number | null,
+  unit: ReturnType<typeof usePreferredUnit>,
+  roundingLbs: ReturnType<typeof usePreferredWeightRounding>,
+) {
+  if (!isBodyweightStrengthLift(lift.liftSlug) || !hasConfiguredBodyweight(bodyweightLbs)) {
+    return `1RM estimate from that set: ${formatWeight(lift.bestOneRepMaxLbs, unit, roundingLbs)}`
+  }
+
+  const totalEquivalent = formatWeight(lift.bestOneRepMaxLbs, unit, roundingLbs)
+  const addedEquivalentLbs = Math.max(lift.bestOneRepMaxLbs - bodyweightLbs, 0)
+
+  if (addedEquivalentLbs <= 0.1) {
+    return `1RM equivalent: Bodyweight (${totalEquivalent} total)`
+  }
+
+  return `1RM equivalent: ${totalEquivalent} total (+${formatWeight(addedEquivalentLbs, unit, roundingLbs)} added)`
 }
 
 function formatRepStandardLabel(repCount: number) {
@@ -229,8 +263,8 @@ export function StrengthProfilePanel({ strengthProfile }: StrengthProfilePanelPr
                   </div>
 
                   <div className="mt-4 flex flex-col gap-1 text-sm text-muted-foreground">
-                    <p>Best logged set: {describeBestSet(lift, preferredUnit, weightRoundingLbs)}</p>
-                    <p>1RM estimate from that set: {formatWeight(lift.bestOneRepMaxLbs, preferredUnit, weightRoundingLbs)}</p>
+                    <p>Best logged set: {describeBestSet(lift, strengthProfile.profile.bodyweightLbs, preferredUnit, weightRoundingLbs)}</p>
+                    <p>{describeOneRepEquivalent(lift, strengthProfile.profile.bodyweightLbs, preferredUnit, weightRoundingLbs)}</p>
                     {lift.deviationFromTotalPct !== null && (
                       <p>{formatDeviation(lift.deviationFromTotalPct)} vs the lift expected at your total score</p>
                     )}

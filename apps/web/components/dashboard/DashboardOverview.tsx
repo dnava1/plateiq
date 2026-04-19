@@ -112,9 +112,9 @@ export function DashboardOverview() {
   const { data: analytics, isLoading: isAnalyticsLoading } = useAnalytics(undefined, analyticsRange)
   const analyticsSnapshot = analytics
     ? {
-        bodyweightLane: createEmptyAnalyticsBodyweightLane(),
-        coverage: createEmptyAnalyticsCoverage(),
         ...analytics,
+        bodyweightLane: analytics.bodyweightLane ?? createEmptyAnalyticsBodyweightLane(),
+        coverage: analytics.coverage ?? createEmptyAnalyticsCoverage(),
       }
     : null
 

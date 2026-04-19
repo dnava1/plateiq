@@ -324,6 +324,10 @@ async function upsertProfile(admin, userId, plan) {
     display_name: plan.profile.displayName,
     id: userId,
     preferred_unit: plan.profile.preferredUnit,
+    strength_profile_age_years: plan.profile.strengthProfileAgeYears ?? null,
+    strength_profile_bodyweight_lbs: plan.profile.strengthProfileBodyweightLbs ?? null,
+    strength_profile_sex: plan.profile.strengthProfileSex ?? null,
+    weight_rounding_lbs: plan.profile.weightRoundingLbs ?? null,
   })
 
   if (error) {

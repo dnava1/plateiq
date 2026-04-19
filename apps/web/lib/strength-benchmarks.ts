@@ -428,6 +428,63 @@ export function calculateSingleLiftStrengthScore(
   return wilksToStrengthScore(expectedWilks(unitSystem, sex, bodyweight, liftName as BenchmarkDisplayLift, oneRepMaxLbs), ageYears)
 }
 
+function resolveBenchmarkScoreScale(
+  unitSystem: BenchmarkUnitSystem,
+  sex: BenchmarkSex,
+  ageYears: number | null,
+  bodyweight: number,
+  liftName: string,
+  benchmarkOneRepMaxLbs: number,
+) {
+  if (!isPositiveNumber(benchmarkOneRepMaxLbs)) {
+    return null
+  }
+
+  const benchmarkScore = calculateSingleLiftStrengthScore(
+    unitSystem,
+    sex,
+    ageYears,
+    bodyweight,
+    liftName,
+    benchmarkOneRepMaxLbs,
+  )
+
+  if (!isPositiveNumber(benchmarkScore)) {
+    return null
+  }
+
+  return 100 / benchmarkScore
+}
+
+export function calculateSingleLiftStrengthScoreFromBenchmark(
+  unitSystem: BenchmarkUnitSystem,
+  sex: BenchmarkSex,
+  ageYears: number | null,
+  bodyweight: number,
+  liftName: string,
+  oneRepMaxLbs: number,
+  benchmarkOneRepMaxLbs: number,
+) {
+  if (!isPositiveNumber(bodyweight) || !isPositiveNumber(oneRepMaxLbs)) {
+    return 0
+  }
+
+  const scoreScale = resolveBenchmarkScoreScale(
+    unitSystem,
+    sex,
+    ageYears,
+    bodyweight,
+    liftName,
+    benchmarkOneRepMaxLbs,
+  )
+
+  if (scoreScale === null) {
+    return 0
+  }
+
+  return calculateSingleLiftStrengthScore(unitSystem, sex, ageYears, bodyweight, liftName, oneRepMaxLbs) * scoreScale
+}
+
 export function calculateLiftFromStrengthScore(
   unitSystem: BenchmarkUnitSystem,
   sex: BenchmarkSex,
@@ -448,6 +505,42 @@ export function calculateLiftFromStrengthScore(
   const liftPercentage = percentOfPLTotal(unitSystem, sex, bodyweight, benchmarkLiftName, 0)
   const expectedPowerliftingTotal = strengthScoreToPLTotal(unitSystem, sex, ageYears, bodyweight, strengthScore)
   return liftPercentage * expectedPowerliftingTotal
+}
+
+export function calculateLiftFromStrengthScoreFromBenchmark(
+  unitSystem: BenchmarkUnitSystem,
+  sex: BenchmarkSex,
+  ageYears: number | null,
+  bodyweight: number,
+  strengthScore: number,
+  liftName: string,
+  benchmarkOneRepMaxLbs: number,
+) {
+  if (!isPositiveNumber(bodyweight) || !isPositiveNumber(strengthScore)) {
+    return null
+  }
+
+  const scoreScale = resolveBenchmarkScoreScale(
+    unitSystem,
+    sex,
+    ageYears,
+    bodyweight,
+    liftName,
+    benchmarkOneRepMaxLbs,
+  )
+
+  if (scoreScale === null) {
+    return null
+  }
+
+  return calculateLiftFromStrengthScore(
+    unitSystem,
+    sex,
+    ageYears,
+    bodyweight,
+    strengthScore / scoreScale,
+    liftName,
+  )
 }
 
 export function calculateWeightedMuscleGroupScore(entries: Array<[number, number]>) {

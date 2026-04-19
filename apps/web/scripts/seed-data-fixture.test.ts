@@ -18,21 +18,36 @@ describe('generateWendler531BbbSets', () => {
 })
 
 describe('buildSeedDataPlan', () => {
-  it('creates a reusable verification fixture with a stalled bench and resumable workout', () => {
+  it('creates a reusable verification fixture with stalled bench history, bodyweight coverage, and a resumable workout', () => {
     const referenceDate = new Date('2026-04-12T12:00:00.000Z')
     const plan = buildSeedDataPlan(referenceDate)
     const summary = summarizeSeedDataPlan(plan)
     const activeCycle = plan.cycles[2]
+    const allSets = plan.cycles.flatMap((cycle) => cycle.workouts).flatMap((workout) => workout.sets)
     const resumableBenchWorkout = activeCycle.workouts.find((workout) => workout.dayKey === 'bench' && workout.weekNumber === 3) as
       | { sets: Array<{ repsActual: number | null; setType: string }>; completedAt: string | null }
       | undefined
 
     expect(plan.trainingMaxes.filter((entry) => entry.exerciseKey === 'bench')).toHaveLength(3)
+    expect(plan.profile).toMatchObject({
+      preferredUnit: 'lbs',
+      strengthProfileAgeYears: 30,
+      strengthProfileBodyweightLbs: 181,
+      strengthProfileSex: 'male',
+      weightRoundingLbs: 5,
+    })
     expect(summary.totalCycles).toBe(3)
     expect(summary.totalWorkouts).toBe(43)
     expect(summary.completedWorkoutCount).toBe(42)
     expect(summary.incompleteWorkoutCount).toBe(1)
+    expect(summary.totalSets).toBe(660)
     expect(summary.lastBenchPrDate).toBe('2026-03-12')
+    expect(allSets.some((set) => set.exerciseKey === 'dip' && set.intensityType === 'bodyweight' && set.weightLbs === 0)).toBe(true)
+    expect(allSets.some((set) => set.exerciseKey === 'dip' && set.intensityType === 'bodyweight' && set.weightLbs > 0)).toBe(true)
+    expect(allSets.some((set) => set.exerciseKey === 'chin_up' && set.intensityType === 'bodyweight' && set.weightLbs === 0)).toBe(true)
+    expect(allSets.some((set) => set.exerciseKey === 'chin_up' && set.intensityType === 'bodyweight' && set.weightLbs > 0)).toBe(true)
+    expect(allSets.some((set) => set.exerciseKey === 'pull_up' && set.intensityType === 'bodyweight' && set.weightLbs === 0)).toBe(true)
+    expect(allSets.some((set) => set.exerciseKey === 'pull_up' && set.intensityType === 'bodyweight' && set.weightLbs > 0)).toBe(true)
     expect(resumableBenchWorkout).toBeDefined()
     expect(resumableBenchWorkout?.completedAt).toBeNull()
     expect(resumableBenchWorkout?.sets).toHaveLength(8)
