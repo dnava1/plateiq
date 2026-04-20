@@ -1,8 +1,15 @@
 'use client'
 
+import { Radio } from '@base-ui/react/radio'
+import { RadioGroup } from '@base-ui/react/radio-group'
 import { useState } from 'react'
 import { validateCustomProgramBasicsStep } from '@/lib/validations/program'
-import { useBuilderDraftStore } from '@/store/builderDraftStore'
+import {
+  resolveBuilderProgrammingMethod,
+  useBuilderDraftStore,
+  usesTrainingMaxForMethod,
+  type BuilderProgrammingMethod,
+} from '@/store/builderDraftStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,7 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Toggle } from '@/components/ui/toggle'
 
 const DAYS_PER_WEEK_OPTIONS = [1, 2, 3, 4, 5, 6, 7].map((value) => ({
   value: String(value),
@@ -38,9 +44,29 @@ const TM_PERCENTAGE_OPTIONS = [
   { value: '0.95', label: '95%' },
 ]
 
+const METHOD_OPTIONS: Array<{
+  value: BuilderProgrammingMethod
+  label: string
+  description: string
+}> = [
+  {
+    value: 'general',
+    label: 'General Program',
+    description: 'Keep the builder centered on flexible loading, effort, bodyweight, or fixed-weight work without making training max the default frame.',
+  },
+  {
+    value: 'tm_driven',
+    label: 'Training-Max Driven',
+    description: 'Center the builder on training-max percentages and keep TM-specific setup visible where the method depends on it.',
+  },
+]
+
 export function BasicsStep() {
-  const { draft, patchDraft, setStep } = useBuilderDraftStore()
+  const { draft, patchDraft, setStep, source } = useBuilderDraftStore()
   const [error, setError] = useState<string | null>(null)
+  const selectedMethod = resolveBuilderProgrammingMethod(draft.uses_training_max)
+  const isDerivedMethod = source?.template_key !== undefined && source.template_key !== 'custom'
+  const methodLabel = METHOD_OPTIONS.find((option) => option.value === selectedMethod)?.label ?? 'General Program'
 
   const handleNext = () => {
     const validationError = validateCustomProgramBasicsStep(draft.name)
@@ -128,30 +154,49 @@ export function BasicsStep() {
       </div>
 
       <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-3 rounded-[20px] border border-border/70 bg-card/70 p-3">
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="uses-training-max">Use Training Maxes</Label>
-            <p className="text-sm text-muted-foreground">
-              Prescribe main lift loads from percentages and rounding rules.
+        <Label>Programming Method</Label>
+        {isDerivedMethod ? (
+          <div className="rounded-[20px] border border-border/70 bg-card/70 p-3">
+            <p className="text-sm font-medium text-foreground">{methodLabel}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Derived from the source template so this builder stays aligned with the program&apos;s original loading model.
             </p>
           </div>
-          <Toggle
-            id="uses-training-max"
-            aria-label="Use training maxes"
-            variant="outline"
-            size="sm"
-            pressed={draft.uses_training_max}
-            onPressedChange={(pressed) => patchDraft({ uses_training_max: pressed })}
-            className="min-w-16 justify-center rounded-full px-3 text-[0.7rem] uppercase tracking-[0.18em] data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+        ) : (
+          <RadioGroup
+            value={selectedMethod}
+            aria-label="Programming method"
+            onValueChange={(value) => {
+              patchDraft({ uses_training_max: usesTrainingMaxForMethod(value as BuilderProgrammingMethod) })
+              setError(null)
+            }}
+            className="flex flex-col gap-2"
           >
-            {draft.uses_training_max ? 'On' : 'Off'}
-          </Toggle>
-        </div>
+            {METHOD_OPTIONS.map((option) => (
+              <Radio.Root
+                key={option.value}
+                value={option.value}
+                nativeButton
+                render={<button />}
+                className="w-full rounded-xl border border-border/70 bg-card/70 p-3 text-left transition-colors motion-reduce:transition-none outline-none hover:bg-muted/50 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-checked:border-primary aria-checked:bg-primary/5 aria-checked:ring-1 aria-checked:ring-primary/30"
+              >
+                <p className="text-sm font-medium text-foreground">{option.label}</p>
+                <p className="text-xs text-muted-foreground">{option.description}</p>
+              </Radio.Root>
+            ))}
+          </RadioGroup>
+        )}
+
+        {!isDerivedMethod && !draft.uses_training_max && (
+          <p className="text-xs leading-5 text-muted-foreground">
+            You can still choose fixed-weight, bodyweight, effort-based, or other non-TM prescriptions later at the exercise level.
+          </p>
+        )}
 
         {draft.uses_training_max && (
           <div className="grid grid-cols-1 gap-4 animate-slide-up motion-reduce:animate-none">
             <div className="flex flex-col gap-2 max-w-xs">
-              <Label htmlFor="tmp">Training Max Percentage</Label>
+              <Label htmlFor="tmp">Training Max Working Percentage</Label>
               <Select
                 value={String(draft.tm_percentage)}
                 onValueChange={(value) => {
@@ -171,6 +216,9 @@ export function BasicsStep() {
                   </SelectGroup>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                This stays visible only for TM-driven methods so the builder does not over-center training max for every program.
+              </p>
             </div>
           </div>
         )}

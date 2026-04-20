@@ -35,6 +35,11 @@ const STYLE_LABELS: Record<string, string> = {
   custom: 'Custom',
 }
 
+const METHOD_LABELS = {
+  tm_driven: 'Training-max driven',
+  general: 'General / flexible loading',
+} as const
+
 export function ReviewStep() {
   const router = useRouter()
   const { draft, source, toConfig, resetDraft, setStep } = useBuilderDraftStore()
@@ -45,6 +50,7 @@ export function ReviewStep() {
   const progressionIncrements = usesLinearProgression(draft.progression.style)
     ? draft.progression.increment_lbs ?? DEFAULT_LINEAR_INCREMENT_LBS
     : null
+  const methodLabel = draft.uses_training_max ? METHOD_LABELS.tm_driven : METHOD_LABELS.general
 
   const templateKey = source?.template_key ?? draft.metadata?.source_template_key ?? 'custom'
   const saveStrategy = source?.save_strategy ?? 'create'
@@ -134,8 +140,9 @@ export function ReviewStep() {
         <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
           <span>{formatDaysPerWeek(draft.days_per_week)}</span>
           <span>{formatWeekCycle(draft.cycle_length_weeks)}</span>
+          <span>Method: {methodLabel}</span>
           <span>Progression: {STYLE_LABELS[draft.progression.style]}</span>
-          {draft.uses_training_max && <span>Training max: {Math.round(draft.tm_percentage * 100)}%</span>}
+          {draft.uses_training_max && <span>TM working percentage: {Math.round(draft.tm_percentage * 100)}%</span>}
         </div>
       </div>
 
@@ -177,7 +184,7 @@ export function ReviewStep() {
         {progressionIncrements && (
           <p>Upper: +{formatWeight(progressionIncrements.upper, preferredUnit)} · Lower: +{formatWeight(progressionIncrements.lower, preferredUnit)}</p>
         )}
-        <p>Deload decisions stay manual and happen during cycle review.</p>
+        <p>Deload decisions stay manual and happen during the current cycle checkpoint.</p>
       </div>
 
       {saveStrategy === 'revision' && (

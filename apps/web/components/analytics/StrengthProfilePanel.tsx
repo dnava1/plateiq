@@ -143,7 +143,7 @@ export function StrengthProfilePanel({ strengthProfile }: StrengthProfilePanelPr
         {isMissingProfile && (
           <div className="rounded-[24px] border border-primary/20 bg-primary/6 p-5">
             <p className="text-sm text-foreground">
-              Add athlete sex, age, and bodyweight in settings to unlock strength scoring, lift analysis, and muscle-group scoring.
+              Add athlete sex, age, and bodyweight in settings to unlock strength scoring and lift analysis.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {strengthProfile.missingFields.map((field) => (
@@ -278,24 +278,6 @@ export function StrengthProfilePanel({ strengthProfile }: StrengthProfilePanelPr
         {!isMissingProfile && strengthProfile.lifts.length === 0 && (
           <div className="rounded-[24px] border border-border/70 bg-background/45 p-4 text-sm text-muted-foreground">
             Log supported lifts such as {SUPPORTED_STRENGTH_LIFT_NAMES.slice(0, 4).join(', ')} to light up the strength profile.
-          </div>
-        )}
-
-        {!isMissingProfile && strengthProfile.muscleGroups.length > 0 && (
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-medium text-foreground">Muscle-Group Profile</h3>
-              <p className="text-xs text-muted-foreground">Weighted from the benchmark lift involvement map</p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {strengthProfile.muscleGroups.map((muscleGroup) => (
-                <div key={muscleGroup.muscleKey} className="rounded-[20px] border border-border/70 bg-background/45 p-4">
-                  <p className="text-sm font-medium text-foreground">{muscleGroup.title}</p>
-                  <p className="mt-2 text-xl font-semibold tracking-[-0.05em] text-foreground">{muscleGroup.score.toFixed(1)}</p>
-                  <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${getBenchmarkStrengthColorClass(muscleGroup.strengthLabel)}`}>{muscleGroup.strengthLabel}</span>
-                </div>
-              ))}
-            </div>
           </div>
         )}
       </CardContent>

@@ -90,4 +90,14 @@ describe('ProgramConfigForm', () => {
     expect(url.searchParams.get('tm')).toBe('0.9')
     expect(url.searchParams.get('rounding')).toBeNull()
   })
+
+  it('exposes method-first scratch builder entry links', () => {
+    render(<ProgramConfigForm open onOpenChange={vi.fn()} />)
+
+    const generalLink = screen.getByRole('link', { name: /General Program/i })
+    const trainingMaxLink = screen.getByRole('link', { name: /Training-Max Driven/i })
+
+    expect(generalLink).toHaveAttribute('href', '/programs/builder?method=general')
+    expect(trainingMaxLink).toHaveAttribute('href', '/programs/builder?method=tm_driven')
+  })
 })

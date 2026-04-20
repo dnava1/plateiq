@@ -8,11 +8,17 @@ import {
   buildBuilderDraftFromProgramDefinition,
   buildEditableConfigFromTemplate,
   createProgramBuilderDraftSource,
+  createScratchBuilderDraftSource,
   createTemplateBuilderDraftSource,
   resolveEditableProgramDefinition,
 } from '@/lib/programs/editable'
 import { useProgram, useProgramEditability } from '@/hooks/usePrograms'
-import { useBuilderDraftStore } from '@/store/builderDraftStore'
+import {
+  createInitialBuilderDraft,
+  useBuilderDraftStore,
+  usesTrainingMaxForMethod,
+  type BuilderProgrammingMethod,
+} from '@/store/builderDraftStore'
 import { BuilderStepper } from '@/components/programs/builder/BuilderStepper'
 import { BasicsStep } from '@/components/programs/builder/BasicsStep'
 import { DaysStep } from '@/components/programs/builder/DaysStep'
@@ -28,16 +34,20 @@ export default function BuilderPage() {
   const templateKey = searchParams.get('template')
   const selectedVariationKey = searchParams.get('variation')
   const requestedName = searchParams.get('name')
+  const scratchMethodParam = searchParams.get('method')
   const tmParam = searchParams.get('tm')
   const tmPercentageParam = tmParam === null ? Number.NaN : Number(tmParam)
   const programIdParam = searchParams.get('programId')
   const programId = typeof programIdParam === 'string' && /^\d+$/.test(programIdParam)
     ? Number(programIdParam)
     : undefined
+  const scratchMethod = scratchMethodParam === 'tm_driven' || scratchMethodParam === 'general'
+    ? scratchMethodParam as BuilderProgrammingMethod
+    : null
   const requestedTemplate = templateKey ? getTemplate(templateKey) ?? null : null
   const hydratedSourceKeyRef = useRef<string | null>(null)
 
-  const { step, currentDayIndex, draft, hydrateDraft, patchSource, resetDraft } = useBuilderDraftStore()
+  const { step, currentDayIndex, draft, hydrateDraft, patchSource } = useBuilderDraftStore()
   const { data: program, isLoading: isProgramLoading } = useProgram(programId)
   const { data: editability, isLoading: isEditabilityLoading } = useProgramEditability(programId)
 
@@ -56,8 +66,8 @@ export default function BuilderPage() {
       ].join(':')
     }
 
-    return 'scratch'
-  }, [programId, requestedName, selectedVariationKey, templateKey, tmPercentageParam])
+    return `scratch:${scratchMethod ?? 'default'}`
+  }, [programId, requestedName, scratchMethod, selectedVariationKey, templateKey, tmPercentageParam])
 
   useEffect(() => {
     if (!programId || !program || !editability || hydratedSourceKeyRef.current !== `program:${programId}`) {
@@ -105,7 +115,12 @@ export default function BuilderPage() {
       return
     }
 
-    resetDraft()
+    hydrateDraft(
+      createInitialBuilderDraft({
+        uses_training_max: scratchMethod ? usesTrainingMaxForMethod(scratchMethod) : false,
+      }),
+      createScratchBuilderDraftSource(),
+    )
     hydratedSourceKeyRef.current = hydrationKey
   }, [
     editability,
@@ -116,7 +131,7 @@ export default function BuilderPage() {
     programId,
     requestedName,
     requestedTemplate,
-    resetDraft,
+    scratchMethod,
     selectedVariationKey,
     templateKey,
     tmPercentageParam,
@@ -130,7 +145,7 @@ export default function BuilderPage() {
       ? 'Customize a Program'
       : 'Edit Your Program'
   const pageCopy = builderMode === 'scratch'
-    ? 'Set up your split, name each day, and dial in progression without fighting the form.'
+    ? 'Choose the load approach first, then set up your split, name each day, and dial in progression without fighting the form.'
     : builderMode === 'template'
       ? 'Start from a built-in plan, inspect the full structure, and tailor it before you save your copy.'
       : 'Update the split, exercises, and progression for this saved program in the same builder flow.'

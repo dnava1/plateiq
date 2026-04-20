@@ -248,6 +248,9 @@ export function DashboardOverview() {
           <span className="eyebrow">Overview</span>
           <div className="flex flex-col gap-2">
             <h1 className="page-title">Dashboard</h1>
+            <p className="page-copy">
+              Track current state across the active program and see what needs attention next.
+            </p>
           </div>
         </div>
       </section>
@@ -345,8 +348,13 @@ export function DashboardOverview() {
             <CardHeader className="gap-2">
               <CardTitle className="text-base">Current Training Maxes</CardTitle>
               <CardDescription>
-                Latest effective values surfaced from the dashboard aggregate.
+                Supporting context for TM-driven programs. Manage setup and checkpoint updates in Programs, or confirm day-of values in Workouts.
               </CardDescription>
+              <CardAction>
+                <Link href="/programs" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+                  Manage in Programs
+                </Link>
+              </CardAction>
             </CardHeader>
             <CardContent className="pt-0">
               {isDashboardLoading ? (
@@ -360,7 +368,7 @@ export function DashboardOverview() {
                 </div>
               ) : currentTms.length === 0 ? (
                 <div className="rounded-[22px] border border-border/70 bg-background/45 px-4 py-5 text-sm text-muted-foreground">
-                  Add training maxes for the main lifts to populate this panel.
+                  Add training maxes for TM-driven lifts when your program needs them. Otherwise this panel can stay empty while dashboard context remains generic.
                 </div>
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

@@ -123,7 +123,7 @@ export function ProgressionStep() {
       )}
 
       <p className="text-xs text-muted-foreground">
-        Deload decisions stay user-controlled and can be handled during cycle review instead of being saved as part of the progression rule.
+        Deload decisions stay user-controlled and can be handled during the current cycle checkpoint instead of being saved as part of the progression rule.
       </p>
 
       <div className="flex gap-2">

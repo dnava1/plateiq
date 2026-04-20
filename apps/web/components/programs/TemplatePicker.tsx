@@ -8,7 +8,7 @@ import { formatDaysPerWeek, formatExerciseKey, formatWeekCycle, normalizeCadence
 import type { ProgramTemplate } from '@/types/template'
 import type { ProgramLevel } from '@/types/domain'
 import { Badge } from '@/components/ui/badge'
-import { Hammer } from 'lucide-react'
+import { Gauge, Hammer } from 'lucide-react'
 
 const LEVEL_LABELS: Record<ProgramLevel, string> = {
   beginner: 'Beginner',
@@ -60,25 +60,55 @@ export function TemplatePicker({ selectedKey, onSelect, onOpenChange }: Template
           <h3 className="eyebrow">Build From Scratch</h3>
           <Badge variant="secondary">Custom</Badge>
         </div>
-        <Link
-          href="/programs/builder"
-          onClick={() => onOpenChange?.(false)}
-          className="card-hover w-full rounded-[24px] border border-dashed border-border/80 bg-card/70 p-5 text-left hover:border-primary/40 hover:bg-primary/5"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <Hammer data-icon="inline-start" />
-            </div>
-            <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <p className="text-base font-medium tracking-[-0.04em] text-foreground">Build a Program</p>
-              <p className="text-sm leading-6 text-muted-foreground">
-                Set the days, exercises, and progression yourself
-              </p>
-            </div>
-          </div>
-        </Link>
+        <p className="text-sm leading-6 text-muted-foreground">
+          Choose the load approach first, then build the days, exercises, and progression around it.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <ScratchBuilderLink
+            href="/programs/builder?method=general"
+            title="General Program"
+            description="Start from flexible loading and add fixed-weight, bodyweight, effort-based, or other non-TM prescriptions as needed."
+            icon={Hammer}
+            onOpenChange={onOpenChange}
+          />
+          <ScratchBuilderLink
+            href="/programs/builder?method=tm_driven"
+            title="Training-Max Driven"
+            description="Start from training-max context so percentages and next-block TM adjustments stay front and center where the method needs them."
+            icon={Gauge}
+            onOpenChange={onOpenChange}
+          />
+        </div>
       </div>
     </div>
+  )
+}
+
+interface ScratchBuilderLinkProps {
+  href: string
+  title: string
+  description: string
+  icon: typeof Hammer
+  onOpenChange?: (open: boolean) => void
+}
+
+function ScratchBuilderLink({ href, title, description, icon: Icon, onOpenChange }: ScratchBuilderLinkProps) {
+  return (
+    <Link
+      href={href}
+      onClick={() => onOpenChange?.(false)}
+      className="card-hover w-full rounded-[24px] border border-dashed border-border/80 bg-card/70 p-5 text-left hover:border-primary/40 hover:bg-primary/5"
+    >
+      <div className="flex items-center gap-3">
+        <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <Icon data-icon="inline-start" />
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <p className="text-base font-medium tracking-[-0.04em] text-foreground">{title}</p>
+          <p className="text-sm leading-6 text-muted-foreground">{description}</p>
+        </div>
+      </div>
+    </Link>
   )
 }
 

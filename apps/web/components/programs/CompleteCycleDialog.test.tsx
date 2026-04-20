@@ -86,7 +86,7 @@ describe('CompleteCycleDialog', () => {
       />,
     )
 
-    await user.click(screen.getAllByRole('button', { name: /complete cycle/i })[0])
+    await user.click(screen.getAllByRole('button', { name: /cycle checkpoint/i })[0])
 
     expect(screen.getByText('Squat')).toBeInTheDocument()
     expect(screen.getByText('Current TM')).toBeInTheDocument()
@@ -94,5 +94,37 @@ describe('CompleteCycleDialog', () => {
     expect(screen.getAllByText(expectedBadge)).toHaveLength(2)
     expect(screen.getAllByText(expectedNextTm).length).toBeGreaterThan(0)
     expect(screen.getByText(reason)).toBeInTheDocument()
+  })
+
+  it('reframes non-TM programs as the current cycle checkpoint instead of a TM review surface', async () => {
+    useCycleCompletionPreviewMock.mockReturnValue({
+      activeCycle: { id: 7, cycle_number: 4 },
+      previewRows: [],
+      isLoading: false,
+    })
+
+    const user = userEvent.setup()
+
+    render(
+      <CompleteCycleDialog
+        program={{
+          id: 12,
+          user_id: 'user-1',
+          name: 'Texas Method',
+          template_key: 'texas_method',
+          config: { rounding: 5 },
+          is_active: true,
+          start_date: '2026-04-10',
+          created_at: null,
+          updated_at: null,
+        }}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /cycle checkpoint/i }))
+
+    expect(screen.getByRole('heading', { name: 'Cycle Checkpoint' })).toBeInTheDocument()
+    expect(screen.getByText(/This is the current TM-first checkpoint for rolling the block forward/i)).toBeInTheDocument()
+    expect(screen.getByText(/Training max is not the organizing model for this program/i)).toBeInTheDocument()
   })
 })

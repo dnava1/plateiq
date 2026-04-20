@@ -6,7 +6,13 @@ import {
   createProgramBuilderDraftSource,
   createTemplateBuilderDraftSource,
 } from '@/lib/programs/editable'
-import { DEFAULT_LINEAR_INCREMENT_LBS, useBuilderDraftStore } from './builderDraftStore'
+import {
+  createInitialBuilderDraft,
+  DEFAULT_LINEAR_INCREMENT_LBS,
+  resolveBuilderProgrammingMethod,
+  useBuilderDraftStore,
+  usesTrainingMaxForMethod,
+} from './builderDraftStore'
 
 describe('builderDraftStore', () => {
   beforeEach(() => {
@@ -81,5 +87,15 @@ describe('builderDraftStore', () => {
     expect(state.draft.name).toBe('Edited Draft')
     expect(state.source?.save_strategy).toBe('revision')
     expect(state.source?.program_id).toBe(42)
+  })
+
+  it('creates scratch drafts from the selected programming method without changing the compatibility shape', () => {
+    const tmDrivenDraft = createInitialBuilderDraft({ uses_training_max: usesTrainingMaxForMethod('tm_driven') })
+    const generalDraft = createInitialBuilderDraft({ uses_training_max: usesTrainingMaxForMethod('general') })
+
+    expect(resolveBuilderProgrammingMethod(tmDrivenDraft.uses_training_max)).toBe('tm_driven')
+    expect(resolveBuilderProgrammingMethod(generalDraft.uses_training_max)).toBe('general')
+    expect(tmDrivenDraft.tm_percentage).toBe(0.9)
+    expect(generalDraft.tm_percentage).toBe(0.9)
   })
 })

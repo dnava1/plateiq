@@ -145,7 +145,7 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
           <div className="flex flex-col gap-1.5">
             <DialogTitle>Start a Program</DialogTitle>
             <DialogDescription>
-              Pick a template, inspect the full approach, and tune the setup details without bouncing through a fake stepper.
+              Pick a template, or choose the load approach first for a scratch build, then tune the setup details without bouncing through a fake stepper.
             </DialogDescription>
           </div>
         </DialogHeader>

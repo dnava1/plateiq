@@ -460,9 +460,9 @@ async function main() {
   loadLocalEnvFiles()
 
   const args = process.argv.slice(2)
-  const verificationEmail = process.env.PLAYWRIGHT_VERIFICATION_EMAIL ?? DEFAULT_VERIFICATION_EMAIL
+  const verificationEmail = process.env.VERIFICATION_EMAIL ?? DEFAULT_VERIFICATION_EMAIL
   const admin = createAdminClient({ args, env: process.env, verificationEmail })
-  const verificationPassword = getRequiredEnv('PLAYWRIGHT_VERIFICATION_PASSWORD')
+  const verificationPassword = getRequiredEnv('VERIFICATION_PASSWORD')
   const plan = buildSeedDataPlan(new Date())
 
   console.log(`Seeding verification data for ${verificationEmail}...`)

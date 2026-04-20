@@ -23,7 +23,6 @@ import { ConsistencyHeatmap } from '@/components/charts/ConsistencyHeatmap'
 import { E1rmTrendChart } from '@/components/charts/E1rmTrendChart'
 import { MuscleBalanceChart } from '@/components/charts/MuscleBalanceChart'
 import { PrTimelineChart } from '@/components/charts/PrTimelineChart'
-import { TmProgressionChart } from '@/components/charts/TmProgressionChart'
 import { VolumeTrendChart } from '@/components/charts/VolumeTrendChart'
 import { formatDisplayLoad } from '@/components/charts/chart-utils'
 import { AiInsightsPanel } from './AiInsightsPanel'
@@ -147,22 +146,15 @@ export function AnalyticsDashboard() {
     ? previousWeeks.reduce((total, entry) => total + entry.totalVolume, 0) / previousWeeks.length
     : 0
   const recentPrs = useMemo(() => deriveRecentPrs(analytics.prHistory, 6), [analytics.prHistory])
-  const coverageFamilies = useMemo(() => summarizeAnalyticsCoverageFamilies(analytics.coverage), [analytics.coverage])
+  const coverageFamilies = useMemo(
+    () => summarizeAnalyticsCoverageFamilies(analytics.coverage)
+      .filter((family) => family.family !== 'training_max'),
+    [analytics.coverage],
+  )
   const selectedDateRangeLabel = DATE_RANGE_PRESETS.find((preset) => preset.value === rangeKey)?.label ?? 'Last 6 months'
   const selectedExerciseName = selectedExerciseId
     ? exercises?.find((exercise) => exercise.id === selectedExerciseId)?.name ?? null
     : null
-  const tmProgressionData = useMemo(
-    () => selectedExerciseId
-      ? analytics.tmProgression
-        .filter((entry) => entry.exerciseId === selectedExerciseId)
-        .map((entry) => ({
-          effectiveDate: entry.effectiveDate,
-          weightLbs: entry.weightLbs,
-        }))
-      : [],
-    [analytics.tmProgression, selectedExerciseId],
-  )
   const aiInsightScopeKey = [
     selectedExerciseId ?? 'all',
     formatDateAsLocalIso(dateRange.from),
@@ -258,7 +250,7 @@ export function AnalyticsDashboard() {
               PlateIQ separates broad logging signal from method-bound metrics and keeps bodyweight work in its own review lane.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3 pt-0 md:grid-cols-2 xl:grid-cols-5">
+          <CardContent className="grid gap-3 pt-0 md:grid-cols-2 xl:grid-cols-4">
             {coverageFamilies.map((family) => (
               <div key={family.family} className="rounded-[22px] border border-border/70 bg-background/45 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">
@@ -492,23 +484,6 @@ export function AnalyticsDashboard() {
                   className="xl:col-span-2"
                 >
                   <PrTimelineChart data={analytics.prHistory} exerciseId={selectedExerciseId} />
-                </ChartCard>
-
-                <ChartCard
-                  title="TM Progression"
-                  description={selectedExerciseName
-                    ? `${selectedExerciseName} training max changes over time.`
-                    : 'Choose an exercise filter to inspect training max history.'}
-                  emptyMessage={selectedExerciseId
-                    ? 'No training max history is available for this exercise yet.'
-                    : 'Select an exercise to unlock the training max progression view.'}
-                  emptyStateNote={analytics.coverage.metrics.tmProgression.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.tmProgression.reasonCodes)}
-                  headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.tmProgression} />}
-                  isEmpty={!selectedExerciseId || tmProgressionData.length === 0}
-                  isLoading={isLoading}
-                  className="xl:col-span-2"
-                >
-                  <TmProgressionChart data={tmProgressionData} />
                 </ChartCard>
 
                 <ChartCard

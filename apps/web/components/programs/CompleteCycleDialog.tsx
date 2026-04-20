@@ -7,6 +7,7 @@ import { useCycleCompletionPreview, useCompleteCycle, buildCycleProgressionPaylo
 import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import type { TrainingProgram } from '@/hooks/usePrograms'
+import { resolveProgramUsesTrainingMax } from '@/lib/programs/method'
 import { formatWeight } from '@/lib/utils'
 import { useWorkoutSessionStore } from '@/store/workoutSessionStore'
 import { Badge } from '@/components/ui/badge'
@@ -39,6 +40,7 @@ function getIncrementBadge(rowIncrementLbs: number, preferredUnit: ReturnType<ty
 export function CompleteCycleDialog({ program }: CompleteCycleDialogProps) {
   const preferredUnit = usePreferredUnit()
   const weightRoundingLbs = usePreferredWeightRounding()
+  const usesTrainingMax = resolveProgramUsesTrainingMax(program)
   const clearSession = useWorkoutSessionStore((state) => state.clearSession)
   const completeCycle = useCompleteCycle()
   const { activeCycle, previewRows, isLoading } = useCycleCompletionPreview(program)
@@ -91,18 +93,20 @@ export function CompleteCycleDialog({ program }: CompleteCycleDialogProps) {
     <>
       <Button type="button" size="sm" onClick={() => setOpen(true)}>
         <Flag data-icon="inline-start" />
-        Complete Cycle
+        Cycle Checkpoint
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader className="gap-2 pr-8">
             <div className="flex flex-wrap items-center gap-2">
-              <DialogTitle>Complete Cycle</DialogTitle>
+              <DialogTitle>Cycle Checkpoint</DialogTitle>
               {activeCycle ? <Badge variant="outline">Cycle {activeCycle.cycle_number}</Badge> : null}
             </div>
             <DialogDescription>
-              Review the next-cycle training max preview, then confirm the cycle rollover when you are ready to start the next block.
+              {usesTrainingMax
+                ? 'Review the next-cycle training max preview, then confirm the rollover when you are ready to start the next block.'
+                : 'This is the current TM-first checkpoint for rolling the block forward. Broader cycle review can expand here later, but this is still where you confirm the next block today.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -110,6 +114,12 @@ export function CompleteCycleDialog({ program }: CompleteCycleDialogProps) {
             <div className="flex items-center gap-3 rounded-[22px] border border-border/70 bg-background/55 px-4 py-3 text-sm text-muted-foreground">
               <CloudOff />
               Cycle completion is online-only because it creates the next cycle and writes the progression update in one RPC.
+            </div>
+          ) : null}
+
+          {!usesTrainingMax ? (
+            <div className="rounded-[22px] border border-border/70 bg-background/55 px-4 py-3 text-sm text-muted-foreground">
+              Training max is not the organizing model for this program. Treat this as the current checkpoint for rolling the block forward while broader cycle review grows around it later.
             </div>
           ) : null}
 
@@ -123,7 +133,9 @@ export function CompleteCycleDialog({ program }: CompleteCycleDialogProps) {
             </div>
           ) : previewRows.length === 0 ? (
             <div className="rounded-[22px] border border-border/70 bg-background/55 px-4 py-6 text-sm text-muted-foreground">
-              No training max changes are queued for the next cycle. Completing the cycle will still close the current block and create the next one.
+              {usesTrainingMax
+                ? 'No training max changes are queued for the next cycle. Completing the cycle will still close the current block and create the next one.'
+                : 'No training max changes are queued here. Completing the cycle will still close the current block and create the next one while broader review stays outside this checkpoint for now.'}
             </div>
           ) : (
             <div className="flex flex-col gap-3">

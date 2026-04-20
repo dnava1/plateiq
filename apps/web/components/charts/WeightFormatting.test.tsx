@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from 'vitest'
 import { ConsistencyHeatmap } from './ConsistencyHeatmap'
 import { E1rmTrendChart } from './E1rmTrendChart'
 import { PrTimelineChart } from './PrTimelineChart'
-import { TmProgressionChart } from './TmProgressionChart'
 import { VolumeTrendChart } from './VolumeTrendChart'
 
 const TEST_WEIGHT_LBS = 246
@@ -72,13 +71,6 @@ describe('chart weight formatting', () => {
         data={[{ date: '2026-04-01', e1rm: TEST_WEIGHT_LBS, exerciseId: 1, exerciseName: 'Bench Press', reps: 5, weight: TEST_WEIGHT_LBS }]}
       />,
     )
-
-    expect(screen.getByTestId('y-axis')).toHaveTextContent('110')
-    expect(screen.getByTestId('tooltip')).toHaveTextContent('110 kg')
-  })
-
-  it('formats tm progression axes and tooltips in the selected unit', () => {
-    render(<TmProgressionChart data={[{ effectiveDate: '2026-04-01', weightLbs: TEST_WEIGHT_LBS }]} />)
 
     expect(screen.getByTestId('y-axis')).toHaveTextContent('110')
     expect(screen.getByTestId('tooltip')).toHaveTextContent('110 kg')

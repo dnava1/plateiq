@@ -2,7 +2,6 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createEmptyAnalyticsBodyweightLane, createEmptyAnalyticsCoverage } from '@/lib/analytics'
-import { createEmptyStrengthProfile } from '@/lib/strength-profile'
 import { AnalyticsDashboard } from './AnalyticsDashboard'
 
 const mocks = vi.hoisted(() => ({
@@ -27,6 +26,10 @@ vi.mock('./AiInsightsPanel', () => ({
   AiInsightsPanel: () => <div>ai-insights-panel</div>,
 }))
 
+vi.mock('./StrengthProfilePanel', () => ({
+  StrengthProfilePanel: () => <div>strength-profile-panel</div>,
+}))
+
 vi.mock('@/components/charts/E1rmTrendChart', () => ({
   E1rmTrendChart: () => <div>e1rm-chart</div>,
 }))
@@ -47,9 +50,6 @@ vi.mock('@/components/charts/ConsistencyHeatmap', () => ({
   ConsistencyHeatmap: () => <div>consistency-heatmap</div>,
 }))
 
-vi.mock('@/components/charts/TmProgressionChart', () => ({
-  TmProgressionChart: () => <div>tm-progression-chart</div>,
-}))
 
 describe('AnalyticsDashboard', () => {
   beforeEach(() => {
@@ -86,7 +86,6 @@ describe('AnalyticsDashboard', () => {
           { exerciseId: 2, exerciseName: 'Squat', lastPrDate: '2026-02-01', weeksSincePr: 6 },
         ],
         tmProgression: [],
-        strengthProfile: createEmptyStrengthProfile(),
       },
       isLoading: false,
     })
@@ -98,21 +97,24 @@ describe('AnalyticsDashboard', () => {
     expect(screen.getByText('Analytics')).toBeInTheDocument()
     expect(screen.getByText('7')).toBeInTheDocument()
     expect(screen.getByText('5')).toBeInTheDocument()
+    expect(screen.queryByText('Training max')).not.toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Overview' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Strength' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Volume' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'AI Insights' })).toBeInTheDocument()
   })
 
-  it('shows TM progression guidance on the strength tab and a readiness state on the AI tab', async () => {
+  it('shows strength tab content and a readiness state on the AI tab', async () => {
     const user = userEvent.setup()
 
     render(<AnalyticsDashboard />)
 
     await user.click(screen.getByRole('tab', { name: 'Strength' }))
 
-    expect(screen.getByText('TM Progression')).toBeInTheDocument()
-    expect(screen.getByText('Select an exercise to unlock the training max progression view.')).toBeInTheDocument()
+    expect(screen.getByText('strength-profile-panel')).toBeInTheDocument()
+    expect(screen.getByText('Estimated 1RM Trend')).toBeInTheDocument()
+    expect(screen.queryByText('TM Progression')).not.toBeInTheDocument()
+    expect(screen.queryByText('Training max')).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('tab', { name: 'AI Insights' }))
 
@@ -179,7 +181,6 @@ describe('AnalyticsDashboard', () => {
         muscleBalance: [],
         stallDetection: [],
         tmProgression: [],
-        strengthProfile: createEmptyStrengthProfile(),
       },
       isLoading: false,
     })

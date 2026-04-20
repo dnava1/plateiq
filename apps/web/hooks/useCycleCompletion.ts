@@ -510,6 +510,12 @@ export function buildCycleCompletionPreview({
 
   const rawConfig = program.config ?? null
   const customConfig = rawConfig && isCustomProgramConfig(rawConfig) ? rawConfig : null
+  const usesTrainingMax = customConfig ? customConfig.uses_training_max : template.uses_training_max
+
+  if (!usesTrainingMax) {
+    return []
+  }
+
   const exerciseNameById = buildExerciseNameById(exercises)
   const trainingMaxLookup = buildTrainingMaxLookup(trainingMaxes)
   const trainingMaxById = buildTrainingMaxById(trainingMaxes)

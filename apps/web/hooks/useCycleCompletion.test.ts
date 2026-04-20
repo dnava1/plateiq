@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { CustomProgramConfig } from '@/types/template'
 import type { TrainingProgram } from './usePrograms'
-import { buildCycleCompletionPreview } from './useCycleCompletion'
+import { buildCycleCompletionPreview, buildCycleProgressionPayload } from './useCycleCompletion'
 
 function createCustomProgram(style: CustomProgramConfig['progression']['style']) {
   const customProgramConfig: CustomProgramConfig = {
@@ -39,11 +39,7 @@ function createCustomProgram(style: CustomProgramConfig['progression']['style'])
 
 describe('buildCycleCompletionPreview', () => {
   it('multiplies linear per-session increments by completed primary sessions', () => {
-    const program = {
-      template_key: 'starting_strength',
-      name: 'Starting Strength',
-      config: { rounding: 5, tm_percentage: 0.9 },
-    } as unknown as TrainingProgram
+    const program = createCustomProgram('linear_per_session')
 
     const rows = buildCycleCompletionPreview({
       program,
@@ -76,6 +72,36 @@ describe('buildCycleCompletionPreview', () => {
       incrementLbs: 20,
       newTmLbs: 320,
     })
+  })
+
+  it('returns no TM preview rows or progression payload for non-TM programs', () => {
+    const program = {
+      template_key: 'starting_strength',
+      name: 'Starting Strength',
+      config: { rounding: 5, tm_percentage: 0.9 },
+    } as unknown as TrainingProgram
+
+    const rows = buildCycleCompletionPreview({
+      program,
+      exercises: [{ id: 1, name: 'Squat' }] as never,
+      trainingMaxes: [
+        {
+          exercise_id: 1,
+          weight_lbs: 300,
+          exercises: { name: 'Squat' },
+        },
+      ],
+      cycleWorkouts: [
+        {
+          primary_exercise_id: 1,
+          completed_at: '2026-04-10T10:00:00.000Z',
+          workout_sets: null,
+        },
+      ] as never,
+    })
+
+    expect(rows).toEqual([])
+    expect(buildCycleProgressionPayload(rows)).toEqual([])
   })
 
   it('holds the training max when AMRAP performance clearly misses the target', () => {

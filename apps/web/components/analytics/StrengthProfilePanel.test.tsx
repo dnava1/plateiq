@@ -1,3 +1,4 @@
+import type { AnchorHTMLAttributes } from 'react'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { createEmptyStrengthProfile } from '@/lib/strength-profile'
@@ -5,13 +6,17 @@ import type { StrengthProfileData } from '@/types/analytics'
 import { StrengthProfilePanel } from './StrengthProfilePanel'
 
 vi.mock('next/link', () => ({
-  default: ({ children, href, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
+  default: ({ children, href, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
     <a href={href} {...props}>{children}</a>
   ),
 }))
 
 vi.mock('@/hooks/usePreferredUnit', () => ({
   usePreferredUnit: () => 'lbs',
+}))
+
+vi.mock('@/hooks/usePreferredWeightRounding', () => ({
+  usePreferredWeightRounding: () => 5,
 }))
 
 const readyStrengthProfile: StrengthProfileData = {
@@ -98,7 +103,6 @@ const readyStrengthProfile: StrengthProfileData = {
   missingFields: [],
   muscleGroups: [
     { muscleKey: 'quads', title: 'Quads', score: 103.4, strengthLabel: 'Exceptional' },
-    { muscleKey: 'upperChest', title: 'Pecs (Clavicular Head)', score: 95, strengthLabel: 'Advanced' },
   ],
   profile: { ageYears: 32, bodyweightLbs: 181, sex: 'male' },
   status: 'ready',
@@ -226,7 +230,7 @@ describe('StrengthProfilePanel', () => {
     expect(screen.getByText('Strength Profile')).toBeInTheDocument()
     expect(screen.getAllByText('100.0').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Back Squat').length).toBeGreaterThan(0)
-    expect(screen.getByText('Muscle-Group Profile')).toBeInTheDocument()
+    expect(screen.queryByText('Muscle-Group Profile')).not.toBeInTheDocument()
     expect(screen.getByText('475 lbs')).toBeInTheDocument()
     expect(screen.getAllByText('Your Estimated 1RM').length).toBeGreaterThan(0)
     expect(screen.queryByText('Expected 1RM At Your Score')).not.toBeInTheDocument()

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { usePrograms } from '@/hooks/usePrograms'
+import { TrainingMaxPanel } from '@/components/exercises/TrainingMaxPanel'
 import { ProgramConfigForm } from '@/components/programs/ProgramConfigForm'
 import { ProgramCard } from '@/components/programs/ProgramCard'
 import { Badge } from '@/components/ui/badge'
@@ -39,7 +40,7 @@ export default function ProgramsPage() {
               </Badge>
             </div>
             <p className="page-copy">
-              Pick a template or build a custom split.
+              Plan the next block, set TM context for TM-driven methods, or choose the method context before you build from scratch.
             </p>
           </div>
         </div>
@@ -74,7 +75,7 @@ export default function ProgramsPage() {
               </EmptyMedia>
               <EmptyTitle>No programs yet</EmptyTitle>
               <EmptyDescription>
-                Create your first program and keep each training day organized from day one.
+                Create your first program so PlateIQ has a clear planning surface before you move into workouts and review.
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
@@ -112,6 +113,13 @@ export default function ProgramsPage() {
           )}
         </div>
       )}
+
+      <div className="flex flex-col gap-6 pt-2">
+        <TrainingMaxPanel
+          title="Program Training Maxes"
+          description="Set or adjust current training maxes here before a TM-driven block starts or when a cycle checkpoint changes the next block."
+        />
+      </div>
 
       <ProgramConfigForm open={formOpen} onOpenChange={setFormOpen} />
     </div>

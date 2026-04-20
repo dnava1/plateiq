@@ -10,6 +10,7 @@ import type { BuilderDraftSource } from '@/lib/programs/editable'
 import type { ProgramLevel, ProgressionStyle } from '@/types/domain'
 
 export type BuilderStep = 'basics' | 'days' | 'exercises' | 'progression' | 'review'
+export type BuilderProgrammingMethod = 'tm_driven' | 'general'
 
 export interface BuilderDraft {
   name: string
@@ -30,14 +31,41 @@ export function usesLinearProgression(style: ProgressionStyle) {
   return ['linear_per_session', 'linear_per_week', 'linear_per_cycle'].includes(style)
 }
 
-const INITIAL_DRAFT: BuilderDraft = {
-  name: '',
-  days_per_week: 3,
-  cycle_length_weeks: 4,
-  uses_training_max: false,
-  tm_percentage: 0.9,
-  days: [],
-  progression: { style: 'linear_per_cycle', increment_lbs: { ...DEFAULT_LINEAR_INCREMENT_LBS } },
+export function resolveBuilderProgrammingMethod(usesTrainingMax: boolean): BuilderProgrammingMethod {
+  return usesTrainingMax ? 'tm_driven' : 'general'
+}
+
+export function usesTrainingMaxForMethod(method: BuilderProgrammingMethod) {
+  return method === 'tm_driven'
+}
+
+export function createInitialBuilderDraft(overrides: Partial<BuilderDraft> = {}): BuilderDraft {
+  const progression = overrides.progression
+    ? {
+        style: overrides.progression.style ?? 'linear_per_cycle',
+        increment_lbs: overrides.progression.increment_lbs
+          ? { ...overrides.progression.increment_lbs }
+          : { ...DEFAULT_LINEAR_INCREMENT_LBS },
+        deload_trigger: overrides.progression.deload_trigger,
+        deload_strategy: overrides.progression.deload_strategy,
+      }
+    : {
+        style: 'linear_per_cycle' as const,
+        increment_lbs: { ...DEFAULT_LINEAR_INCREMENT_LBS },
+      }
+
+  return {
+    name: '',
+    days_per_week: 3,
+    cycle_length_weeks: 4,
+    uses_training_max: false,
+    tm_percentage: 0.9,
+    days: [],
+    progression,
+    ...overrides,
+    days: overrides.days ? [...overrides.days] : [],
+    progression,
+  }
 }
 
 interface BuilderDraftStore {
@@ -58,7 +86,7 @@ interface BuilderDraftStore {
 export const useBuilderDraftStore = create<BuilderDraftStore>((set, get) => ({
   step: 'basics',
   currentDayIndex: 0,
-  draft: { ...INITIAL_DRAFT, days: [] },
+  draft: createInitialBuilderDraft(),
   source: null,
   setStep: (step) => set({ step }),
   setDayIndex: (currentDayIndex) => set({ currentDayIndex }),
@@ -89,7 +117,7 @@ export const useBuilderDraftStore = create<BuilderDraftStore>((set, get) => ({
     },
     source,
   }),
-  resetDraft: () => set({ step: 'basics', currentDayIndex: 0, draft: { ...INITIAL_DRAFT, days: [] }, source: null }),
+  resetDraft: () => set({ step: 'basics', currentDayIndex: 0, draft: createInitialBuilderDraft(), source: null }),
   toConfig: () => {
     const d = get().draft
     const progression = usesLinearProgression(d.progression.style)
