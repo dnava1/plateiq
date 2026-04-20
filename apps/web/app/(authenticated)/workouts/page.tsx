@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { useEffect } from 'react'
 import { Activity, PlusIcon } from 'lucide-react'
 import { useActiveProgram } from '@/hooks/usePrograms'
-import { resolveProgramNeedsTrainingMaxForExecution } from '@/lib/programs/method'
 import { useWorkoutSessionStore } from '@/store/workoutSessionStore'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -17,7 +16,6 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
-import { TrainingMaxPanel } from '@/components/exercises/TrainingMaxPanel'
 import { ActiveWorkoutPanel } from '@/components/workouts/ActiveWorkoutPanel'
 import { WorkoutLauncher } from '@/components/workouts/WorkoutLauncher'
 
@@ -25,7 +23,6 @@ export default function WorkoutsPage() {
   const { data: activeProgram, isLoading } = useActiveProgram()
   const activeWorkoutId = useWorkoutSessionStore((state) => state.activeWorkoutId)
   const clearSession = useWorkoutSessionStore((state) => state.clearSession)
-  const showsWorkoutTrainingMax = activeProgram ? resolveProgramNeedsTrainingMaxForExecution(activeProgram) : false
 
   useEffect(() => {
     if (!activeProgram && activeWorkoutId) {
@@ -41,7 +38,7 @@ export default function WorkoutsPage() {
           <div className="flex flex-col gap-2">
             <h1 className="page-title">Workouts</h1>
             <p className="page-copy">
-              Run today&apos;s session, keep the next action obvious, and use the quick TM panel here when day-of execution depends on it.
+              Run today&apos;s session, keep the next action obvious, and stay focused on execution from launch through completion.
             </p>
           </div>
         </div>
@@ -91,12 +88,6 @@ export default function WorkoutsPage() {
           <WorkoutLauncher program={activeProgram} />
         )}
 
-        {showsWorkoutTrainingMax ? (
-          <TrainingMaxPanel
-            title="Workout TM Quick Access"
-            description="Check or update current training maxes here before you launch, repeat, or resume a session that depends on them."
-          />
-        ) : null}
       </div>
     </div>
   )

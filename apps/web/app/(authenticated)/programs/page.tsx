@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { useCurrentTrainingMaxes } from '@/hooks/useTrainingMaxes'
 import { usePrograms } from '@/hooks/usePrograms'
+import { resolveProgramNeedsTrainingMaxForExecution } from '@/lib/programs/method'
 import { TrainingMaxPanel } from '@/components/exercises/TrainingMaxPanel'
 import { ProgramConfigForm } from '@/components/programs/ProgramConfigForm'
 import { ProgramCard } from '@/components/programs/ProgramCard'
@@ -21,11 +23,15 @@ import { Dumbbell, PlusIcon } from 'lucide-react'
 export default function ProgramsPage() {
   const [formOpen, setFormOpen] = useState(false)
   const { data: programs, isLoading } = usePrograms()
+  const { data: trainingMaxes = [], isLoading: areTrainingMaxesLoading } = useCurrentTrainingMaxes()
   const count = programs?.length ?? 0
 
   const activePrograms = programs?.filter((p) => p.is_active) ?? []
   const otherPrograms = programs?.filter((p) => !p.is_active) ?? []
   const hasMultipleSections = activePrograms.length > 0 && otherPrograms.length > 0
+  const hasProgramLevelTrainingMaxAccess = (programs ?? []).some((program) => resolveProgramNeedsTrainingMaxForExecution(program))
+  const hasResolvedProgramContext = !isLoading && !areTrainingMaxesLoading
+  const showsTrainingMaxFallback = hasResolvedProgramContext && trainingMaxes.length > 0 && !hasProgramLevelTrainingMaxAccess
 
   return (
     <div className="page-shell max-w-5xl">
@@ -40,7 +46,7 @@ export default function ProgramsPage() {
               </Badge>
             </div>
             <p className="page-copy">
-              Plan the next block, set TM context for TM-driven methods, or choose the method context before you build from scratch.
+              Plan the next block, review saved programs, or choose the method context before you build from scratch.
             </p>
           </div>
         </div>
@@ -114,12 +120,14 @@ export default function ProgramsPage() {
         </div>
       )}
 
-      <div className="flex flex-col gap-6 pt-2">
-        <TrainingMaxPanel
-          title="Program Training Maxes"
-          description="Set or adjust current training maxes here before a TM-driven block starts or when a cycle checkpoint changes the next block."
-        />
-      </div>
+      {showsTrainingMaxFallback && (
+        <div className="pt-2">
+          <TrainingMaxPanel
+            title="Saved Training Maxes"
+            description="No current program depends on these values right now, but you can still review or adjust them here until you reopen a TM-based block."
+          />
+        </div>
+      )}
 
       <ProgramConfigForm open={formOpen} onOpenChange={setFormOpen} />
     </div>

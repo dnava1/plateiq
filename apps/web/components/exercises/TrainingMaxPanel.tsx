@@ -1,7 +1,12 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { useExercises, type Exercise } from '@/hooks/useExercises'
+import {
+  buildExerciseKeyMap,
+  resolveExerciseIdFromMap,
+  useExercises,
+  type Exercise,
+} from '@/hooks/useExercises'
 import { useCurrentTrainingMaxes } from '@/hooks/useTrainingMaxes'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { cn } from '@/lib/utils'
@@ -20,6 +25,8 @@ interface TrainingMaxPanelProps {
   className?: string
   emptyStateHint?: string
   badgeLabel?: string
+  targetExerciseIds?: number[]
+  targetExerciseKeys?: string[]
 }
 
 export function TrainingMaxPanel({
@@ -28,6 +35,8 @@ export function TrainingMaxPanel({
   className,
   emptyStateHint = 'Create a main lift in Programs before setting a training max here.',
   badgeLabel = 'Main lifts',
+  targetExerciseIds,
+  targetExerciseKeys,
 }: TrainingMaxPanelProps) {
   const [historyExercise, setHistoryExercise] = useState<Exercise | null>(null)
   const [tmExercise, setTmExercise] = useState<Exercise | null>(null)
@@ -37,12 +46,42 @@ export function TrainingMaxPanel({
 
   const tmMap = useMemo(() => new Map(trainingMaxes.map((tm) => [tm.exercise_id, tm.weight_lbs])), [trainingMaxes])
   const tmDateMap = useMemo(() => new Map(trainingMaxes.map((tm) => [tm.exercise_id, tm.effective_date])), [trainingMaxes])
-  const mainLiftExercises = useMemo(
-    () => exercises
-      .filter((exercise) => exercise.is_main_lift)
-      .sort((left, right) => left.name.localeCompare(right.name)),
-    [exercises],
-  )
+  const scopedExerciseIds = useMemo(() => {
+    const hasTargetScope = (targetExerciseIds?.length ?? 0) > 0 || (targetExerciseKeys?.length ?? 0) > 0
+
+    if (!hasTargetScope) {
+      return null
+    }
+
+    const resolvedExerciseIds = [...(targetExerciseIds ?? [])]
+    const seenExerciseIds = new Set(resolvedExerciseIds)
+    const exerciseKeyMap = buildExerciseKeyMap(exercises)
+
+    for (const exerciseKey of targetExerciseKeys ?? []) {
+      const resolvedExerciseId = resolveExerciseIdFromMap(exerciseKeyMap, exerciseKey)
+
+      if (resolvedExerciseId && !seenExerciseIds.has(resolvedExerciseId)) {
+        seenExerciseIds.add(resolvedExerciseId)
+        resolvedExerciseIds.push(resolvedExerciseId)
+      }
+    }
+
+    return resolvedExerciseIds
+  }, [exercises, targetExerciseIds, targetExerciseKeys])
+
+  const scopedExercises = useMemo(() => {
+    if (!scopedExerciseIds) {
+      return exercises
+        .filter((exercise) => exercise.is_main_lift)
+        .sort((left, right) => left.name.localeCompare(right.name))
+    }
+
+    const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise]))
+
+    return scopedExerciseIds
+      .map((exerciseId) => exerciseById.get(exerciseId))
+      .filter((exercise): exercise is Exercise => Boolean(exercise))
+  }, [exercises, scopedExerciseIds])
 
   return (
     <>
@@ -67,13 +106,13 @@ export function TrainingMaxPanel({
                 </div>
               ))}
             </div>
-          ) : mainLiftExercises.length === 0 ? (
+          ) : scopedExercises.length === 0 ? (
             <div className="rounded-[22px] border border-border/70 bg-background/55 px-4 py-6 text-sm text-muted-foreground">
               {emptyStateHint}
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {mainLiftExercises.map((exercise) => {
+              {scopedExercises.map((exercise) => {
                 return (
                   <Card key={exercise.id} size="sm" className="border-border/70 bg-card/82">
                     <CardContent className="flex h-full flex-col gap-4 pt-3">

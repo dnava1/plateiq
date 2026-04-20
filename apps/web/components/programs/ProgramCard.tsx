@@ -3,15 +3,19 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { getTemplate } from '@/lib/constants/templates'
-import { normalizeEditableProgramConfig } from '@/lib/programs/editable'
+import { resolveProgramNeedsTrainingMaxForExecution } from '@/lib/programs/method'
+import { normalizeEditableProgramConfig, resolveEditableProgramDefinition } from '@/lib/programs/editable'
+import { resolveTrainingMaxTargetScopeFromDays } from '@/lib/programs/trainingMax'
 import { isCustomProgramConfig } from '@/types/template'
 import type { TrainingProgram } from '@/hooks/usePrograms'
 import { useDeleteProgram, useSetActiveProgram } from '@/hooks/usePrograms'
+import { TrainingMaxPanel } from '@/components/exercises/TrainingMaxPanel'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { CompleteCycleDialog } from '@/components/programs/CompleteCycleDialog'
 import {
   Card,
+  CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
@@ -47,12 +51,14 @@ interface ProgramCardProps {
 
 export function ProgramCard({ program }: ProgramCardProps) {
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [showTrainingMaxes, setShowTrainingMaxes] = useState(false)
   const rawConfig = program.config ?? null
   const customDefinition = rawConfig && isCustomProgramConfig(rawConfig) ? rawConfig : null
   const hasCustomDefinition = Boolean(customDefinition)
   const editableConfig = customDefinition
     ? normalizeEditableProgramConfig(customDefinition, program.template_key)
     : null
+  const programDefinition = editableConfig ?? resolveEditableProgramDefinition(program)
   const sourceTemplateKey = editableConfig?.metadata?.source_template_key ?? program.template_key
   const template = getTemplate(sourceTemplateKey) ?? null
   const config = parseConfig(rawConfig)
@@ -92,6 +98,10 @@ export function ProgramCard({ program }: ProgramCardProps) {
   ].filter(Boolean)
 
   const editHref = `/programs/builder?programId=${program.id}`
+  const canManageTrainingMaxes = resolveProgramNeedsTrainingMaxForExecution(program)
+  const trainingMaxTargets = programDefinition
+    ? resolveTrainingMaxTargetScopeFromDays(programDefinition.days)
+    : { exerciseIds: [], exerciseKeys: [] }
 
   const handleSetActive = () => {
     setActive.mutate(program.id, {
@@ -147,6 +157,11 @@ export function ProgramCard({ program }: ProgramCardProps) {
 
         {program.is_active ? (
           <CardFooter className="justify-end gap-2">
+            {canManageTrainingMaxes && (
+              <Button variant="outline" size="sm" onClick={() => setShowTrainingMaxes((current) => !current)}>
+                {showTrainingMaxes ? 'Hide Training Maxes' : 'Training Maxes'}
+              </Button>
+            )}
             <Link href={editHref} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
               <PencilLine data-icon="inline-start" />
               Edit
@@ -155,6 +170,11 @@ export function ProgramCard({ program }: ProgramCardProps) {
           </CardFooter>
         ) : (
           <CardFooter className="justify-end gap-2">
+            {canManageTrainingMaxes && (
+              <Button variant="outline" size="sm" onClick={() => setShowTrainingMaxes((current) => !current)}>
+                {showTrainingMaxes ? 'Hide Training Maxes' : 'Training Maxes'}
+              </Button>
+            )}
             <Link href={editHref} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
               <PencilLine data-icon="inline-start" />
               Edit
@@ -177,6 +197,20 @@ export function ProgramCard({ program }: ProgramCardProps) {
               Delete
             </Button>
           </CardFooter>
+        )}
+
+        {showTrainingMaxes && canManageTrainingMaxes && (
+          <CardContent className="pt-0">
+            <TrainingMaxPanel
+              title="Program Training Maxes"
+              description="Set or revisit the current training maxes for the exact primary lifts this program depends on."
+              className="bg-background/55"
+              badgeLabel="Selected lifts"
+              emptyStateHint="Choose the primary lifts this program depends on in the builder before setting training maxes here."
+              targetExerciseIds={trainingMaxTargets.exerciseIds}
+              targetExerciseKeys={trainingMaxTargets.exerciseKeys}
+            />
+          </CardContent>
         )}
       </Card>
 

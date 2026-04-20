@@ -7,7 +7,6 @@ import { formatWeight } from '@/lib/utils'
 import {
   CartesianGrid,
   Legend,
-  ResponsiveContainer,
   Scatter,
   ScatterChart,
   Tooltip,
@@ -16,6 +15,7 @@ import {
 } from 'recharts'
 import type { AnalyticsPrPoint } from '@/types/analytics'
 import { CHART_COLORS, formatCompactRoundedWeight, formatShortDate } from './chart-utils'
+import { MeasuredChartContainer } from './MeasuredChartContainer'
 
 interface PrTimelineChartProps {
   data: AnalyticsPrPoint[]
@@ -62,9 +62,9 @@ export function PrTimelineChart({ data, exerciseId }: PrTimelineChartProps) {
   }, [data, exerciseId])
 
   return (
-    <div className="h-72 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <ScatterChart margin={{ top: 8, right: 12, bottom: 8, left: 0 }}>
+    <MeasuredChartContainer className="h-72 w-full">
+      {({ width, height }) => (
+        <ScatterChart width={width} height={height} margin={{ top: 8, right: 12, bottom: 8, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
           <XAxis
             type="number"
@@ -106,7 +106,7 @@ export function PrTimelineChart({ data, exerciseId }: PrTimelineChartProps) {
             <Scatter key={entry.exerciseId} name={entry.exerciseName} data={entry.data} fill={entry.color} />
           ))}
         </ScatterChart>
-      </ResponsiveContainer>
-    </div>
+      )}
+    </MeasuredChartContainer>
   )
 }

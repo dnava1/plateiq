@@ -169,6 +169,7 @@ describe('UpgradePage', () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true })
       .mockResolvedValueOnce({ ok: true })
+      .mockImplementationOnce(() => new Promise(() => {}))
     vi.stubGlobal('fetch', fetchMock)
     signInWithOAuthMock.mockResolvedValue({ error: { message: 'oauth failed' } })
     useSearchParamsMock.mockReturnValue(new URLSearchParams('upgrade_mode=existing_google'))
@@ -188,9 +189,14 @@ describe('UpgradePage', () => {
       })
     })
 
-    expect(screen.getByText('Unable to switch to your existing Google account right now.')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/auth/upgrade/discard', {
+        method: 'POST',
+      })
+    })
+
     expect(signOutMock).not.toHaveBeenCalled()
-    expect(screen.getByRole('button', { name: 'Sign In with Google' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Redirecting to Google…' })).toBeDisabled()
   })
 
   it('starts Google account creation from the guest session', async () => {

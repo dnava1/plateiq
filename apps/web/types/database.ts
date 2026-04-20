@@ -106,6 +106,44 @@ export type Database = {
           },
         ]
       }
+      feedback_submissions: {
+        Row: {
+          category: string
+          created_at: string
+          id: number
+          message: string
+          source_path: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: never
+          message: string
+          source_path?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: never
+          message?: string
+          source_path?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_submissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

@@ -3,6 +3,7 @@ import { z } from 'zod'
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
 const insightListSchema = z.array(z.string().trim().min(1).max(240)).min(1).max(4)
+const progressionGuidanceTextSchema = z.string().trim().min(1).max(320)
 
 function isValidIsoDate(value: string) {
   if (!ISO_DATE_PATTERN.test(value)) {
@@ -32,9 +33,42 @@ export const generateInsightRequestSchema = z.object({
   path: ['dateTo'],
 })
 
-export const trainingInsightSchema = z.object({
+export const trainingInsightSectionsSchema = z.object({
   summary: z.string().trim().min(1).max(700),
   strengths: insightListSchema,
   concerns: insightListSchema,
   recommendations: insightListSchema,
+})
+
+export const progressionGuidanceActionSchema = z.enum(['increase', 'hold', 'repeat', 'review'])
+export const progressionGuidanceMethodContextSchema = z.enum(['main_lift_amrap', 'training_max'])
+export const progressionGuidanceBoundedReasonSchema = z.enum([
+  'broader_scope',
+  'unsupported_scope',
+  'insufficient_coverage',
+  'mixed_signal',
+  'model_mismatch',
+])
+
+export const actionableProgressionGuidanceSchema = z.object({
+  disposition: z.literal('actionable'),
+  action: progressionGuidanceActionSchema,
+  exerciseName: z.string().trim().min(1).max(160),
+  methodContext: progressionGuidanceMethodContextSchema,
+  rationale: progressionGuidanceTextSchema,
+})
+
+export const boundedProgressionGuidanceSchema = z.object({
+  disposition: z.literal('bounded'),
+  note: progressionGuidanceTextSchema,
+  reason: progressionGuidanceBoundedReasonSchema,
+})
+
+export const progressionGuidanceSchema = z.discriminatedUnion('disposition', [
+  actionableProgressionGuidanceSchema,
+  boundedProgressionGuidanceSchema,
+])
+
+export const trainingInsightSchema = trainingInsightSectionsSchema.extend({
+  progressionGuidance: progressionGuidanceSchema,
 })

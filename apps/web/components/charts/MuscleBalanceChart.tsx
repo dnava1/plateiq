@@ -7,11 +7,11 @@ import {
   PolarRadiusAxis,
   Radar,
   RadarChart,
-  ResponsiveContainer,
   Tooltip,
 } from 'recharts'
 import type { AnalyticsMuscleBalancePoint } from '@/types/analytics'
 import { CHART_COLORS, formatMovementPattern } from './chart-utils'
+import { MeasuredChartContainer } from './MeasuredChartContainer'
 
 interface MuscleBalanceChartProps {
   data: AnalyticsMuscleBalancePoint[]
@@ -25,9 +25,9 @@ export function MuscleBalanceChart({ data }: MuscleBalanceChartProps) {
   }))
 
   return (
-    <div className="h-72 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <RadarChart data={rows} outerRadius="72%">
+    <MeasuredChartContainer className="h-72 w-full">
+      {({ width, height }) => (
+        <RadarChart width={width} height={height} data={rows} outerRadius="72%">
           <PolarGrid />
           <PolarAngleAxis dataKey="movementPattern" tick={{ fontSize: 12 }} />
           <PolarRadiusAxis angle={30} domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
@@ -44,7 +44,7 @@ export function MuscleBalanceChart({ data }: MuscleBalanceChartProps) {
           <Legend />
           <Radar name="Volume balance" dataKey="volumePct" stroke={CHART_COLORS[0]} fill={CHART_COLORS[0]} fillOpacity={0.45} />
         </RadarChart>
-      </ResponsiveContainer>
-    </div>
+      )}
+    </MeasuredChartContainer>
   )
 }

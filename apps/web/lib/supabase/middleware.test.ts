@@ -79,6 +79,21 @@ describe('updateSession', () => {
     expect(result).toBe(redirectResponse)
   })
 
+  it('allows signed-out users to open the public legal page', async () => {
+    const nextResponse = { kind: 'next', cookies: { set: vi.fn() } }
+    nextServerMocks.next.mockReturnValue(nextResponse)
+    supabaseMocks.createServerClient.mockReturnValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
+      },
+    })
+
+    const result = await updateSession(createRequest('/legal'))
+
+    expect(nextServerMocks.redirect).not.toHaveBeenCalled()
+    expect(result).toBe(nextResponse)
+  })
+
   it('allows anonymous users through protected routes', async () => {
     const nextResponse = { kind: 'next', cookies: { set: vi.fn() } }
     nextServerMocks.next.mockReturnValue(nextResponse)

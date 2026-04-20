@@ -58,7 +58,6 @@ export default function UpgradePage() {
   const [dismissedUrlFeedbackKey, setDismissedUrlFeedbackKey] = useState<string | null>(null)
   const feedbackRef = useRef<HTMLParagraphElement>(null)
   const existingAccountConflictRef = useRef(false)
-  const existingAccountRetryStartedRef = useRef(false)
   const initialFeedback = getInitialFeedback(errorParam, upgradeMode)
   const urlFeedbackKey = initialFeedback
     ? `${errorParam ?? ''}:${upgradeMode ?? ''}:${typeof window === 'undefined' ? '' : window.location.hash}`
@@ -84,7 +83,7 @@ export default function UpgradePage() {
   }, [visibleFeedback])
 
   const shouldAutoRetry = hasExistingAccountRetry
-    && !existingAccountRetryStartedRef.current
+    && action === null
     && (isLoading || user?.is_anonymous === true)
 
   const nextAfterUpgrade = sanitizeNextPath('/settings', '/settings')
@@ -183,7 +182,7 @@ export default function UpgradePage() {
   useEffect(() => {
     if (
       typeof window === 'undefined'
-      || existingAccountRetryStartedRef.current
+      || action !== null
       || !user?.is_anonymous
     ) {
       return
@@ -193,7 +192,6 @@ export default function UpgradePage() {
       return
     }
 
-    existingAccountRetryStartedRef.current = true
     existingAccountConflictRef.current = true
 
     const normalizedSearchParams = new URLSearchParams(window.location.search)
@@ -208,7 +206,7 @@ export default function UpgradePage() {
     )
 
     retryExistingAccountGoogleSignIn()
-  }, [hasExistingAccountRetry, user?.id, user?.is_anonymous])
+  }, [action, hasExistingAccountRetry, user?.id, user?.is_anonymous])
 
   const isPending = action !== null || shouldAutoRetry || isLoading
 

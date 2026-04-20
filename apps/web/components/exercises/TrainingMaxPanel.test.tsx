@@ -8,9 +8,13 @@ const useCurrentTrainingMaxesMock = vi.fn()
 const useTrainingMaxHistoryMock = vi.fn()
 const mutateMock = vi.fn()
 
-vi.mock('@/hooks/useExercises', () => ({
-  useExercises: () => useExercisesMock(),
-}))
+vi.mock('@/hooks/useExercises', async () => {
+  const actual = await vi.importActual<typeof import('@/hooks/useExercises')>('@/hooks/useExercises')
+  return {
+    ...actual,
+    useExercises: () => useExercisesMock(),
+  }
+})
 
 vi.mock('@/hooks/useTrainingMaxes', () => ({
   useCurrentTrainingMaxes: () => useCurrentTrainingMaxesMock(),
@@ -152,6 +156,56 @@ describe('TrainingMaxPanel', () => {
         onError: expect.any(Function),
       }),
     )
+  })
+
+  it('limits the panel to the selected scoped lifts when a program passes explicit targets', () => {
+    useExercisesMock.mockReturnValue({
+      data: [
+        {
+          id: 10,
+          name: 'Safety Squat Bar',
+          category: 'main',
+          movement_pattern: 'squat',
+          is_main_lift: true,
+          strength_lift_slug: null,
+          created_at: null,
+          created_by_user_id: null,
+        },
+        {
+          id: 12,
+          name: 'Front Squat',
+          category: 'main',
+          movement_pattern: 'squat',
+          is_main_lift: true,
+          strength_lift_slug: 'front_squat',
+          created_at: null,
+          created_by_user_id: null,
+        },
+        {
+          id: 13,
+          name: 'Push Press',
+          category: 'main',
+          movement_pattern: 'push',
+          is_main_lift: true,
+          strength_lift_slug: 'push_press',
+          created_at: null,
+          created_by_user_id: null,
+        },
+      ],
+      isLoading: false,
+    })
+
+    render(
+      <TrainingMaxPanel
+        description="Manage main-lift training maxes from the new shared surface."
+        targetExerciseKeys={['Safety Squat Bar']}
+        badgeLabel="Selected lifts"
+      />,
+    )
+
+    expect(screen.getByText('Safety Squat Bar')).toBeInTheDocument()
+    expect(screen.queryByText('Front Squat')).not.toBeInTheDocument()
+    expect(screen.queryByText('Push Press')).not.toBeInTheDocument()
   })
 
   it('shows an empty history message when a main lift has no saved TM entries', async () => {

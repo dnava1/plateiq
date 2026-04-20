@@ -4,9 +4,40 @@ import { createEmptyStrengthProfile } from './strength-profile'
 import { buildAnalyticsInsightSnapshot, generateTrainingInsight, parseTrainingInsightResponse } from './insights'
 import type { AnalyticsData } from '@/types/analytics'
 
+function createInsightReadyCoverage() {
+  const coverage = createEmptyAnalyticsCoverage()
+
+  coverage.metrics.consistency = {
+    family: 'general_logging',
+    reasonCodes: [],
+    signalCount: 8,
+    status: 'ready',
+  }
+  coverage.metrics.e1rmTrend = {
+    family: 'main_lift_amrap',
+    reasonCodes: [],
+    signalCount: 2,
+    status: 'ready',
+  }
+  coverage.metrics.prHistory = {
+    family: 'main_lift_amrap',
+    reasonCodes: [],
+    signalCount: 2,
+    status: 'ready',
+  }
+  coverage.metrics.stallDetection = {
+    family: 'main_lift_amrap',
+    reasonCodes: [],
+    signalCount: 1,
+    status: 'ready',
+  }
+
+  return coverage
+}
+
 const analyticsFixture: AnalyticsData = {
   bodyweightLane: createEmptyAnalyticsBodyweightLane(),
-  coverage: createEmptyAnalyticsCoverage(),
+  coverage: createInsightReadyCoverage(),
   e1rmTrend: [
     { date: '2026-03-01', exerciseId: 1, exerciseName: 'Bench Press', weight: 205, reps: 5, e1rm: 230.6 },
     { date: '2026-03-20', exerciseId: 1, exerciseName: 'Bench Press', weight: 215, reps: 5, e1rm: 241.9 },
@@ -60,6 +91,11 @@ describe('insights', () => {
       windowDays: 29,
       exerciseScope: 'Bench Press',
     })
+    expect(snapshot.progressionGuidanceContext).toMatchObject({
+      disposition: 'actionable',
+      exerciseName: 'Bench Press',
+      methodContext: 'main_lift_amrap',
+    })
     expect(snapshot.consistency.averageSessionsPerWeek).toBe(2)
     expect(snapshot.strength.recentPrs).toHaveLength(2)
     expect(snapshot.strength.e1rmHighlights[0]).toMatchObject({
@@ -84,7 +120,12 @@ describe('insights', () => {
       + '  "summary": "Progress is trending well.",\n'
       + '  "strengths": ["Bench press is moving up steadily."],\n'
       + '  "concerns": ["Squat PR pace has slowed."],\n'
-      + '  "recommendations": ["Keep bench volume stable this week."]\n'
+      + '  "recommendations": ["Keep bench volume stable this week."],\n'
+      + '  "progressionGuidance": {\n'
+      + '    "disposition": "bounded",\n'
+      + '    "note": "Use a single exercise filter before expecting a progression call.",\n'
+      + '    "reason": "broader_scope"\n'
+      + '  }\n'
       + '}\n'
       + '```',
     )
@@ -94,6 +135,11 @@ describe('insights', () => {
       strengths: ['Bench press is moving up steadily.'],
       concerns: ['Squat PR pace has slowed.'],
       recommendations: ['Keep bench volume stable this week.'],
+      progressionGuidance: {
+        disposition: 'bounded',
+        note: 'Use a single exercise filter before expecting a progression call.',
+        reason: 'broader_scope',
+      },
     })
   })
 
@@ -107,6 +153,11 @@ describe('insights', () => {
       strengths: ['the athlete kept their bench volume consistent.', 'the athlete\'s squat is improving.'],
       concerns: ['they need more pull volume.'],
       recommendations: ['the lifter should add one top set next week.'],
+      progressionGuidance: {
+        disposition: 'bounded',
+        note: 'the athlete should use one selected lift before expecting a progression call.',
+        reason: 'broader_scope',
+      },
     })
 
     expect(parsed).toEqual({
@@ -114,6 +165,78 @@ describe('insights', () => {
       strengths: ['You kept your bench volume consistent.', 'Your squat is improving.'],
       concerns: ['You need more pull volume.'],
       recommendations: ['You should add one top set next week.'],
+      progressionGuidance: {
+        disposition: 'bounded',
+        note: 'You should use one selected lift before expecting a progression call.',
+        reason: 'broader_scope',
+      },
+    })
+  })
+
+  it('buildAnalyticsInsightSnapshot keeps flat AMRAP history bounded instead of authorizing an actionable path', () => {
+    const flatAnalytics: AnalyticsData = {
+      ...analyticsFixture,
+      e1rmTrend: [
+        { date: '2026-03-01', exerciseId: 1, exerciseName: 'Bench Press', weight: 205, reps: 5, e1rm: 230.6 },
+        { date: '2026-03-20', exerciseId: 1, exerciseName: 'Bench Press', weight: 205, reps: 5, e1rm: 230.4 },
+      ],
+      prHistory: [
+        { date: '2026-03-01', exerciseId: 1, exerciseName: 'Bench Press', weight: 205, reps: 5, e1rm: 230.6 },
+        { date: '2026-03-20', exerciseId: 1, exerciseName: 'Bench Press', weight: 205, reps: 5, e1rm: 230.4 },
+      ],
+      stallDetection: [],
+    }
+
+    const snapshot = buildAnalyticsInsightSnapshot(flatAnalytics, {
+      dateFrom: '2026-02-20',
+      dateTo: '2026-03-20',
+      exerciseId: 1,
+    })
+
+    expect(snapshot.progressionGuidanceContext).toMatchObject({
+      disposition: 'bounded',
+      boundedReason: 'insufficient_coverage',
+      exerciseName: 'Bench Press',
+    })
+  })
+
+  it('rejects bounded guidance text that sneaks in numeric progression instructions', () => {
+    const parsed = parseTrainingInsightResponse({
+      summary: 'Progress is trending well.',
+      strengths: ['Bench press is moving up steadily.'],
+      concerns: ['Squat PR pace has slowed.'],
+      recommendations: ['Keep bench volume stable this week.'],
+      progressionGuidance: {
+        disposition: 'bounded',
+        note: 'Increase bench 10 lb next week.',
+        reason: 'broader_scope',
+      },
+    })
+
+    expect(parsed.progressionGuidance).toEqual({
+      disposition: 'bounded',
+      note: 'This insight stays retrospective because progression guidance was not supplied with a supported single-exercise server context.',
+      reason: 'broader_scope',
+    })
+  })
+
+  it('rejects bounded guidance text that uses full-word or hyphenated load units', () => {
+    const parsed = parseTrainingInsightResponse({
+      summary: 'Progress is trending well.',
+      strengths: ['Bench press is moving up steadily.'],
+      concerns: ['Squat PR pace has slowed.'],
+      recommendations: ['Keep bench volume stable this week.'],
+      progressionGuidance: {
+        disposition: 'bounded',
+        note: 'Add 5-pounds next week.',
+        reason: 'broader_scope',
+      },
+    })
+
+    expect(parsed.progressionGuidance).toEqual({
+      disposition: 'bounded',
+      note: 'This insight stays retrospective because progression guidance was not supplied with a supported single-exercise server context.',
+      reason: 'broader_scope',
     })
   })
 
@@ -124,13 +247,18 @@ describe('insights', () => {
         strengths: ['Bench press estimated 1RM is climbing.'],
         concerns: ['Squat has gone several weeks without a PR.'],
         recommendations: ['Add one high-quality squat top set next week.'],
+        progressionGuidance: {
+          disposition: 'actionable',
+          action: 'increase',
+          rationale: 'You have enough comparable signal to move Bench Press forward conservatively.',
+        },
       }),
     })
 
     const snapshot = buildAnalyticsInsightSnapshot(analyticsFixture, {
       dateFrom: '2026-02-20',
       dateTo: '2026-03-20',
-      exerciseId: null,
+      exerciseId: 1,
     })
 
     await expect(
@@ -140,6 +268,12 @@ describe('insights', () => {
       }),
     ).resolves.toMatchObject({
       strengths: ['Bench press estimated 1RM is climbing.'],
+      progressionGuidance: {
+        disposition: 'actionable',
+        action: 'increase',
+        exerciseName: 'Bench Press',
+        methodContext: 'main_lift_amrap',
+      },
     })
 
     expect(generateContent).toHaveBeenCalledWith(
@@ -174,6 +308,41 @@ describe('insights', () => {
     ).rejects.toMatchObject({
       statusCode: 429,
       publicMessage: expect.stringMatching(/provider quota/i),
+    })
+  })
+
+  it('downgrades malformed progression guidance to a bounded note instead of failing the full insight', async () => {
+    const snapshot = buildAnalyticsInsightSnapshot(analyticsFixture, {
+      dateFrom: '2026-02-20',
+      dateTo: '2026-03-20',
+      exerciseId: 1,
+    })
+
+    await expect(
+      generateTrainingInsight(snapshot, {
+        ai: {
+          models: {
+            generateContent: async () => ({
+              text: JSON.stringify({
+                summary: 'Bench press is trending up while squat needs attention.',
+                strengths: ['Bench press estimated 1RM is climbing.'],
+                concerns: ['Squat has gone several weeks without a PR.'],
+                recommendations: ['Keep the current split stable for another week.'],
+                progressionGuidance: {
+                  disposition: 'actionable',
+                  action: 'review',
+                  rationale: 'The model stepped outside the allowed action bounds.',
+                },
+              }),
+            }),
+          },
+        } as never,
+      }),
+    ).resolves.toMatchObject({
+      progressionGuidance: {
+        disposition: 'bounded',
+        reason: 'model_mismatch',
+      },
     })
   })
 

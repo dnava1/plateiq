@@ -34,7 +34,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { LegalLinks } from '@/components/layout/LegalLinks'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
+import { FeedbackCard } from '@/components/settings/FeedbackCard'
 import type { PreferredUnit, StrengthProfileSex } from '@/types/domain'
 import type { ProfilePreferences } from '@/hooks/useProfile'
 
@@ -583,6 +585,7 @@ export default function SettingsPage() {
                     ? 'This guest account is temporary and can be lost. Sign in with Google to keep your data.'
                     : user?.email ?? '—'}
                 </p>
+                <LegalLinks />
               </div>
             </div>
 
@@ -652,6 +655,8 @@ export default function SettingsPage() {
           isPending={updateStrengthProfile.isPending}
           onSave={handleStrengthProfileSave}
         />
+
+        <FeedbackCard />
 
         <Card className="border-destructive/20 bg-destructive/5 shadow-[0_24px_80px_-42px_rgba(0,0,0,0.85)]">
           <CardHeader>

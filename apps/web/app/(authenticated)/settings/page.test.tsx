@@ -438,6 +438,13 @@ describe('SettingsPage', () => {
     expect(screen.getByText(/Loads round down to 5 lbs or 2.5 kg automatically./i)).toBeInTheDocument()
   })
 
+  it('shows the feedback and policy links in settings', () => {
+    render(<SettingsPage />, { wrapper: createWrapper() })
+
+    expect(screen.getByText('Feedback')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Terms & Privacy' })).toHaveAttribute('href', '/legal')
+  })
+
   it('shows a clear empty state when sex is not set', () => {
     mocks.useProfile.mockReturnValue({
       data: {

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { resolveProgramNeedsTrainingMaxForExecution, resolveProgramUsesTrainingMax } from './method'
+import {
+  resolveDefinitionNeedsTrainingMaxForExecution,
+  resolveProgramNeedsTrainingMaxForExecution,
+  resolveProgramUsesTrainingMax,
+} from './method'
 
 describe('resolveProgramUsesTrainingMax', () => {
   it('returns true for TM-driven templates', () => {
@@ -129,6 +133,62 @@ describe('resolveProgramNeedsTrainingMaxForExecution', () => {
     expect(resolveProgramNeedsTrainingMaxForExecution({
       template_key: 'starting_strength',
       config: null,
+    } as never)).toBe(false)
+  })
+})
+
+describe('resolveDefinitionNeedsTrainingMaxForExecution', () => {
+  it('returns false when a legacy TM flag remains but no prescriptions still depend on TM', () => {
+    expect(resolveDefinitionNeedsTrainingMaxForExecution({
+      uses_training_max: true,
+      days: [
+        {
+          label: 'Day 1',
+          exercise_blocks: [
+            {
+              role: 'primary',
+              exercise_key: 'Squat',
+              sets: [{ sets: 3, reps: 5, intensity: 225, intensity_type: 'fixed_weight' }],
+            },
+          ],
+        },
+      ],
+    } as never)).toBe(false)
+  })
+
+  it('returns true when a definition keeps TM-backed prescriptions under a general method flag', () => {
+    expect(resolveDefinitionNeedsTrainingMaxForExecution({
+      uses_training_max: false,
+      days: [
+        {
+          label: 'Day 1',
+          exercise_blocks: [
+            {
+              role: 'primary',
+              exercise_key: 'Squat',
+              sets: [{ sets: 3, reps: 5, intensity: 0.8, intensity_type: 'percentage_1rm' }],
+            },
+          ],
+        },
+      ],
+    } as never)).toBe(true)
+  })
+
+  it('returns false when a definition uses no TM-backed prescriptions', () => {
+    expect(resolveDefinitionNeedsTrainingMaxForExecution({
+      uses_training_max: false,
+      days: [
+        {
+          label: 'Day 1',
+          exercise_blocks: [
+            {
+              role: 'primary',
+              exercise_key: 'Pull Up',
+              sets: [{ sets: 3, reps: 8, intensity: 0, intensity_type: 'bodyweight' }],
+            },
+          ],
+        },
+      ],
     } as never)).toBe(false)
   })
 })

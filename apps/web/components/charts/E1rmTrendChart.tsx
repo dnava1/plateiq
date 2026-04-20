@@ -9,13 +9,13 @@ import {
   Legend,
   Line,
   LineChart,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts'
 import type { AnalyticsE1rmPoint } from '@/types/analytics'
 import { CHART_COLORS, formatCompactRoundedWeight, formatShortDate } from './chart-utils'
+import { MeasuredChartContainer } from './MeasuredChartContainer'
 
 interface E1rmTrendChartProps {
   compact?: boolean
@@ -72,9 +72,9 @@ export function E1rmTrendChart({ compact = false, data, exerciseId }: E1rmTrendC
   }, [compact, data, exerciseId])
 
   return (
-    <div className={compact ? 'h-28 w-full' : 'h-72 w-full'}>
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={rows} margin={compact ? { top: 8, right: 8, bottom: 8, left: 8 } : { top: 8, right: 12, bottom: 8, left: 0 }}>
+    <MeasuredChartContainer className={compact ? 'h-28 w-full' : 'h-72 w-full'}>
+      {({ width, height }) => (
+        <LineChart width={width} height={height} data={rows} margin={compact ? { top: 8, right: 8, bottom: 8, left: 8 } : { top: 8, right: 12, bottom: 8, left: 0 }}>
           {!compact ? <CartesianGrid strokeDasharray="3 3" className="opacity-30" /> : null}
           <XAxis dataKey="label" hide={compact} minTickGap={20} tickLine={false} axisLine={false} />
           <YAxis hide={compact} tickFormatter={(value) => formatCompactRoundedWeight(Number(value), preferredUnit, weightRoundingLbs)} width={48} tickLine={false} axisLine={false} />
@@ -107,7 +107,7 @@ export function E1rmTrendChart({ compact = false, data, exerciseId }: E1rmTrendC
             />
           ))}
         </LineChart>
-      </ResponsiveContainer>
-    </div>
+      )}
+    </MeasuredChartContainer>
   )
 }

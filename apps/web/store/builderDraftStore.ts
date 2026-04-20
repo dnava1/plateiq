@@ -60,8 +60,6 @@ export function createInitialBuilderDraft(overrides: Partial<BuilderDraft> = {})
     cycle_length_weeks: 4,
     uses_training_max: false,
     tm_percentage: 0.9,
-    days: [],
-    progression,
     ...overrides,
     days: overrides.days ? [...overrides.days] : [],
     progression,

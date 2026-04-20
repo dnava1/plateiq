@@ -122,6 +122,13 @@ describe('POST /api/insights/generate', () => {
       strengths: ['Bench press estimated 1RM improved.'],
       concerns: ['Volume balance data is limited in this filter.'],
       recommendations: ['Keep top-end bench work steady next week.'],
+      progressionGuidance: {
+        disposition: 'actionable',
+        action: 'increase',
+        exerciseName: 'Bench Press',
+        methodContext: 'main_lift_amrap',
+        rationale: 'You have enough comparable signal to move Bench Press forward conservatively.',
+      },
     })
 
     const response = await POST(createRequest({
@@ -141,6 +148,13 @@ describe('POST /api/insights/generate', () => {
       strengths: ['Bench press estimated 1RM improved.'],
       concerns: ['Volume balance data is limited in this filter.'],
       recommendations: ['Keep top-end bench work steady next week.'],
+      progressionGuidance: {
+        disposition: 'actionable',
+        action: 'increase',
+        exerciseName: 'Bench Press',
+        methodContext: 'main_lift_amrap',
+        rationale: 'You have enough comparable signal to move Bench Press forward conservatively.',
+      },
     })
   })
 
@@ -169,6 +183,13 @@ describe('POST /api/insights/generate', () => {
       strengths: ['Bench press estimated 1RM improved.'],
       concerns: ['Volume balance data is limited in this filter.'],
       recommendations: ['Keep top-end bench work steady next week.'],
+      progressionGuidance: {
+        disposition: 'actionable',
+        action: 'hold',
+        exerciseName: 'Bench Press',
+        methodContext: 'main_lift_amrap',
+        rationale: 'You have enough comparable signal to keep Bench Press on plan without forcing a bigger change.',
+      },
     })
 
     const response = await POST(createRequest({

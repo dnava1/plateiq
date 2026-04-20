@@ -4,11 +4,47 @@ export interface GenerateInsightInput {
   exerciseId: number | null
 }
 
+export type ProgressionGuidanceAction = 'increase' | 'hold' | 'repeat' | 'review'
+export type ProgressionGuidanceMethodContext = 'main_lift_amrap' | 'training_max'
+export type ProgressionGuidanceBoundedReason =
+  | 'broader_scope'
+  | 'unsupported_scope'
+  | 'insufficient_coverage'
+  | 'mixed_signal'
+  | 'model_mismatch'
+
+export interface ActionableProgressionGuidance {
+  disposition: 'actionable'
+  action: ProgressionGuidanceAction
+  exerciseName: string
+  methodContext: ProgressionGuidanceMethodContext
+  rationale: string
+}
+
+export interface BoundedProgressionGuidance {
+  disposition: 'bounded'
+  note: string
+  reason: ProgressionGuidanceBoundedReason
+}
+
+export type ProgressionGuidance = ActionableProgressionGuidance | BoundedProgressionGuidance
+
 export interface TrainingInsight {
   summary: string
   strengths: string[]
   concerns: string[]
   recommendations: string[]
+  progressionGuidance: ProgressionGuidance
+}
+
+export interface InsightProgressionGuidanceContext {
+  allowedActions: ProgressionGuidanceAction[]
+  boundedReason: ProgressionGuidanceBoundedReason | null
+  disposition: 'actionable' | 'bounded'
+  exerciseName: string | null
+  fallbackNote: string
+  methodContext: ProgressionGuidanceMethodContext | null
+  signalSummary: string
 }
 
 export interface InsightSnapshot {
@@ -87,4 +123,5 @@ export interface InsightSnapshot {
     totalVolume: number
   }>
   dataGaps: string[]
+  progressionGuidanceContext: InsightProgressionGuidanceContext
 }

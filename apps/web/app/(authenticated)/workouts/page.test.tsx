@@ -18,10 +18,6 @@ vi.mock('@/store/workoutSessionStore', () => ({
   }),
 }))
 
-vi.mock('@/components/exercises/TrainingMaxPanel', () => ({
-  TrainingMaxPanel: ({ title }: { title: string }) => <div>{title}</div>,
-}))
-
 vi.mock('@/components/workouts/WorkoutLauncher', () => ({
   WorkoutLauncher: () => <div>workout-launcher</div>,
 }))
@@ -50,7 +46,7 @@ describe('WorkoutsPage', () => {
     mocks.clearSession.mockClear()
   })
 
-  it('shows workout TM quick access for TM-driven templates', () => {
+  it('keeps workouts focused on the launcher flow even for TM-backed programs', () => {
     mocks.useActiveProgram.mockReturnValue({
       data: createProgram({ template_key: 'wendler_531' }),
       isLoading: false,
@@ -58,91 +54,19 @@ describe('WorkoutsPage', () => {
 
     render(<WorkoutsPage />)
 
-    expect(screen.getByText('Workout TM Quick Access')).toBeInTheDocument()
-  })
-
-  it('shows workout TM quick access for built-in templates with TM-backed prescriptions', () => {
-    mocks.useActiveProgram.mockReturnValue({
-      data: createProgram({ template_key: 'texas_method' }),
-      isLoading: false,
-    })
-
-    render(<WorkoutsPage />)
-
-    expect(screen.getByText('Workout TM Quick Access')).toBeInTheDocument()
-  })
-
-  it('hides workout TM quick access for non-TM templates', () => {
-    mocks.useActiveProgram.mockReturnValue({
-      data: createProgram({ template_key: 'starting_strength' }),
-      isLoading: false,
-    })
-
-    render(<WorkoutsPage />)
-
+    expect(screen.getByText('workout-launcher')).toBeInTheDocument()
     expect(screen.queryByText('Workout TM Quick Access')).not.toBeInTheDocument()
   })
 
-  it('shows workout TM quick access when a custom program overrides the template method', () => {
+  it('shows the empty state when no active program exists', () => {
     mocks.useActiveProgram.mockReturnValue({
-      data: createProgram({
-        template_key: 'starting_strength',
-        config: {
-          type: 'custom',
-          level: 'intermediate',
-          days_per_week: 3,
-          cycle_length_weeks: 4,
-          uses_training_max: true,
-          tm_percentage: 0.9,
-          days: [],
-          progression: {
-            style: 'linear_per_cycle',
-            increment_lbs: { upper: 5, lower: 10 },
-          },
-        },
-      }),
+      data: null,
       isLoading: false,
     })
 
     render(<WorkoutsPage />)
 
-    expect(screen.getByText('Workout TM Quick Access')).toBeInTheDocument()
-  })
-
-  it('keeps workout TM quick access visible when a general custom program still contains TM-backed prescriptions', () => {
-    mocks.useActiveProgram.mockReturnValue({
-      data: createProgram({
-        template_key: 'custom',
-        config: {
-          type: 'custom',
-          level: 'intermediate',
-          days_per_week: 1,
-          cycle_length_weeks: 4,
-          uses_training_max: false,
-          tm_percentage: 0.9,
-          days: [
-            {
-              label: 'Day 1',
-              exercise_blocks: [
-                {
-                  role: 'primary',
-                  exercise_key: 'squat',
-                  sets: [{ sets: 3, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' }],
-                },
-              ],
-            },
-          ],
-          progression: {
-            style: 'linear_per_cycle',
-            increment_lbs: { upper: 5, lower: 10 },
-          },
-        },
-      }),
-      isLoading: false,
-    })
-
-    render(<WorkoutsPage />)
-
-    expect(screen.getByText('Workout TM Quick Access')).toBeInTheDocument()
+    expect(screen.getByText('No active program')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Start a Program' })).toBeInTheDocument()
   })
 })

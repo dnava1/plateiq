@@ -276,7 +276,8 @@ export function AnalyticsDashboard() {
             </TabsList>
 
             <TabsContent value="overview" className="mt-4">
-              <div className="grid gap-4 xl:grid-cols-2">
+              {tab === 'overview' ? (
+                <div className="grid gap-4 xl:grid-cols-2">
                 <ChartCard
                   title="Consistency Pulse"
                   description={`${analytics.consistency.totalSessions} finished sessions across ${analytics.consistency.weeksActive} active weeks.`}
@@ -453,11 +454,13 @@ export function AnalyticsDashboard() {
                     </div>
                   </div>
                 </ChartCard>
-              </div>
+                </div>
+              ) : null}
             </TabsContent>
 
             <TabsContent value="strength" className="mt-4">
-              <div className="grid gap-4 xl:grid-cols-2">
+              {tab === 'strength' ? (
+                <div className="grid gap-4 xl:grid-cols-2">
                 <StrengthProfilePanel strengthProfile={analytics.strengthProfile} />
 
                 <ChartCard
@@ -508,11 +511,13 @@ export function AnalyticsDashboard() {
                     ))}
                   </div>
                 </ChartCard>
-              </div>
+                </div>
+              ) : null}
             </TabsContent>
 
             <TabsContent value="volume" className="mt-4">
-              <div className="grid gap-4 xl:grid-cols-2">
+              {tab === 'volume' ? (
+                <div className="grid gap-4 xl:grid-cols-2">
                 <ChartCard
                   title="Weekly Volume"
                   description={selectedExerciseName ?? 'Logged weekly volume across the current filter window.'}
@@ -563,20 +568,23 @@ export function AnalyticsDashboard() {
                     <ConsistencyHeatmap data={weeklyActivity} />
                   </div>
                 </ChartCard>
-              </div>
+                </div>
+              ) : null}
             </TabsContent>
 
             <TabsContent value="ai" className="mt-4">
-              <AiInsightsPanel
-                key={aiInsightScopeKey}
-                coverage={analytics.coverage}
-                dateRange={dateRange}
-                dateRangeLabel={selectedDateRangeLabel}
-                hasAnalyticsData={hasAnalyticsData}
-                isInsightEligible={isInsightEligible}
-                selectedExerciseId={selectedExerciseId}
-                selectedExerciseName={selectedExerciseName}
-              />
+              {tab === 'ai' ? (
+                <AiInsightsPanel
+                  key={aiInsightScopeKey}
+                  coverage={analytics.coverage}
+                  dateRange={dateRange}
+                  dateRangeLabel={selectedDateRangeLabel}
+                  hasAnalyticsData={hasAnalyticsData}
+                  isInsightEligible={isInsightEligible}
+                  selectedExerciseId={selectedExerciseId}
+                  selectedExerciseName={selectedExerciseName}
+                />
+              ) : null}
             </TabsContent>
           </Tabs>
         </div>

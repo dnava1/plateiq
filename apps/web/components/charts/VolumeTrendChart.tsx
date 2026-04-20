@@ -7,7 +7,6 @@ import {
   BarChart,
   CartesianGrid,
   Legend,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
@@ -15,6 +14,7 @@ import {
 import { aggregateWeeklyVolume } from '@/lib/analytics'
 import type { AnalyticsVolumePoint } from '@/types/analytics'
 import { CHART_COLORS, formatCompactDisplayLoad, formatDisplayLoad, formatShortDate } from './chart-utils'
+import { MeasuredChartContainer } from './MeasuredChartContainer'
 
 interface VolumeTrendChartProps {
   compact?: boolean
@@ -86,9 +86,9 @@ export function VolumeTrendChart({ compact = false, data, exerciseId }: VolumeTr
   }, [compact, data, exerciseId])
 
   return (
-    <div className={compact ? 'h-28 w-full' : 'h-72 w-full'}>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={chartData.rows} margin={compact ? { top: 8, right: 8, bottom: 8, left: 8 } : { top: 8, right: 12, bottom: 8, left: 0 }}>
+    <MeasuredChartContainer className={compact ? 'h-28 w-full' : 'h-72 w-full'}>
+      {({ width, height }) => (
+        <BarChart width={width} height={height} data={chartData.rows} margin={compact ? { top: 8, right: 8, bottom: 8, left: 8 } : { top: 8, right: 12, bottom: 8, left: 0 }}>
           {!compact ? <CartesianGrid strokeDasharray="3 3" className="opacity-30" /> : null}
           <XAxis dataKey="label" hide={compact} tickLine={false} axisLine={false} minTickGap={16} />
           <YAxis hide={compact} tickFormatter={(value) => formatCompactDisplayLoad(Number(value), preferredUnit)} width={48} tickLine={false} axisLine={false} />
@@ -115,7 +115,7 @@ export function VolumeTrendChart({ compact = false, data, exerciseId }: VolumeTr
             ))
           )}
         </BarChart>
-      </ResponsiveContainer>
-    </div>
+      )}
+    </MeasuredChartContainer>
   )
 }

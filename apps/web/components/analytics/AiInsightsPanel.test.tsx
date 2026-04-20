@@ -48,6 +48,13 @@ describe('AiInsightsPanel', () => {
         strengths: ['Bench press estimated 1RM is climbing.'],
         concerns: ['Squat PR pace has cooled off.'],
         recommendations: ['Keep bench volume steady and add one squat top set next week.'],
+        progressionGuidance: {
+          disposition: 'actionable',
+          action: 'increase',
+          exerciseName: 'Bench Press',
+          methodContext: 'main_lift_amrap',
+          rationale: 'You have enough comparable signal to nudge Bench Press forward without changing the rest of the block.',
+        },
       })
     })
 
@@ -81,10 +88,52 @@ describe('AiInsightsPanel', () => {
       expect.any(Object),
     )
     expect(screen.getByRole('heading', { name: 'Summary' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Progression Guidance' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Strengths' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Concerns' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Recommendations' })).toBeInTheDocument()
+    expect(screen.getByText('Increase')).toBeInTheDocument()
     expect(screen.getByText('Bench press is trending well while squat needs more attention.')).toBeInTheDocument()
+  })
+
+  it('renders a bounded progression note when the current scope should stay retrospective', async () => {
+    const user = userEvent.setup()
+
+    mocks.useInsights.mockReturnValue({
+      isPending: false,
+      mutate: vi.fn((_input, options) => {
+        options?.onSuccess?.({
+          summary: 'The current filter is useful for review, but it is still broader than one supported lift call.',
+          strengths: ['Consistency is holding together.'],
+          concerns: ['The current filter mixes multiple priorities.'],
+          recommendations: ['Use a single-lift filter before making a progression call.'],
+          progressionGuidance: {
+            disposition: 'bounded',
+            note: 'Generate this insight for one selected exercise to unlock bounded progression guidance. Broader scopes stay retrospective so the next-step decision remains yours.',
+            reason: 'broader_scope',
+          },
+        })
+      }),
+      reset: vi.fn(),
+    })
+
+    render(
+      <AiInsightsPanel
+        coverage={createCoverage()}
+        dateRange={{ from: createMockDate('2026-02-01', '2026-01-31'), to: createMockDate('2026-04-01', '2026-03-31') }}
+        dateRangeLabel="Last 8 weeks"
+        hasAnalyticsData
+        isInsightEligible
+        selectedExerciseId={null}
+        selectedExerciseName={null}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Generate insight for current analytics filter' }))
+
+    expect(screen.getByText('Progression guidance bounded')).toBeInTheDocument()
+    expect(screen.getByText(/broader scopes stay retrospective/i)).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Progression Guidance' })).not.toBeInTheDocument()
   })
 
   it('shows inline errors when generation fails', async () => {
@@ -124,6 +173,13 @@ describe('AiInsightsPanel', () => {
         strengths: ['Bench press estimated 1RM is climbing.'],
         concerns: ['Squat PR pace has cooled off.'],
         recommendations: ['Keep bench volume steady and add one squat top set next week.'],
+        progressionGuidance: {
+          disposition: 'actionable',
+          action: 'hold',
+          exerciseName: 'Bench Press',
+          methodContext: 'main_lift_amrap',
+          rationale: 'You have enough comparable signal to keep this lift moving without forcing a bigger change yet.',
+        },
       })
     })
 

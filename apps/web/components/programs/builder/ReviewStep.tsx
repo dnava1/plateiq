@@ -1,6 +1,10 @@
 'use client'
 
+import { useExercises, buildExerciseKeyMap, resolveExerciseIdFromMap } from '@/hooks/useExercises'
+import { useCurrentTrainingMaxes } from '@/hooks/useTrainingMaxes'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
+import { resolveDefinitionNeedsTrainingMaxForExecution } from '@/lib/programs/method'
+import { resolveExecutionTrainingMaxTargetScopeFromDays } from '@/lib/programs/trainingMax'
 import { formatDaysPerWeek, formatWeight, formatWeekCycle } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import { useBuilderDraftStore } from '@/store/builderDraftStore'
@@ -15,6 +19,7 @@ import {
   createCustomProgramSchema,
   getCreateCustomProgramErrorMessage,
 } from '@/lib/validations/program'
+import { TrainingMaxPanel } from '@/components/exercises/TrainingMaxPanel'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import type { IntensityType } from '@/types/domain'
@@ -40,9 +45,18 @@ const METHOD_LABELS = {
   general: 'General / flexible loading',
 } as const
 
+function formatTrainingMaxTargetLabel(value: string) {
+  return value
+    .trim()
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (segment) => segment.toUpperCase())
+}
+
 export function ReviewStep() {
   const router = useRouter()
   const { draft, source, toConfig, resetDraft, setStep } = useBuilderDraftStore()
+  const { data: exercises = [], isLoading: areExercisesLoading } = useExercises()
+  const { data: trainingMaxes = [], isLoading: areTrainingMaxesLoading } = useCurrentTrainingMaxes()
   const preferredUnit = usePreferredUnit()
   const createProgramDefinition = useCreateProgramDefinition()
   const updateProgramDefinition = useUpdateProgramDefinition()
@@ -51,14 +65,67 @@ export function ReviewStep() {
     ? draft.progression.increment_lbs ?? DEFAULT_LINEAR_INCREMENT_LBS
     : null
   const methodLabel = draft.uses_training_max ? METHOD_LABELS.tm_driven : METHOD_LABELS.general
+  const requiresTrainingMaxes = resolveDefinitionNeedsTrainingMaxForExecution(draft)
+  const trainingMaxTargets = resolveExecutionTrainingMaxTargetScopeFromDays(draft.days)
+  const exerciseKeyMap = buildExerciseKeyMap(exercises)
+  const resolvedRequiredExerciseIds = [...trainingMaxTargets.exerciseIds]
+  const seenRequiredExerciseIds = new Set(resolvedRequiredExerciseIds)
+  const unresolvedTrainingMaxNames: string[] = []
+
+  for (const exerciseKey of trainingMaxTargets.exerciseKeys) {
+    const resolvedExerciseId = resolveExerciseIdFromMap(exerciseKeyMap, exerciseKey)
+
+    if (resolvedExerciseId) {
+      if (!seenRequiredExerciseIds.has(resolvedExerciseId)) {
+        seenRequiredExerciseIds.add(resolvedExerciseId)
+        resolvedRequiredExerciseIds.push(resolvedExerciseId)
+      }
+      continue
+    }
+
+    unresolvedTrainingMaxNames.push(formatTrainingMaxTargetLabel(exerciseKey))
+  }
+
+  const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise]))
+  const resolvedRequiredExercises = resolvedRequiredExerciseIds
+    .flatMap((exerciseId) => {
+      const exercise = exerciseById.get(exerciseId)
+      return exercise ? [exercise] : []
+    })
+  const trainingMaxExerciseIds = new Set(trainingMaxes.map((trainingMax) => trainingMax.exercise_id))
+  const missingTrainingMaxNames = [
+    ...resolvedRequiredExercises
+      .filter((exercise) => !trainingMaxExerciseIds.has(exercise.id))
+      .map((exercise) => exercise.name),
+    ...unresolvedTrainingMaxNames,
+  ]
+
+  if (requiresTrainingMaxes && resolvedRequiredExerciseIds.length === 0 && trainingMaxTargets.exerciseKeys.length === 0) {
+    missingTrainingMaxNames.push('the selected primary lifts')
+  }
 
   const templateKey = source?.template_key ?? draft.metadata?.source_template_key ?? 'custom'
   const saveStrategy = source?.save_strategy ?? 'create'
   const isPending = createProgramDefinition.isPending
     || updateProgramDefinition.isPending
     || createProgramRevision.isPending
+  const isTrainingMaxStateLoading = requiresTrainingMaxes && (areExercisesLoading || areTrainingMaxesLoading)
+  const isTrainingMaxRequirementMet = !requiresTrainingMaxes && !isTrainingMaxStateLoading
+    ? true
+    : requiresTrainingMaxes && !isTrainingMaxStateLoading && missingTrainingMaxNames.length === 0
+  const isSaveDisabled = isPending || isTrainingMaxStateLoading || (requiresTrainingMaxes && !isTrainingMaxRequirementMet)
 
   const handleSubmit = () => {
+    if (isTrainingMaxStateLoading) {
+      toast.error('Training max requirements are still loading for this program.')
+      return
+    }
+
+    if (requiresTrainingMaxes && missingTrainingMaxNames.length > 0) {
+      toast.error(`Set current training maxes for ${missingTrainingMaxNames.join(', ')} before saving this program.`)
+      return
+    }
+
     const config = normalizeEditableProgramConfig(toConfig(), templateKey)
     const result = createCustomProgramSchema.safeParse({ name: draft.name, definition: config })
 
@@ -187,6 +254,28 @@ export function ReviewStep() {
         <p>Deload decisions stay manual and happen during the current cycle checkpoint.</p>
       </div>
 
+      {requiresTrainingMaxes && (
+        <div className="flex flex-col gap-3">
+          <TrainingMaxPanel
+            title="Required Training Maxes"
+            description="Set the current training maxes for every lift in this program that still uses TM-backed loading before you save it."
+            badgeLabel="Required lifts"
+            emptyStateHint="Choose the lifts this program depends on before setting training maxes here."
+            targetExerciseIds={trainingMaxTargets.exerciseIds}
+            targetExerciseKeys={trainingMaxTargets.exerciseKeys}
+          />
+          <div className="rounded-[24px] border border-border/70 bg-card/82 p-4 text-sm text-muted-foreground shadow-sm">
+            {isTrainingMaxStateLoading ? (
+              <p>Loading the required training maxes for this program.</p>
+            ) : isTrainingMaxRequirementMet ? (
+              <p>All required training maxes are set for this program.</p>
+            ) : (
+              <p>Set current training maxes for {missingTrainingMaxNames.join(', ')} before you save this program.</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {saveStrategy === 'revision' && (
         <div className="rounded-[24px] border border-amber-500/30 bg-amber-500/8 p-4 text-sm text-amber-950 shadow-sm dark:text-amber-100">
           This program already has workout history, so saving here will create a new editable revision instead of rewriting past training data.
@@ -197,7 +286,7 @@ export function ReviewStep() {
         <Button variant="outline" onClick={() => setStep('progression')} className="flex-1">
           Back
         </Button>
-        <Button onClick={handleSubmit} disabled={isPending} className="flex-1">
+        <Button onClick={handleSubmit} disabled={isSaveDisabled} className="flex-1">
           {isPending
             ? saveStrategy === 'update'
               ? 'Saving…'
