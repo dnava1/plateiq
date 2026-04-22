@@ -38,6 +38,11 @@ build/
 .turbo/
 .pnpm-store/
 
+apps/web/*-tests/
+apps/web/p*.config.ts
+apps/web/test-results/
+apps/web/*-report/
+
 # ─── Environment & Secrets ────────────────────────────────
 .env
 .env.*
@@ -62,6 +67,5 @@ __pycache__/
 *.pyc
 *.orig
 README.md
-docs/architecture-review.md
-docs/architecture.md
-docs/implementation-plan.md
+docs/
+apps/web/scripts/seed-data.mjs

@@ -76,6 +76,13 @@ describe('AiInsightsPanel', () => {
       />, 
     )
 
+    expect(screen.queryByText('Insight Ready')).not.toBeInTheDocument()
+    expect(screen.queryByText('Ready Families')).not.toBeInTheDocument()
+    expect(screen.queryByText('Bodyweight Lane')).not.toBeInTheDocument()
+    expect(screen.queryByText('Signals worth preserving.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Areas to watch before they become problems.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Practical next actions for the current training block.')).not.toBeInTheDocument()
+
     await user.click(screen.getByRole('button', { name: 'Generate insight for Bench Press' }))
 
     expect(reset).toHaveBeenCalled()
@@ -131,8 +138,8 @@ describe('AiInsightsPanel', () => {
 
     await user.click(screen.getByRole('button', { name: 'Generate insight for current analytics filter' }))
 
-    expect(screen.getByText('Progression guidance bounded')).toBeInTheDocument()
-    expect(screen.getByText(/broader scopes stay retrospective/i)).toBeInTheDocument()
+    expect(screen.queryByText(/broader scopes stay retrospective/i)).not.toBeInTheDocument()
+    expect(screen.queryByText('Progression guidance bounded')).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Progression Guidance' })).not.toBeInTheDocument()
   })
 

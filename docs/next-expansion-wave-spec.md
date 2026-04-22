@@ -38,7 +38,7 @@ The first real implementation slice in this wave validated the direction, but it
 - Comparability matters more than raw recency. A "latest" or "heaviest" prior set is not automatically useful if it does not match the work the user is about to do.
 - Freeform cue or note persistence is lower-confidence than history-first context. Unless stronger evidence emerges, this wave should not spend product complexity on a dedicated in-workout cue system.
 - Deload should stay user-owned. The app can surface missed-target context, hold states, and cycle review framing, but generic deload triggers and strategies should not be a primary configuration surface.
-- Cycle review is the right place for manual progression judgment. The product should summarize what happened, show what held or moved, and let the user decide whether to deload.
+- A broader future cycle-review surface is still the right place for manual progression judgment. In the current product, the programs-entry complete-cycle TM preview is the narrow first checkpoint that can expand in that direction.
 
 ## 2. Feature Specs
 
@@ -216,46 +216,70 @@ This is not just information architecture cleanup. It is part of making PlateIQ 
 
 **Problem**
 
-PlateIQ supports multiple prescription types, but some product language and navigation still over-center training maxes and the Exercises area. That creates unnecessary clicks and makes the product feel more training-max-centric than program-centric. It also splits jobs that the builder and program setup already know how to handle.
+PlateIQ supports multiple prescription types, but some setup language, shared data entry, and navigation still imply that training max and Exercises are the center of the product. That creates unnecessary detours, makes the custom builder feel more training-max-first than method-first, and splits related jobs across builder, workouts, dashboard context, analytics, and the current programs-entry complete-cycle checkpoint.
 
 **Why It Fits PlateIQ**
 
-A strength-first product should feel organized around following and reviewing a program, not around maintaining a library. PlateIQ should support training max strongly where it matters without treating it like the universal center of every user flow.
+A strength-first product should feel organized around following and reviewing a program, not around maintaining a library. Serious lifters think first about what program they are running, what they need to do today, and what should change at the end of a block. PlateIQ should therefore feel organized around planning, execution, and review. Training max remains important shared method data where relevant, but it should be surfaced contextually rather than acting as the app's organizing center.
 
 **Proposed User Experience**
 
-- Program setup should ask only for the inputs the selected template or custom method actually requires.
-- Training max should be prominent when relevant and quiet when irrelevant.
-- The custom builder should start from programming method, not a generic training max toggle.
-- The custom builder should not ask users to save generic deload trigger or deload strategy text as part of progression setup.
-- Exercise selection and custom exercise creation should live inside builder and workout-related flows.
-- The Exercises surface can remain as a utility area in the short term, but long term it should no longer be a primary navigation destination once its jobs are rehomed.
-- Cycle review should be a primary moment for confirming or adjusting training max on TM-driven methods, and a review point for adherence, effort, notes, or other method-specific checkpoints on non-TM methods.
-- For non-programmed deloads, cycle review should frame the decision as manual user judgment rather than app-owned automation.
+- Built-in templates should stay template-first rather than forcing an extra method-selection step that adds no value.
+- Build-from-scratch should begin with method selection so the builder can stay method-appropriate instead of asking every user the same generalized questions.
+- Training max should be obvious on TM-driven paths and quiet on non-TM paths.
+- The active builder UI should not present generic deload trigger or deload strategy fields as first-class configuration. If a template already includes an explicit programmed deload week, that remains part of the template logic. Otherwise deload stays a manual review decision.
+- Exercise search, selection, and custom exercise creation should continue moving into builder and workout-related flows rather than remaining anchored to Exercises.
+- Today's programs-entry complete-cycle training-max preview should expand over time into a broader future cycle-review surface. Until then, PlateIQ should describe it as the current TM-first checkpoint rather than imply that a full review surface already exists.
+- In that future cycle-review surface, TM-driven methods should center training-max confirmation or adjustment, while non-TM methods should center adherence, effort, misses, notes, and other method-specific checkpoints.
+- Dashboard should keep surfacing current training max as supporting context where relevant, but Analytics should stay centered on broader performance review such as e1RM trends, strength profile, and method-aware coverage. Analytics should not become a training-max review surface.
+- Exercises no longer needs to stand as a primary destination once exercise creation, library lookup, and training-max access are carried by Programs and Workouts directly.
+
+**Recommended Surface Ownership**
+
+- Programs should be the primary planning surface.
+- Workouts should be the primary execution surface.
+- The future cycle-review surface should be the primary adjustment surface.
+- Dashboard should summarize current state and next-step context.
+- Analytics should carry deeper history, coverage framing, and progression review across broader signals such as e1RM, logged performance, and strength profile rather than method-specific setup data.
+- Training max should be shared method data that appears wherever the selected method actually depends on it.
+- Exercise creation and library lookup should live inside program-building flows rather than on a standalone destination, while day-of training-max access should live under Workouts; Exercises should no longer be a first-class surface once that handoff is complete.
+
+**Recommended Rollout**
+
+- First clarify the product model in builder, workouts, dashboard, analytics, and programs copy without removing navigation.
+- Then finish the builder-side exercise rehoming already underway and extend comparable exercise and custom-exercise flows into workout-adjacent paths.
+- Expand the current programs-entry complete-cycle training-max preview into a broader cycle-review surface rather than creating a separate competing checkpoint.
+- Remove Exercises from primary navigation now that exercise-library tasks and training-max access live elsewhere, and delete the old route instead of preserving a fallback surface.
 
 **Core Requirements**
 
 - Keep training max as one supported method, not a universal prerequisite.
 - Reduce redundant navigation between builder, exercises, and training max management.
 - Treat generic deload trigger or strategy fields as deprecated product UI unless a specific template already encodes an explicit programmed deload week.
-- Preserve fast access to exercise data and training max history for users who need it.
-- Define exit criteria before removing Exercises from primary navigation: exercise search and selection, custom exercise creation, TM access and history where relevant, and a recovery path outside builder and workout flows.
+- Preserve fast access to exercise data and training max history for users who need it without routing that history through Analytics. Programs should carry planning and cycle-checkpoint context, with TM setup exposed when the user reopens a program that actually depends on it. Builder flows should carry exercise search, custom-exercise creation, and required TM entry for every lift whose actual prescriptions still depend on training max for execution. Workouts should stay focused on launch, logging, and completion rather than duplicating TM management. Dashboard should remain current-state context, and broader analytics review should stay centered on more universal signals that work across programs and exercises.
+- Do not preserve a backward-compatibility Exercises surface once its jobs have moved into Programs and Workouts.
+- Preserve manual deload judgment except where a template already includes an explicit programmed deload week.
 - Keep the UI cleaner, quicker, and more obvious with fewer detours.
 
 **Data And Logic Implications At A High Level**
 
-PlateIQ needs a clearer distinction between program method, progression method, and exercise-library data so the UI can surface only what matters in context. Legacy template metadata may still exist for compatibility, but the active product surface should not depend on generic deload text fields.
+PlateIQ needs a clearer distinction between program method, execution flows, review checkpoints, exercise-library data, and shared method data such as training max so the UI can surface only what matters in context. Existing custom programs and saved drafts may still encode uses_training_max or tm_percentage-style assumptions, so a method-first builder direction needs an explicit compatibility path instead of silently rewriting those definitions. Legacy template metadata may still exist for compatibility, but the active product surface should not depend on generic deload text fields.
 
 **Risks And Tradeoffs**
 
-- There are no existing users so we can change as we wish
 - Hiding training max too aggressively could frustrate users on training-max-driven templates.
+- Existing custom programs or saved drafts with uses_training_max or tm_percentage-style assumptions could make method-first builder changes feel inconsistent unless compatibility is explicit.
 - Rehoming exercise jobs incompletely would hurt discoverability.
+- If the recovery path is vague, removing Exercises from primary navigation will feel like lost functionality rather than simplification.
+- A partial migration could leave PlateIQ with two competing mental models instead of one cleaner one.
 
 **Success Criteria**
 
 - Program setup feels method-appropriate rather than one-size-fits-all.
 - Users need fewer clicks to start a program or review core progression inputs.
+- The current complete-cycle TM preview feels like a clear stepping stone toward broader future cycle review rather than an awkward duplicate surface.
+- TM-driven users still see training max exactly where they need it, while non-TM users stop feeling routed through irrelevant inputs.
+- Exercises no longer acts as a primary destination once its remaining jobs live naturally in Programs and Workouts.
 - PlateIQ feels more like a program system and less like an exercise database with training attached.
 
 ### Prescriptive Progression Guidance
@@ -430,10 +454,8 @@ PlateIQ should keep these layers separate in the product model. Current AI can r
 - When should the product show "no comparable recent session" instead of falling back to a weaker exercise-level summary?
 - Where should analytics coverage labels appear first so users actually notice them: the dashboard, AI insight surfaces, or both?
 - What is the minimum useful first bodyweight lane: rep trends, added-load history, consistency, or some combination?
-- Should custom program setup begin from method selection, or should method stay mostly implicit except when advanced inputs are required?
-- What training-max actions must remain directly accessible outside program setup and cycle review for advanced users?
-- Should generic deload metadata remain only as compatibility data behind the scenes, or be removed entirely from saved custom-program definitions over time?
-- What jobs must be fully rehomed before Exercises can leave primary navigation without creating confusion?
+- What additional training-max actions or history views should advanced users still need beyond dashboard visibility and future cycle-review adjustments as Exercises is de-emphasized?
+- What compatibility path should preserve existing custom programs and drafts that still encode uses_training_max or tm_percentage-style assumptions as builder flows become method-first?
 - Where should the first feedback entry point live to maximize usage without interrupting workouts?
 - Do baseline Terms and Privacy pages plus a narrow advisory disclaimer satisfy the current trust bar, or does stronger guidance require explicit legal review before rollout?
 - What additional evidence would justify expanding beyond hold, increase, repeat, and review into richer method-specific progression guidance?
@@ -450,7 +472,7 @@ This remains the foundation because the product lives or dies in the gym.
 This is still the highest-confidence judgment aid inside the session. The first shipped shape should stay history-first, lightweight, and comparable-set-aware rather than note-heavy.
 
 3. **Program-method consistency and navigation simplification**  
-This should first rehome exercise and training-max jobs into the right program and workout surfaces, keep generic deload fields out of the active builder UI, and then simplify navigation without creating recovery gaps.
+This should first clarify that programs plan, workouts execute, the current complete-cycle TM preview is the seed of future cycle review, and dashboard and analytics provide supporting context; then continue the builder-side exercise rehoming already underway, move the remaining exercise and training-max jobs into the right program and workout surfaces, keep generic deload fields out of the active builder UI, keep analytics centered on broader signals such as e1RM and strength profile rather than training max, and remove Exercises from primary navigation and routing in favor of Programs and Workouts without leaving a compatibility redirect behind.
 
 4. **First-class RPE/RIR capture**  
 This adds the missing effort signal once the workout surface can absorb it cleanly.

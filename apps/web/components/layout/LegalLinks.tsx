@@ -1,8 +1,6 @@
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 
-export const TRAINING_ADVISORY_COPY = 'PlateIQ helps you track and interpret training. It does not replace medical, rehab, or professional coaching judgment.'
-
 export function LegalLinks({
   className,
   linkClassName,

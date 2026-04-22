@@ -47,6 +47,7 @@ const INITIAL_VALUES: FeedbackFormValues = {
   category: '',
   message: '',
 }
+const SUCCESS_STATE_DISMISS_MS = 5000
 
 function focusElementById(id: string) {
   if (typeof document === 'undefined') {
@@ -116,6 +117,20 @@ export function FeedbackCard() {
     }
 
     focusElementById('settings-feedback-status')
+  }, [submissionState])
+
+  useEffect(() => {
+    if (submissionState?.tone !== 'status') {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setSubmissionState((current) => (current?.tone === 'status' ? null : current))
+    }, SUCCESS_STATE_DISMISS_MS)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
   }, [submissionState])
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {

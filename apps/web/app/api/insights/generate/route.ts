@@ -94,6 +94,11 @@ export async function POST(request: Request) {
     return NextResponse.json(insight, { status: 200, headers: NO_STORE_HEADERS })
   } catch (error) {
     const response = toErrorResponse(error)
+    const loggedMessage = error instanceof Error
+      ? error.message
+      : typeof error === 'object' && error !== null && 'publicMessage' in error && typeof (error as { publicMessage?: unknown }).publicMessage === 'string'
+        ? (error as { publicMessage: string }).publicMessage
+        : String(error)
 
     console.error('analytics insight generation failed', {
       operation: 'generateTrainingInsight',
@@ -101,7 +106,7 @@ export async function POST(request: Request) {
       dateTo: parsedRequest.data.dateTo,
       exerciseId: parsedRequest.data.exerciseId,
       status: response.status,
-      message: error instanceof Error ? error.message : String(error),
+      message: loggedMessage,
     })
 
     return NextResponse.json({ error: response.message }, { status: response.status, headers: NO_STORE_HEADERS })

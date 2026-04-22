@@ -93,6 +93,42 @@ describe('FeedbackCard', () => {
     expect(screen.getByLabelText('What should we know?')).toHaveValue('')
   })
 
+  it('auto-dismisses the success pill after five seconds', async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.mocked(fetch)
+
+    fetchMock.mockResolvedValue(new Response(
+      JSON.stringify({
+        submissionId: 17,
+        createdAt: '2026-04-20T12:45:00.000Z',
+      }),
+      {
+        status: 201,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+    ))
+
+    renderFeedbackCard()
+
+    await user.click(screen.getByRole('combobox', { name: 'Feedback type' }))
+    await user.click(await screen.findByText('Bug report'))
+    await user.type(
+      screen.getByLabelText('What should we know?'),
+      'The success pill should fade away after a short delay.',
+    )
+    await user.click(screen.getByRole('button', { name: 'Send Feedback' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Thanks. Your feedback was saved for review.')).toBeInTheDocument()
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByText('Thanks. Your feedback was saved for review.')).not.toBeInTheDocument()
+    }, { timeout: 6000 })
+  }, 10000)
+
   it('preserves the draft and shows the API error when submission fails', async () => {
     const user = userEvent.setup()
     const fetchMock = vi.mocked(fetch)

@@ -1,4 +1,4 @@
-import { LegalLinks, TRAINING_ADVISORY_COPY } from '@/components/layout/LegalLinks'
+import { LegalLinks } from '@/components/layout/LegalLinks'
 
 export default function AuthLayout({
   children,
@@ -12,10 +12,7 @@ export default function AuthLayout({
       <div className="relative flex w-full max-w-5xl flex-col gap-6">
         {children}
 
-        <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-3 px-2 text-center">
-          <p className="text-sm leading-6 text-muted-foreground">
-            {TRAINING_ADVISORY_COPY}
-          </p>
+        <div className="mx-auto flex w-full max-w-xl justify-center px-2 text-center">
           <LegalLinks className="justify-center" />
         </div>
       </div>

@@ -1,4 +1,3 @@
-import { TRAINING_ADVISORY_COPY } from '@/components/layout/LegalLinks'
 import { LegalBackButton } from '@/components/layout/LegalBackButton'
 
 const sections = [
@@ -7,7 +6,6 @@ const sections = [
     paragraphs: [
       'PlateIQ is a training product for planning, logging, and reviewing strength work. Use it responsibly and only in ways that comply with applicable law and the product\'s intended purpose.',
       'You are responsible for the training information you enter and for the decisions you make from it.',
-      TRAINING_ADVISORY_COPY,
     ],
   },
   {

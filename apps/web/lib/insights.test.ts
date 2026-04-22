@@ -131,13 +131,13 @@ describe('insights', () => {
     )
 
     expect(parsed).toEqual({
-      summary: 'Progress is trending well.',
-      strengths: ['Bench press is moving up steadily.'],
-      concerns: ['Squat PR pace has slowed.'],
-      recommendations: ['Keep bench volume stable this week.'],
+      summary: 'Progress is trending well. This snapshot highlights which signals deserve the most attention in the next 1-2 weeks. Use it to guide the next small adjustment, not to rewrite the whole block.',
+      strengths: ['Bench press is moving up steadily. That is worth preserving as you build the next week of training.'],
+      concerns: ['Squat PR pace has slowed. If it stays flat, it becomes the next limiter on your progress.'],
+      recommendations: ['Keep bench volume stable this week. Use the next 1-2 weeks to confirm the signal before changing more.'],
       progressionGuidance: {
         disposition: 'bounded',
-        note: 'Use a single exercise filter before expecting a progression call.',
+        note: 'Use a single exercise filter before expecting a progression call. That keeps the insight future-aware without overstating what this snapshot can support.',
         reason: 'broader_scope',
       },
     })
@@ -145,6 +145,45 @@ describe('insights', () => {
 
   it('parseTrainingInsightResponse rejects malformed provider output', () => {
     expect(() => parseTrainingInsightResponse('not json at all')).toThrow()
+  })
+
+  it('coerces bullet strings and text wrappers into structured insight sections', () => {
+    const parsed = parseTrainingInsightResponse({
+      summary: ['Bench press is trending well.', 'Fatigue looks controlled.'],
+      strengths: '- Bench volume is consistent.\n- AMRAP quality is improving.',
+      concerns: {
+        text: '1. Squat PR pace has cooled off.\n2. Upper-back volume is still light.',
+      },
+      recommendations: {
+        content: '- Keep bench exposure steady.\n- Add one squat top set next week.',
+      },
+      progressionGuidance: {
+        disposition: 'bounded',
+        note: {
+          text: 'Use a single exercise filter before expecting a progression call.',
+        },
+        reason: 'broader_scope',
+      },
+    })
+
+    expect(parsed.summary).toContain('Bench press is trending well. Fatigue looks controlled.')
+    expect(parsed.strengths).toEqual([
+      'Bench volume is consistent. That is worth preserving as you build the next week of training.',
+      'AMRAP quality is improving. That is worth preserving as you build the next week of training.',
+    ])
+    expect(parsed.concerns).toEqual([
+      'Squat PR pace has cooled off. If it stays flat, it becomes the next limiter on your progress.',
+      'Upper-back volume is still light. If it stays flat, it becomes the next limiter on your progress.',
+    ])
+    expect(parsed.recommendations).toEqual([
+      'Keep bench exposure steady. Use the next 1-2 weeks to confirm the signal before changing more.',
+      'Add one squat top set next week. Use the next 1-2 weeks to confirm the signal before changing more.',
+    ])
+    expect(parsed.progressionGuidance).toEqual({
+      disposition: 'bounded',
+      note: 'Use a single exercise filter before expecting a progression call. That keeps the insight future-aware without overstating what this snapshot can support.',
+      reason: 'broader_scope',
+    })
   })
 
   it('parseTrainingInsightResponse normalizes common third-person phrasing to second person', () => {
@@ -161,13 +200,16 @@ describe('insights', () => {
     })
 
     expect(parsed).toEqual({
-      summary: 'You are trending well and you should keep squat volume steady. You should stay patient.',
-      strengths: ['You kept your bench volume consistent.', 'Your squat is improving.'],
-      concerns: ['You need more pull volume.'],
-      recommendations: ['You should add one top set next week.'],
+      summary: 'You are trending well and you should keep squat volume steady. You should stay patient. Use it to guide the next small adjustment, not to rewrite the whole block.',
+      strengths: [
+        'You kept your bench volume consistent. That is worth preserving as you build the next week of training.',
+        'Your squat is improving. That is worth preserving as you build the next week of training.',
+      ],
+      concerns: ['You need more pull volume. If it stays flat, it becomes the next limiter on your progress.'],
+      recommendations: ['You should add one top set next week. Use the next 1-2 weeks to confirm the signal before changing more.'],
       progressionGuidance: {
         disposition: 'bounded',
-        note: 'You should use one selected lift before expecting a progression call.',
+        note: 'You should use one selected lift before expecting a progression call. That keeps the insight future-aware without overstating what this snapshot can support.',
         reason: 'broader_scope',
       },
     })
@@ -267,7 +309,7 @@ describe('insights', () => {
         model: 'gemini-2.5-flash-lite',
       }),
     ).resolves.toMatchObject({
-      strengths: ['Bench press estimated 1RM is climbing.'],
+      strengths: ['Bench press estimated 1RM is climbing. That is worth preserving as you build the next week of training.'],
       progressionGuidance: {
         disposition: 'actionable',
         action: 'increase',
@@ -279,7 +321,7 @@ describe('insights', () => {
     expect(generateContent).toHaveBeenCalledWith(
       expect.objectContaining({
         model: 'gemini-2.5-flash-lite',
-        contents: expect.stringContaining('Address the user directly in second person.'),
+        contents: expect.stringContaining('Write a comprehensive summary in 3-4 sentences'),
         config: expect.objectContaining({
           responseMimeType: 'application/json',
           temperature: 0.4,
