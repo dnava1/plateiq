@@ -126,7 +126,7 @@ describe('POST /api/insights/generate', () => {
         disposition: 'actionable',
         action: 'increase',
         exerciseName: 'Bench Press',
-        methodContext: 'main_lift_amrap',
+        methodContext: 'main_lift_strength',
         rationale: 'You have enough comparable signal to move Bench Press forward conservatively.',
       },
     })
@@ -152,7 +152,7 @@ describe('POST /api/insights/generate', () => {
         disposition: 'actionable',
         action: 'increase',
         exerciseName: 'Bench Press',
-        methodContext: 'main_lift_amrap',
+        methodContext: 'main_lift_strength',
         rationale: 'You have enough comparable signal to move Bench Press forward conservatively.',
       },
     })
@@ -187,7 +187,7 @@ describe('POST /api/insights/generate', () => {
         disposition: 'actionable',
         action: 'hold',
         exerciseName: 'Bench Press',
-        methodContext: 'main_lift_amrap',
+        methodContext: 'main_lift_strength',
         rationale: 'You have enough comparable signal to keep Bench Press on plan without forcing a bigger change.',
       },
     })

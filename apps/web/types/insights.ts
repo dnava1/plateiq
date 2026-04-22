@@ -5,7 +5,7 @@ export interface GenerateInsightInput {
 }
 
 export type ProgressionGuidanceAction = 'increase' | 'hold' | 'repeat' | 'review'
-export type ProgressionGuidanceMethodContext = 'main_lift_amrap' | 'training_max'
+export type ProgressionGuidanceMethodContext = 'main_lift_strength' | 'training_max'
 export type ProgressionGuidanceBoundedReason =
   | 'broader_scope'
   | 'unsupported_scope'

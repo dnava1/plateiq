@@ -389,8 +389,8 @@ export function DashboardOverview() {
           <div className="grid gap-4 xl:grid-cols-3">
             <ChartCard
               title="Strength Trend"
-              description="Recent estimated 1RM movement from logged main-lift AMRAPs."
-              emptyMessage="Log AMRAP work to light up the strength trend."
+              description="Recent estimated 1RM movement from logged main-lift work."
+              emptyMessage="Log main-lift work to light up the strength trend."
               emptyStateNote={analyticsSnapshot?.coverage.metrics.e1rmTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analyticsSnapshot?.coverage.metrics.e1rmTrend.reasonCodes ?? [])}
               headerBadge={analyticsSnapshot ? <CoverageBadge coverage={analyticsSnapshot.coverage.metrics.e1rmTrend} /> : null}
               isEmpty={(analyticsSnapshot?.e1rmTrend.length ?? 0) === 0}
@@ -435,7 +435,7 @@ export function DashboardOverview() {
             <CardHeader className="gap-2">
               <CardTitle className="text-base">Recent PRs</CardTitle>
               <CardDescription>
-                Newly established estimated 1RM highs from your logged main-lift AMRAP work.
+                Newly established estimated 1RM highs from your logged main-lift work.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
@@ -450,7 +450,7 @@ export function DashboardOverview() {
                 </div>
               ) : recentPrs.length === 0 ? (
                 <div className="rounded-[22px] border border-border/70 bg-background/45 px-4 py-5 text-sm text-muted-foreground">
-                  No PRs yet in this range. Hit an AMRAP and the newest milestones will land here.
+                  No PRs yet in this range. Keep logging comparable work and the newest milestones will land here.
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">

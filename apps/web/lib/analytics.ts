@@ -158,10 +158,10 @@ export function createEmptyAnalyticsCoverage(): AnalyticsCoverage {
     metrics: {
       bodyweightLane: createMetricCoverage('bodyweight_specific', 'not_applicable', 0, ['no_bodyweight_sets']),
       consistency: createMetricCoverage('general_logging', 'not_applicable', 0, ['no_completed_sessions']),
-      e1rmTrend: createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['no_amrap_sets']),
+      e1rmTrend: createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['no_main_lift_sets']),
       muscleBalance: createMetricCoverage('general_logging', 'not_applicable', 0, ['no_external_load_sets']),
-      prHistory: createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['no_amrap_sets']),
-      stallDetection: createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['no_amrap_sets']),
+      prHistory: createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['no_main_lift_sets']),
+      stallDetection: createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['no_main_lift_sets']),
       strengthProfile: createMetricCoverage('benchmark_profile', 'not_applicable', 0, ['strength_profile_insufficient_data']),
       tmProgression: createMetricCoverage('training_max', 'not_applicable', 0, ['no_training_max_history']),
       volumeTrend: createMetricCoverage('general_logging', 'not_applicable', 0, ['no_external_load_sets']),
@@ -638,21 +638,21 @@ function buildFallbackCoverage(analytics: {
           ? createMetricCoverage('main_lift_amrap', 'limited', 1, ['limited_history'])
           : analytics.bodyweightLane.relevant
             ? createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['bodyweight_only_scope'])
-            : createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['no_amrap_sets']),
+            : createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['no_main_lift_sets']),
       prHistory: analytics.prHistory.length > 1
         ? createMetricCoverage('main_lift_amrap', 'ready', analytics.prHistory.length)
         : analytics.prHistory.length === 1
           ? createMetricCoverage('main_lift_amrap', 'limited', 1, ['limited_history'])
           : analytics.bodyweightLane.relevant
             ? createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['bodyweight_only_scope'])
-            : createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['no_amrap_sets']),
+            : createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['no_main_lift_sets']),
       stallDetection: strengthSignalCount > 1
         ? createMetricCoverage('main_lift_amrap', 'ready', strengthSignalCount)
         : strengthSignalCount === 1
           ? createMetricCoverage('main_lift_amrap', 'limited', 1, ['limited_history'])
           : analytics.bodyweightLane.relevant
             ? createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['bodyweight_only_scope'])
-            : createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['no_amrap_sets']),
+            : createMetricCoverage('main_lift_amrap', 'not_applicable', 0, ['no_main_lift_sets']),
       tmProgression: analytics.tmProgression.length > 1
         ? createMetricCoverage('training_max', 'ready', analytics.tmProgression.length)
         : analytics.tmProgression.length === 1
@@ -822,7 +822,7 @@ export function formatAnalyticsCoverageFamily(family: AnalyticsCoverageFamily) {
     case 'general_logging':
       return 'General logging'
     case 'main_lift_amrap':
-      return 'Main-lift AMRAP'
+      return 'Main-lift strength'
     case 'training_max':
       return 'Training max'
     case 'benchmark_profile':
@@ -847,8 +847,8 @@ export function describeAnalyticsCoverageReasons(reasonCodes: AnalyticsCoverageR
     return 'This metric needs logged external-load sets.'
   }
 
-  if (reasonCodes.includes('no_amrap_sets')) {
-    return 'This metric depends on main-lift AMRAP history.'
+  if (reasonCodes.includes('no_amrap_sets') || reasonCodes.includes('no_main_lift_sets')) {
+    return 'This metric needs comparable main-lift strength history.'
   }
 
   if (reasonCodes.includes('no_training_max_history')) {
@@ -871,11 +871,7 @@ export function describeAnalyticsCoverageReasons(reasonCodes: AnalyticsCoverageR
     return 'The signal is present, but the history is still thin.'
   }
 
-  if (reasonCodes.includes('no_main_lift_sets')) {
-    return 'This metric only applies to main-lift work.'
-  }
-
-  return 'Coverage depends on the selected method and available signal.'
+  return 'Coverage depends on the available training signal.'
 }
 
 export function summarizeAnalyticsCoverageFamilies(coverage: AnalyticsCoverage) {

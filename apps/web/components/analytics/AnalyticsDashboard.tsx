@@ -1,7 +1,6 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { TrendingUp } from 'lucide-react'
 import { useAnalytics, type AnalyticsDateRange } from '@/hooks/useAnalytics'
 import { useExercises } from '@/hooks/useExercises'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
@@ -13,10 +12,8 @@ import {
   createEmptyAnalyticsCoverage,
   deriveRecentPrs,
   describeAnalyticsCoverageReasons,
-  formatAnalyticsCoverageFamily,
   hasInsightEligibleAnalyticsData,
   hasRenderableAnalyticsData,
-  summarizeAnalyticsCoverageFamilies,
 } from '@/lib/analytics'
 import { ChartCard } from '@/components/charts/ChartCard'
 import { ConsistencyHeatmap } from '@/components/charts/ConsistencyHeatmap'
@@ -146,11 +143,6 @@ export function AnalyticsDashboard() {
     ? previousWeeks.reduce((total, entry) => total + entry.totalVolume, 0) / previousWeeks.length
     : 0
   const recentPrs = useMemo(() => deriveRecentPrs(analytics.prHistory, 6), [analytics.prHistory])
-  const coverageFamilies = useMemo(
-    () => summarizeAnalyticsCoverageFamilies(analytics.coverage)
-      .filter((family) => family.family !== 'training_max'),
-    [analytics.coverage],
-  )
   const selectedDateRangeLabel = DATE_RANGE_PRESETS.find((preset) => preset.value === rangeKey)?.label ?? 'Last 6 months'
   const selectedExerciseName = selectedExerciseId
     ? exercises?.find((exercise) => exercise.id === selectedExerciseId)?.name ?? null
@@ -230,8 +222,10 @@ export function AnalyticsDashboard() {
                 <p className="text-2xl font-semibold tracking-[-0.06em] text-foreground">{analytics.consistency.weeksActive}</p>
               </div>
               <div className="metric-tile flex flex-col gap-1">
-                <span className="eyebrow">AMRAP PRs</span>
-                <p className="text-2xl font-semibold tracking-[-0.06em] text-foreground">{recentPrs.length}</p>
+                <span className="eyebrow">First Session</span>
+                <p className="text-sm font-medium text-foreground">
+                  {analytics.consistency.firstSession ? formatDate(analytics.consistency.firstSession) : 'No sessions yet'}
+                </p>
               </div>
               <div className="metric-tile flex flex-col gap-1">
                 <span className="eyebrow">Last Session</span>
@@ -240,29 +234,6 @@ export function AnalyticsDashboard() {
                 </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="surface-panel">
-          <CardHeader className="gap-2">
-            <CardTitle className="text-base">Method Coverage</CardTitle>
-            <CardDescription>
-              PlateIQ separates broad logging signal from method-bound metrics and keeps bodyweight work in its own review lane.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3 pt-0 md:grid-cols-2 xl:grid-cols-4">
-            {coverageFamilies.map((family) => (
-              <div key={family.family} className="rounded-[22px] border border-border/70 bg-background/45 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <p className="text-sm font-medium text-foreground">{formatAnalyticsCoverageFamily(family.family)}</p>
-                  <Badge variant="outline" className={coverageBadgeClassName(family.status)}>
-                    {coverageStatusLabel(family.status)}
-                  </Badge>
-                </div>
-                <p className="mt-3 text-2xl font-semibold tracking-[-0.06em] text-foreground">{family.signalCount}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{describeAnalyticsCoverageReasons(family.reasonCodes)}</p>
-              </div>
-            ))}
           </CardContent>
         </Card>
 
@@ -316,7 +287,7 @@ export function AnalyticsDashboard() {
                 <ChartCard
                   title="Estimated 1RM Trend"
                   description={selectedExerciseName ?? 'Estimated 1RM progression for the currently filtered lifts.'}
-                  emptyMessage="AMRAP history is required to plot estimated 1RM trend lines."
+                  emptyMessage="Comparable main-lift history is required to plot estimated 1RM trend lines."
                   emptyStateNote={analytics.coverage.metrics.e1rmTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.e1rmTrend.reasonCodes)}
                   headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.e1rmTrend} />}
                   isEmpty={analytics.e1rmTrend.length === 0}
@@ -351,12 +322,11 @@ export function AnalyticsDashboard() {
                   <div className="grid gap-3 md:grid-cols-2">
                     {analytics.stallDetection.map((entry) => (
                       <div key={entry.exerciseId} className="rounded-[20px] border border-border/70 bg-background/45 p-4">
-                        <div className="flex items-start justify-between gap-3">
+                        <div>
                           <div>
                             <p className="text-sm font-medium text-foreground">{entry.exerciseName}</p>
                             <p className="text-xs text-muted-foreground">Last PR {formatDate(entry.lastPrDate)}</p>
                           </div>
-                          <TrendingUp className="text-muted-foreground" />
                         </div>
                         <p className="mt-3 text-lg font-semibold tracking-[-0.05em] text-foreground">
                           {entry.weeksSincePr} weeks
@@ -466,7 +436,7 @@ export function AnalyticsDashboard() {
                 <ChartCard
                   title="Estimated 1RM Trend"
                   description={selectedExerciseName ?? 'Line-level strength progression from the current filter.'}
-                  emptyMessage="AMRAP history is required to render strength trend lines."
+                  emptyMessage="Comparable main-lift history is required to render strength trend lines."
                   emptyStateNote={analytics.coverage.metrics.e1rmTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.e1rmTrend.reasonCodes)}
                   headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.e1rmTrend} />}
                   isEmpty={analytics.e1rmTrend.length === 0}
@@ -479,7 +449,7 @@ export function AnalyticsDashboard() {
                 <ChartCard
                   title="PR Timeline"
                   description="Daily best estimated 1RM points for the selected lifts."
-                  emptyMessage="PR timeline will appear once the filter has enough AMRAP history."
+                  emptyMessage="PR timeline will appear once the filter has enough comparable main-lift history."
                   emptyStateNote={analytics.coverage.metrics.prHistory.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.prHistory.reasonCodes)}
                   headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.prHistory} />}
                   isEmpty={analytics.prHistory.length === 0}

@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { RefreshCw, Sparkles } from 'lucide-react'
 import { useInsights } from '@/hooks/useInsights'
-import { formatAnalyticsCoverageFamily } from '@/lib/analytics'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -14,7 +13,7 @@ import {
 } from '@/components/ui/card'
 import type { AnalyticsDateRange } from '@/hooks/useAnalytics'
 import type { AnalyticsCoverage } from '@/types/analytics'
-import type { ProgressionGuidanceAction, TrainingInsight } from '@/types/insights'
+import type { ProgressionGuidanceAction, ProgressionGuidanceMethodContext, TrainingInsight } from '@/types/insights'
 import { formatDateAsLocalIso } from '@/lib/utils'
 
 interface AiInsightsPanelProps {
@@ -49,6 +48,17 @@ function formatGuidanceActionLabel(action: ProgressionGuidanceAction) {
       return 'Repeat'
     case 'review':
       return 'Review'
+    default:
+      return 'Progression'
+  }
+}
+
+function formatGuidanceMethodContextLabel(methodContext: ProgressionGuidanceMethodContext) {
+  switch (methodContext) {
+    case 'main_lift_strength':
+      return 'Main-lift strength'
+    case 'training_max':
+      return 'Training max'
     default:
       return 'Progression'
   }
@@ -108,7 +118,7 @@ export function AiInsightsPanel({
                 {isInsightEligible
                   ? `This request uses the ${dateRangeLabel.toLowerCase()} analytics snapshot${selectedExerciseName ? ` for ${selectedExerciseName}` : ''}, not raw workout history.`
                   : hasAnalyticsData
-                    ? 'The current snapshot is still too thin or too method-specific to support a useful AI read. Build a little more training history first.'
+                    ? 'The current snapshot is still too thin or too narrow in scope to support a useful AI read. Build a little more training history first.'
                     : 'Build a little more training history first. AI insights depend on the aggregated analytics snapshot shown in the other tabs.'}
               </p>
             </div>
@@ -147,7 +157,7 @@ export function AiInsightsPanel({
                 <CardContent className="pt-0">
                   <div className="flex flex-wrap gap-2">
                     <Badge>{formatGuidanceActionLabel(insight.progressionGuidance.action)}</Badge>
-                    <Badge variant="outline">{formatAnalyticsCoverageFamily(insight.progressionGuidance.methodContext)}</Badge>
+                    <Badge variant="outline">{formatGuidanceMethodContextLabel(insight.progressionGuidance.methodContext)}</Badge>
                     <Badge variant="outline">{insight.progressionGuidance.exerciseName}</Badge>
                   </div>
                   <div className="mt-4 rounded-[20px] border border-border/70 bg-background/45 p-4 text-sm leading-7 text-foreground">

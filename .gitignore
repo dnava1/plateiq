@@ -39,6 +39,8 @@ build/
 .pnpm-store/
 
 apps/web/*-tests/
+!apps/web/browser-tests/
+!apps/web/browser-tests/**
 apps/web/p*.config.ts
 apps/web/test-results/
 apps/web/*-report/

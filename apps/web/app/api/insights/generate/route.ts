@@ -82,7 +82,7 @@ export async function POST(request: Request) {
 
   if (!hasInsightEligibleAnalyticsData(analytics)) {
     return NextResponse.json(
-      { error: 'There is not enough method-aware analytics data to generate an insight yet.' },
+      { error: 'There is not enough comparable analytics history to generate an insight yet.' },
       { status: 400, headers: NO_STORE_HEADERS },
     )
   }

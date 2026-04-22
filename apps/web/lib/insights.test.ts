@@ -94,7 +94,7 @@ describe('insights', () => {
     expect(snapshot.progressionGuidanceContext).toMatchObject({
       disposition: 'actionable',
       exerciseName: 'Bench Press',
-      methodContext: 'main_lift_amrap',
+      methodContext: 'main_lift_strength',
     })
     expect(snapshot.consistency.averageSessionsPerWeek).toBe(2)
     expect(snapshot.strength.recentPrs).toHaveLength(2)
@@ -314,7 +314,7 @@ describe('insights', () => {
         disposition: 'actionable',
         action: 'increase',
         exerciseName: 'Bench Press',
-        methodContext: 'main_lift_amrap',
+        methodContext: 'main_lift_strength',
       },
     })
 

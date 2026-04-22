@@ -52,7 +52,7 @@ describe('AiInsightsPanel', () => {
           disposition: 'actionable',
           action: 'increase',
           exerciseName: 'Bench Press',
-          methodContext: 'main_lift_amrap',
+          methodContext: 'main_lift_strength',
           rationale: 'You have enough comparable signal to nudge Bench Press forward without changing the rest of the block.',
         },
       })
@@ -100,6 +100,7 @@ describe('AiInsightsPanel', () => {
     expect(screen.getByRole('heading', { name: 'Concerns' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Recommendations' })).toBeInTheDocument()
     expect(screen.getByText('Increase')).toBeInTheDocument()
+    expect(screen.getByText('Main-lift strength')).toBeInTheDocument()
     expect(screen.getByText('Bench press is trending well while squat needs more attention.')).toBeInTheDocument()
   })
 
@@ -184,7 +185,7 @@ describe('AiInsightsPanel', () => {
           disposition: 'actionable',
           action: 'hold',
           exerciseName: 'Bench Press',
-          methodContext: 'main_lift_amrap',
+          methodContext: 'main_lift_strength',
           rationale: 'You have enough comparable signal to keep this lift moving without forcing a bigger change yet.',
         },
       })

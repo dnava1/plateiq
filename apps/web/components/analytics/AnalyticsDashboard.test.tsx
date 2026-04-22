@@ -97,11 +97,16 @@ describe('AnalyticsDashboard', () => {
     expect(screen.getByText('Analytics')).toBeInTheDocument()
     expect(screen.getByText('7')).toBeInTheDocument()
     expect(screen.getByText('5')).toBeInTheDocument()
+    expect(screen.getAllByText('First Session').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Method Coverage')).not.toBeInTheDocument()
     expect(screen.queryByText('Training max')).not.toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Overview' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Strength' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Volume' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'AI Insights' })).toBeInTheDocument()
+
+    const plateauCard = screen.getByText('6 weeks').parentElement
+    expect(plateauCard?.querySelector('svg')).toBeNull()
   })
 
   it('shows strength tab content and a readiness state on the AI tab', async () => {
@@ -137,7 +142,7 @@ describe('AnalyticsDashboard', () => {
     expect(screen.getByText('1451.5 kg')).toBeInTheDocument()
   })
 
-  it('shows the method coverage summary and dedicated bodyweight review lane when bodyweight data exists', () => {
+  it('shows the dedicated bodyweight review lane when bodyweight data exists', () => {
     const coverage = createEmptyAnalyticsCoverage()
     coverage.metrics.bodyweightLane = {
       family: 'bodyweight_specific',
@@ -187,7 +192,7 @@ describe('AnalyticsDashboard', () => {
 
     render(<AnalyticsDashboard />)
 
-    expect(screen.getByText('Method Coverage')).toBeInTheDocument()
+    expect(screen.queryByText('Method Coverage')).not.toBeInTheDocument()
     expect(screen.getByText('Bodyweight Review')).toBeInTheDocument()
     expect(screen.getAllByText('Pull-Up').length).toBeGreaterThan(0)
     expect(screen.getByText('Strict Rep Trend')).toBeInTheDocument()

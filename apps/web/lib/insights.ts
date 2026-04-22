@@ -23,7 +23,7 @@ const MAX_RECENT_PRS = 3
 const MAX_E1RM_HIGHLIGHTS = 3
 const MAX_STALLED_LIFTS = 3
 const MAX_BALANCE_ENTRIES = 4
-const MIN_AMRAP_READY_METRICS = 2
+const MIN_MAIN_LIFT_STRENGTH_READY_METRICS = 2
 const E1RM_PROGRESS_EPSILON_LBS = 0.5
 const PROGRESSION_GUIDANCE_ACTIONS: readonly ProgressionGuidanceAction[] = ['increase', 'hold', 'repeat', 'review']
 const SHORT_DETAIL_EXPANSION_LIMIT = 160
@@ -542,13 +542,13 @@ function buildProgressionGuidanceContext(
       null,
       'unsupported_scope',
       'The selected exercise does not resolve to a supported progression context in the current analytics snapshot.',
-      'This selected exercise can still support retrospective insight, but progression guidance stays bounded because the current analytics snapshot does not expose a supported AMRAP or training-max context for it yet.',
+      'This selected exercise can still support retrospective insight, but progression guidance stays bounded because the current analytics snapshot does not expose a supported main-lift strength or training-max context for it yet.',
     )
   }
 
   const { coverage } = analytics
   const consistencySignalCount = coverage.metrics.consistency.signalCount
-  const amrapReadyMetricCount = [
+  const mainLiftStrengthReadyMetricCount = [
     coverage.metrics.e1rmTrend.status === 'ready',
     coverage.metrics.prHistory.status === 'ready',
     coverage.metrics.stallDetection.status === 'ready',
@@ -569,27 +569,27 @@ function buildProgressionGuidanceContext(
     )
   }
 
-  const hasSupportedAmrapContext = amrapReadyMetricCount >= MIN_AMRAP_READY_METRICS
+  const hasSupportedMainLiftStrengthContext = mainLiftStrengthReadyMetricCount >= MIN_MAIN_LIFT_STRENGTH_READY_METRICS
   const hasSupportedTrainingMaxContext = coverage.metrics.tmProgression.status === 'ready'
-  const hasPositiveAmrapSignal = hasExercisePrImprovement(analytics, filter.exerciseId)
+  const hasPositiveMainLiftStrengthSignal = hasExercisePrImprovement(analytics, filter.exerciseId)
     || ((getExerciseE1rmChange(analytics.e1rmTrend, filter.exerciseId) ?? 0) > E1RM_PROGRESS_EPSILON_LBS)
   const hasStallSignal = analytics.stallDetection.some((entry) => entry.exerciseId === filter.exerciseId)
   const trainingMaxChange = getExerciseTrainingMaxChange(analytics, filter.exerciseId)
   const hasTrainingMaxIncrease = (trainingMaxChange ?? 0) > 0
   const hasTrainingMaxRegression = (trainingMaxChange ?? 0) < 0
 
-  if (!hasSupportedAmrapContext && !hasSupportedTrainingMaxContext) {
+  if (!hasSupportedMainLiftStrengthContext && !hasSupportedTrainingMaxContext) {
     return createBoundedProgressionContext(
       exerciseName,
       hasLimitedMethodSignal ? 'insufficient_coverage' : 'unsupported_scope',
-      `${exerciseName} does not have enough supported AMRAP or training-max coverage for an explicit progression action.`,
+      `${exerciseName} does not have enough supported main-lift strength or training-max coverage for an explicit progression action.`,
       hasLimitedMethodSignal
-        ? `You have some relevant method-aware data for ${exerciseName}, but it is still too thin or too partial for a confident progression action. Keep this read retrospective for now.`
-        : `This filter still supports retrospective insight for ${exerciseName}, but progression guidance stays bounded because the current method context is outside the supported AMRAP and training-max lanes.`,
+        ? `You have some relevant progression data for ${exerciseName}, but it is still too thin or too partial for a confident progression action. Keep this read retrospective for now.`
+        : `This filter still supports retrospective insight for ${exerciseName}, but progression guidance stays bounded because the current method context is outside the supported main-lift strength and training-max lanes.`,
     )
   }
 
-  if ((hasPositiveAmrapSignal || hasTrainingMaxIncrease) && (hasStallSignal || hasTrainingMaxRegression)) {
+  if ((hasPositiveMainLiftStrengthSignal || hasTrainingMaxIncrease) && (hasStallSignal || hasTrainingMaxRegression)) {
     return createBoundedProgressionContext(
       exerciseName,
       'mixed_signal',
@@ -598,22 +598,22 @@ function buildProgressionGuidanceContext(
     )
   }
 
-  if (hasSupportedAmrapContext) {
-    if (hasPositiveAmrapSignal) {
+  if (hasSupportedMainLiftStrengthContext) {
+    if (hasPositiveMainLiftStrengthSignal) {
       return createActionableProgressionContext(
         exerciseName,
-        'main_lift_amrap',
+        'main_lift_strength',
         ['increase', 'hold', 'repeat'],
-        `${exerciseName} has ready AMRAP coverage with positive recent performance signals and no conflicting caution flag. Allowed actions: increase, hold, repeat.`,
+        `${exerciseName} has ready main-lift strength coverage with positive recent performance signals and no conflicting caution flag. Allowed actions: increase, hold, repeat.`,
       )
     }
 
     if (hasStallSignal) {
       return createActionableProgressionContext(
         exerciseName,
-        'main_lift_amrap',
+        'main_lift_strength',
         ['hold', 'repeat', 'review'],
-        `${exerciseName} has ready AMRAP coverage with a caution signal and no conflicting progress signal. Allowed actions: hold, repeat, review.`,
+        `${exerciseName} has ready main-lift strength coverage with a caution signal and no conflicting progress signal. Allowed actions: hold, repeat, review.`,
       )
     }
   }
@@ -649,7 +649,7 @@ function buildProgressionGuidanceContext(
     exerciseName,
     'insufficient_coverage',
     `${exerciseName} still lacks a clean high-confidence signal for progression guidance.`,
-    `You have some method-aware signal for ${exerciseName}, but it is not clean enough to support an explicit progression action here yet.`,
+    `You have some progression signal for ${exerciseName}, but it is not clean enough to support an explicit progression action here yet.`,
   )
 }
 
