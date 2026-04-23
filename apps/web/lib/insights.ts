@@ -198,7 +198,7 @@ function buildDataGaps(analytics: AnalyticsData) {
   }
 
   if (analytics.bodyweightLane.relevant && analytics.bodyweightLane.exerciseSummaries.length === 0) {
-    gaps.push('Bodyweight review work is present, but there is not enough comparable rep history yet.')
+    gaps.push('Bodyweight work is present, but there is not enough comparable strict or weighted history yet.')
   }
 
   return gaps
@@ -548,7 +548,7 @@ function buildProgressionGuidanceContext(
 
   const { coverage } = analytics
   const consistencySignalCount = coverage.metrics.consistency.signalCount
-  const loadedStrengthReadyMetricCount = [
+  const mainLiftStrengthReadyMetricCount = [
     coverage.metrics.e1rmTrend.status === 'ready',
     coverage.metrics.prHistory.status === 'ready',
     coverage.metrics.stallDetection.status === 'ready',
@@ -569,16 +569,16 @@ function buildProgressionGuidanceContext(
     )
   }
 
-  const hasSupportedLoadedStrengthContext = loadedStrengthReadyMetricCount >= MIN_LOADED_STRENGTH_READY_METRICS
+  const hasSupportedMainLiftStrengthContext = mainLiftStrengthReadyMetricCount >= MIN_LOADED_STRENGTH_READY_METRICS
   const hasSupportedTrainingMaxContext = coverage.metrics.tmProgression.status === 'ready'
-  const hasPositiveLoadedStrengthSignal = hasExercisePrImprovement(analytics, filter.exerciseId)
+  const hasPositiveMainLiftStrengthSignal = hasExercisePrImprovement(analytics, filter.exerciseId)
     || ((getExerciseE1rmChange(analytics.e1rmTrend, filter.exerciseId) ?? 0) > E1RM_PROGRESS_EPSILON_LBS)
   const hasStallSignal = analytics.stallDetection.some((entry) => entry.exerciseId === filter.exerciseId)
   const trainingMaxChange = getExerciseTrainingMaxChange(analytics, filter.exerciseId)
   const hasTrainingMaxIncrease = (trainingMaxChange ?? 0) > 0
   const hasTrainingMaxRegression = (trainingMaxChange ?? 0) < 0
 
-  if (!hasSupportedLoadedStrengthContext && !hasSupportedTrainingMaxContext) {
+  if (!hasSupportedMainLiftStrengthContext && !hasSupportedTrainingMaxContext) {
     return createBoundedProgressionContext(
       exerciseName,
       hasLimitedMethodSignal ? 'insufficient_coverage' : 'unsupported_scope',
@@ -589,7 +589,7 @@ function buildProgressionGuidanceContext(
     )
   }
 
-  if ((hasPositiveLoadedStrengthSignal || hasTrainingMaxIncrease) && (hasStallSignal || hasTrainingMaxRegression)) {
+  if ((hasPositiveMainLiftStrengthSignal || hasTrainingMaxIncrease) && (hasStallSignal || hasTrainingMaxRegression)) {
     return createBoundedProgressionContext(
       exerciseName,
       'mixed_signal',
@@ -598,8 +598,8 @@ function buildProgressionGuidanceContext(
     )
   }
 
-  if (hasSupportedLoadedStrengthContext) {
-    if (hasPositiveLoadedStrengthSignal) {
+  if (hasSupportedMainLiftStrengthContext) {
+    if (hasPositiveMainLiftStrengthSignal) {
       return createActionableProgressionContext(
         exerciseName,
         'loaded_strength',

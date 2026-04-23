@@ -233,7 +233,7 @@ describe('DashboardOverview', () => {
 
     render(<DashboardOverview />)
 
-    expect(screen.getByText('This week 1905.1 kg vs 1542.2 kg recent average.')).toBeInTheDocument()
+    expect(screen.getByText('This week 1,905.1 kg vs 1,542.2 kg recent average.')).toBeInTheDocument()
   })
 
   it('formats recent PR deltas in kilograms when kg is selected', () => {
@@ -364,7 +364,7 @@ describe('DashboardOverview', () => {
     render(<DashboardOverview />)
 
     expect(screen.getByText('Bodyweight Exercise Review')).toBeInTheDocument()
-    expect(screen.getByText('Open bodyweight exercise review')).toBeInTheDocument()
+    expect(screen.queryByText('Open bodyweight exercise review')).not.toBeInTheDocument()
     expect(screen.getByText(/Last session rep best 12 reps/i)).toBeInTheDocument()
   })
 })

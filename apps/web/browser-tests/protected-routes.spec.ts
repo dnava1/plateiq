@@ -110,7 +110,7 @@ test.describe('authenticated dashboard and analytics flows', () => {
     await expect(page.getByText('Cycle Progress')).toBeVisible()
     await expect(page.getByText('Current Training Maxes')).toBeVisible()
     await expect(page.getByText('Recent PRs', { exact: true })).toBeVisible()
-    await expect(page.getByText('Bodyweight Review', { exact: true })).toBeVisible()
+    await expect(page.getByText('Bodyweight Exercise Review', { exact: true })).toBeVisible()
     await expect(getPrimaryNav(page).getByRole('link', { name: 'Exercises', exact: true })).toHaveCount(0)
 
     const analyticsResponsePromise = waitForAnalyticsResponse(page)
@@ -132,14 +132,14 @@ test.describe('authenticated dashboard and analytics flows', () => {
     }))
 
     await expect(page.getByText('Method Coverage', { exact: true })).toHaveCount(0)
-    await expect(page.getByText('First Session', { exact: true })).toBeVisible()
-    await expect(page.getByText('Bodyweight Review', { exact: true })).toBeVisible()
+    await expect(page.getByText('First Session', { exact: true }).first()).toBeVisible()
+    await expect(page.getByText('Bodyweight Exercise Review', { exact: true })).toBeVisible()
     await expect(page.getByRole('tab', { name: 'Strength' })).toBeVisible()
     await expect(page.getByRole('tab', { name: 'AI Insights' })).toBeVisible()
 
     await page.getByRole('tab', { name: 'Strength' }).click()
     await expect(page.getByText('Strength Profile', { exact: true })).toBeVisible()
-    await expect(page.getByText('TM Progression', { exact: true })).toBeVisible()
+    await expect(page.getByText('Recent PRs', { exact: true })).toBeVisible()
 
     await page.getByRole('tab', { name: 'AI Insights' }).click()
     await expect(page.getByRole('button', { name: /Generate insight/i })).toBeVisible()

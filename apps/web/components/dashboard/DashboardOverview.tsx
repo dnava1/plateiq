@@ -389,8 +389,8 @@ export function DashboardOverview() {
           <div className="grid gap-4 xl:grid-cols-3">
             <ChartCard
               title="Strength Trend"
-              description="Recent estimated 1RM movement from logged main-lift work."
-              emptyMessage="Log main-lift work to light up the strength trend."
+              description="Recent estimated 1RM movement from logged loaded-strength work."
+              emptyMessage="Log loaded-strength work to light up the strength trend."
               emptyStateNote={analyticsSnapshot?.coverage.metrics.e1rmTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analyticsSnapshot?.coverage.metrics.e1rmTrend.reasonCodes ?? [])}
               headerBadge={analyticsSnapshot ? <CoverageBadge coverage={analyticsSnapshot.coverage.metrics.e1rmTrend} /> : null}
               isEmpty={(analyticsSnapshot?.e1rmTrend.length ?? 0) === 0}
@@ -435,7 +435,7 @@ export function DashboardOverview() {
             <CardHeader className="gap-2">
               <CardTitle className="text-base">Recent PRs</CardTitle>
               <CardDescription>
-                Newly established estimated 1RM highs from your logged main-lift work.
+                Newly established estimated 1RM highs from your logged loaded-strength work.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
@@ -508,9 +508,6 @@ export function DashboardOverview() {
                       </p>
                     </div>
                   ))}
-                  <Link href="/analytics" className={buttonVariants({ variant: 'outline' })}>
-                    Open bodyweight exercise review
-                  </Link>
                 </div>
               </CardContent>
             </Card>

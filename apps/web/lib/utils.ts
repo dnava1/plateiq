@@ -84,9 +84,16 @@ export function roundWeightForDisplay(lbs: number, roundingLbs?: number | null):
   return roundToIncrement(lbs, resolveWeightRoundingLbs(roundingLbs), 'down')
 }
 
+export function formatDisplayNumber(value: number, maximumFractionDigits: number = 1): string {
+  return new Intl.NumberFormat('en-US', {
+    maximumFractionDigits,
+    minimumFractionDigits: 0,
+  }).format(value)
+}
+
 export function formatWeight(lbs: number, unit: PreferredUnit, roundingLbs?: number | null): string {
   const resolvedLbs = roundingLbs == null ? lbs : roundWeightForDisplay(lbs, roundingLbs)
-  return `${lbsToDisplay(resolvedLbs, unit)} ${formatUnit(unit)}`
+  return `${formatDisplayNumber(lbsToDisplay(resolvedLbs, unit), 1)} ${formatUnit(unit)}`
 }
 
 export function lbsToDisplay(lbs: number, unit: PreferredUnit, fractionDigits: number = 1): number {

@@ -12,10 +12,12 @@ import {
   CardHeader,
 } from '@/components/ui/card'
 import type { AnalyticsDateRange } from '@/hooks/useAnalytics'
+import type { AnalyticsCoverage } from '@/types/analytics'
 import type { ProgressionGuidanceAction, ProgressionGuidanceMethodContext, TrainingInsight } from '@/types/insights'
 import { formatDateAsLocalIso } from '@/lib/utils'
 
 interface AiInsightsPanelProps {
+  coverage: AnalyticsCoverage
   dateRange: AnalyticsDateRange
   dateRangeLabel: string
   hasAnalyticsData: boolean

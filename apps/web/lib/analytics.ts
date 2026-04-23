@@ -1101,6 +1101,7 @@ function buildBodyweightLane(
 
   for (const set of bodyweightSets) {
     const workout = workoutById.get(set.workoutId)
+
     if (!workout) {
       continue
     }
@@ -1113,6 +1114,7 @@ function buildBodyweightLane(
 
   for (const [weekStart, sessionIds] of sessionsByWeek.entries()) {
     const point = weeklyVolumeTrend.get(weekStart)
+
     if (point) {
       point.totalSessions = sessionIds.size
     }
@@ -1268,6 +1270,7 @@ export function buildAnalyticsData({
 
   for (const point of prByExerciseAndDate.values()) {
     const current = lastPrByExercise.get(point.exerciseId)
+
     if (!current || point.date > current.lastPrDate) {
       lastPrByExercise.set(point.exerciseId, {
         exerciseName: point.exerciseName,

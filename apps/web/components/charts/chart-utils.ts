@@ -1,4 +1,4 @@
-import { formatUnit, lbsToDisplay, roundWeightForDisplay } from '@/lib/utils'
+import { formatDisplayNumber, formatUnit, lbsToDisplay, roundWeightForDisplay } from '@/lib/utils'
 import type { PreferredUnit } from '@/types/domain'
 
 export const CHART_COLORS = ['#f97316', '#38bdf8', '#22c55e', '#facc15', '#fb7185'] as const
@@ -26,7 +26,7 @@ export function formatCompactRoundedWeight(valueLbs: number, unit: PreferredUnit
 }
 
 export function formatDisplayLoad(valueLbs: number, unit: PreferredUnit, fractionDigits: number = unit === 'kg' ? 1 : 0) {
-  return `${lbsToDisplay(valueLbs, unit, fractionDigits)} ${formatUnit(unit)}`
+  return `${formatDisplayNumber(lbsToDisplay(valueLbs, unit, fractionDigits), fractionDigits)} ${formatUnit(unit)}`
 }
 
 export function formatShortDate(value: string | number | Date) {

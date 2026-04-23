@@ -37,7 +37,7 @@ export function ChartCard({
   title,
 }: ChartCardProps) {
   return (
-    <Card className={cn('surface-panel', className)}>
+    <Card className={cn('surface-panel overflow-visible', className)}>
       <CardHeader className="gap-2">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 space-y-2">

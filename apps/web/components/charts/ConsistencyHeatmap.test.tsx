@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { ConsistencyHeatmap } from './ConsistencyHeatmap'
 
 const sampleData = [
@@ -22,5 +22,16 @@ describe('ConsistencyHeatmap', () => {
 
     expect(container.firstChild).toHaveClass('items-center')
     expect(screen.queryByText(/Mar/u)).not.toBeInTheDocument()
+  })
+
+  it('shows a hover and focus tooltip with week and volume details', () => {
+    render(<ConsistencyHeatmap data={sampleData} />)
+
+    const weekCell = screen.getAllByLabelText(/Week of Mar/i)[0]
+    fireEvent.mouseEnter(weekCell)
+
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Week of Mar')
+    expect(screen.getByRole('tooltip')).toHaveTextContent('1,000 lbs')
+    expect(screen.getByRole('tooltip')).toHaveTextContent('5')
   })
 })

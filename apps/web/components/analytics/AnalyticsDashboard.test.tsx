@@ -135,7 +135,7 @@ describe('AnalyticsDashboard', () => {
 
     await user.click(screen.getByRole('tab', { name: 'Volume' }))
 
-    expect(screen.getByText('1451.5 kg')).toBeInTheDocument()
+    expect(screen.getByText('1,451.5 kg')).toBeInTheDocument()
   })
 
   it('shows the dedicated bodyweight review lane when bodyweight data exists', () => {
@@ -158,14 +158,14 @@ describe('AnalyticsDashboard', () => {
               lastSessionDate: '2026-03-22',
               latestStrictRepBest: 12,
               strictSessionCount: 2,
-              totalLoggedReps: 42,
+              totalLoggedReps: 36,
             },
           ],
           repTrend: [
             { bestReps: 12, date: '2026-03-22', exerciseId: 7, exerciseName: 'Pull-Up' },
           ],
           weeklyVolumeTrend: [
-            { weekStart: '2026-03-17', totalReps: 42, totalSessions: 2 },
+            { totalReps: 36, totalSessions: 3, weekStart: '2026-03-17' },
           ],
         },
         coverage,
@@ -190,10 +190,7 @@ describe('AnalyticsDashboard', () => {
     expect(screen.queryByText('Method Coverage')).not.toBeInTheDocument()
     expect(screen.getByText('Bodyweight Exercise Review')).toBeInTheDocument()
     expect(screen.getAllByText('Pull-Up').length).toBeGreaterThan(0)
-    expect(screen.getByText('Last Session Rep Best')).toBeInTheDocument()
     expect(screen.getByText('Rep Best Trend')).toBeInTheDocument()
-    expect(screen.getByText('Track the top strict-rep set from each logged session.')).toBeInTheDocument()
     expect(screen.getByText('Weekly Rep Volume')).toBeInTheDocument()
-    expect(screen.queryByText(/Highest recent completed set/i)).not.toBeInTheDocument()
   })
 })

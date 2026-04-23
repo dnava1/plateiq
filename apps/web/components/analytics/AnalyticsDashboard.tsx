@@ -287,8 +287,8 @@ export function AnalyticsDashboard() {
 
                 <ChartCard
                   title="Estimated 1RM Trend"
-                  description={selectedExerciseName ?? 'Estimated 1RM progression for the currently filtered loaded exercises.'}
-                  emptyMessage="Comparable loaded sets are required to plot estimated 1RM trend lines."
+                  description={selectedExerciseName ?? 'Estimated 1RM progression for the currently filtered lifts.'}
+                  emptyMessage="Comparable loaded-strength history is required to plot estimated 1RM trend lines."
                   emptyStateNote={analytics.coverage.metrics.e1rmTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.e1rmTrend.reasonCodes)}
                   headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.e1rmTrend} />}
                   isEmpty={analytics.e1rmTrend.length === 0}
@@ -307,34 +307,6 @@ export function AnalyticsDashboard() {
                   isLoading={isLoading}
                 >
                   <MuscleBalanceChart data={analytics.muscleBalance} />
-                </ChartCard>
-
-                <ChartCard
-                  title="Plateau Watch"
-                  description="Loaded exercises that have not produced a fresh PR in the last four weeks."
-                  emptyMessage="No plateaus detected in the current snapshot."
-                  emptyStateNote={analytics.coverage.metrics.stallDetection.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.stallDetection.reasonCodes)}
-                  headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.stallDetection} />}
-                  isEmpty={analytics.stallDetection.length === 0}
-                  isLoading={isLoading}
-                  className="xl:col-span-2"
-                  heightClassName="h-40"
-                >
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {analytics.stallDetection.map((entry) => (
-                      <div key={entry.exerciseId} className="rounded-[20px] border border-border/70 bg-background/45 p-4">
-                        <div>
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{entry.exerciseName}</p>
-                            <p className="text-xs text-muted-foreground">Last PR {formatDate(entry.lastPrDate)}</p>
-                          </div>
-                        </div>
-                        <p className="mt-3 text-lg font-semibold tracking-[-0.05em] text-foreground">
-                          {entry.weeksSincePr} weeks
-                        </p>
-                      </div>
-                    ))}
-                  </div>
                 </ChartCard>
 
                 <ChartCard
@@ -409,6 +381,34 @@ export function AnalyticsDashboard() {
                     </div>
                   </div>
                 </ChartCard>
+
+                <ChartCard
+                  title="Plateau Watch"
+                  description="Main lifts that have not produced a fresh PR in the last four weeks."
+                  emptyMessage="No plateaus detected in the current snapshot."
+                  emptyStateNote={analytics.coverage.metrics.stallDetection.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.stallDetection.reasonCodes)}
+                  headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.stallDetection} />}
+                  isEmpty={analytics.stallDetection.length === 0}
+                  isLoading={isLoading}
+                  className="xl:col-span-2"
+                  heightClassName="h-40"
+                >
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {analytics.stallDetection.map((entry) => (
+                      <div key={entry.exerciseId} className="rounded-[20px] border border-border/70 bg-background/45 p-4">
+                        <div>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{entry.exerciseName}</p>
+                            <p className="text-xs text-muted-foreground">Last PR {formatDate(entry.lastPrDate)}</p>
+                          </div>
+                        </div>
+                        <p className="mt-3 text-lg font-semibold tracking-[-0.05em] text-foreground">
+                          {entry.weeksSincePr} weeks
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </ChartCard>
                 </div>
               ) : null}
             </TabsContent>
@@ -421,7 +421,7 @@ export function AnalyticsDashboard() {
                 <ChartCard
                   title="Estimated 1RM Trend"
                   description={selectedExerciseName ?? 'Line-level strength progression from the current filter.'}
-                  emptyMessage="Comparable main-lift history is required to render strength trend lines."
+                  emptyMessage="Comparable loaded-strength history is required to render strength trend lines."
                   emptyStateNote={analytics.coverage.metrics.e1rmTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.e1rmTrend.reasonCodes)}
                   headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.e1rmTrend} />}
                   isEmpty={analytics.e1rmTrend.length === 0}
@@ -518,6 +518,7 @@ export function AnalyticsDashboard() {
               {tab === 'ai' ? (
                 <AiInsightsPanel
                   key={aiInsightScopeKey}
+                  coverage={analytics.coverage}
                   dateRange={dateRange}
                   dateRangeLabel={selectedDateRangeLabel}
                   hasAnalyticsData={hasAnalyticsData}

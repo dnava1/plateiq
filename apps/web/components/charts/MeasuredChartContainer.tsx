@@ -10,11 +10,12 @@ interface ChartDimensions {
 const TEST_CHART_DIMENSIONS: ChartDimensions = { width: 640, height: 288 }
 
 interface MeasuredChartContainerProps {
+  allowOverflow?: boolean
   children: (dimensions: ChartDimensions) => ReactNode
   className: string
 }
 
-export function MeasuredChartContainer({ children, className }: MeasuredChartContainerProps) {
+export function MeasuredChartContainer({ allowOverflow = false, children, className }: MeasuredChartContainerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [dimensions, setDimensions] = useState<ChartDimensions | null>(null)
 
@@ -71,7 +72,7 @@ export function MeasuredChartContainer({ children, className }: MeasuredChartCon
   }, [])
 
   return (
-    <div ref={containerRef} className={`min-w-0 overflow-hidden ${className}`}>
+    <div ref={containerRef} className={`min-w-0 ${allowOverflow ? 'overflow-visible' : 'overflow-hidden'} ${className}`}>
       {dimensions ? children(dimensions) : null}
     </div>
   )
