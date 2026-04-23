@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { createEmptyStrengthProfile } from './strength-profile'
 import {
   aggregateWeeklyVolume,
+  calculateMovementPatternSetBalance,
+  buildMovementPatternWeeklySetVolume,
   buildWeeklyActivity,
+  calculateMovementPatternSetRatios,
   deriveRecentPrs,
   parseAnalyticsData,
   parseDashboardData,
@@ -250,6 +253,133 @@ describe('weekly aggregation helpers', () => {
       { weekStart: '2026-03-23', totalVolume: 0, totalSets: 0, isActive: false },
       { weekStart: '2026-03-30', totalVolume: 8000, totalSets: 7, isActive: true },
       { weekStart: '2026-04-06', totalVolume: 5400, totalSets: 4, isActive: true },
+    ])
+  })
+})
+
+describe('movement-pattern set analytics helpers', () => {
+  it('groups weekly set volume by exercise movement pattern', () => {
+    const result = buildMovementPatternWeeklySetVolume(
+      [
+        { weekStart: '2026-03-30', exerciseId: 1, exerciseName: 'Bench Press', totalVolume: 3000, totalSets: 5 },
+        { weekStart: '2026-03-30', exerciseId: 2, exerciseName: 'Overhead Press', totalVolume: 1200, totalSets: 3 },
+        { weekStart: '2026-04-06', exerciseId: 3, exerciseName: 'Barbell Row', totalVolume: 2400, totalSets: 4 },
+        { weekStart: '2026-04-06', exerciseId: 4, exerciseName: 'Cable Crunch', totalVolume: 900, totalSets: 3 },
+      ],
+      [
+        { id: 1, name: 'Bench Press', movement_pattern: 'horizontal_push' },
+        { id: 2, name: 'Overhead Press', movement_pattern: 'vertical_push' },
+        { id: 3, name: 'Barbell Row', movement_pattern: 'horizontal_pull' },
+        { id: 4, name: 'Cable Crunch', movement_pattern: 'core' },
+      ],
+    )
+
+    expect(result).toEqual([
+      {
+        weekStart: '2026-03-30',
+        movementPattern: 'horizontal_push',
+        totalSets: 5,
+        totalVolume: 3000,
+        exercises: [{ exerciseId: 1, exerciseName: 'Bench Press', totalSets: 5 }],
+      },
+      {
+        weekStart: '2026-03-30',
+        movementPattern: 'vertical_push',
+        totalSets: 3,
+        totalVolume: 1200,
+        exercises: [{ exerciseId: 2, exerciseName: 'Overhead Press', totalSets: 3 }],
+      },
+      {
+        weekStart: '2026-04-06',
+        movementPattern: 'horizontal_pull',
+        totalSets: 4,
+        totalVolume: 2400,
+        exercises: [{ exerciseId: 3, exerciseName: 'Barbell Row', totalSets: 4 }],
+      },
+    ])
+  })
+
+  it('calculates movement-pattern ratio summaries from grouped set volume', () => {
+    const weeklySetVolume = buildMovementPatternWeeklySetVolume(
+      [
+        { weekStart: '2026-03-30', exerciseId: 1, exerciseName: 'Bench Press', totalVolume: 3000, totalSets: 5 },
+        { weekStart: '2026-03-30', exerciseId: 2, exerciseName: 'Overhead Press', totalVolume: 1200, totalSets: 3 },
+        { weekStart: '2026-03-30', exerciseId: 3, exerciseName: 'Barbell Row', totalVolume: 2400, totalSets: 4 },
+        { weekStart: '2026-03-30', exerciseId: 4, exerciseName: 'Squat', totalVolume: 3600, totalSets: 4 },
+        { weekStart: '2026-04-06', exerciseId: 5, exerciseName: 'Romanian Deadlift', totalVolume: 2800, totalSets: 2 },
+      ],
+      [
+        { id: 1, name: 'Bench Press', movement_pattern: 'horizontal_push' },
+        { id: 2, name: 'Overhead Press', movement_pattern: 'vertical_push' },
+        { id: 3, name: 'Barbell Row', movement_pattern: 'horizontal_pull' },
+        { id: 4, name: 'Squat', movement_pattern: 'squat' },
+        { id: 5, name: 'Romanian Deadlift', movement_pattern: 'hinge' },
+      ],
+    )
+
+    expect(calculateMovementPatternSetRatios(weeklySetVolume)).toEqual([
+      {
+        key: 'pushPull',
+        label: 'Push : Pull',
+        leftLabel: 'Push',
+        leftSets: 8,
+        rightLabel: 'Pull',
+        rightSets: 4,
+        ratio: 2,
+        status: 'left_dominant',
+      },
+      {
+        key: 'squatHinge',
+        label: 'Squat/Lunge : Hinge',
+        leftLabel: 'Squat/Lunge',
+        leftSets: 4,
+        rightLabel: 'Hinge',
+        rightSets: 2,
+        ratio: 2,
+        status: 'left_dominant',
+      },
+    ])
+  })
+
+  it('treats pull- and hinge-favored movement-pattern ratios as balanced', () => {
+    const weeklySetVolume = buildMovementPatternWeeklySetVolume(
+      [
+        { weekStart: '2026-03-30', exerciseId: 1, exerciseName: 'Bench Press', totalVolume: 3000, totalSets: 4 },
+        { weekStart: '2026-03-30', exerciseId: 2, exerciseName: 'Pull-Up', totalVolume: 1000, totalSets: 4 },
+        { weekStart: '2026-03-30', exerciseId: 3, exerciseName: 'Barbell Row', totalVolume: 2400, totalSets: 2 },
+        { weekStart: '2026-03-30', exerciseId: 4, exerciseName: 'Squat', totalVolume: 3600, totalSets: 3 },
+        { weekStart: '2026-04-06', exerciseId: 5, exerciseName: 'Romanian Deadlift', totalVolume: 2800, totalSets: 3 },
+      ],
+      [
+        { id: 1, name: 'Bench Press', movement_pattern: 'horizontal_push' },
+        { id: 2, name: 'Pull-Up', movement_pattern: 'vertical_pull' },
+        { id: 3, name: 'Barbell Row', movement_pattern: 'horizontal_pull' },
+        { id: 4, name: 'Squat', movement_pattern: 'squat' },
+        { id: 5, name: 'Romanian Deadlift', movement_pattern: 'hinge' },
+      ],
+    )
+
+    expect(calculateMovementPatternSetRatios(weeklySetVolume).map((ratio) => ratio.status)).toEqual([
+      'balanced',
+      'balanced',
+    ])
+  })
+
+  it('calculates movement-pattern balance from set counts instead of load volume', () => {
+    const weeklySetVolume = buildMovementPatternWeeklySetVolume(
+      [
+        { weekStart: '2026-03-30', exerciseId: 1, exerciseName: 'Bench Press', totalVolume: 5000, totalSets: 5 },
+        { weekStart: '2026-03-30', exerciseId: 2, exerciseName: 'Weighted Pull-Up', totalVolume: 500, totalSets: 5 },
+      ],
+      [
+        { id: 1, name: 'Bench Press', movement_pattern: 'horizontal_push' },
+        { id: 2, name: 'Weighted Pull-Up', movement_pattern: 'vertical_pull' },
+      ],
+    )
+
+    expect(calculateMovementPatternSetBalance(weeklySetVolume)).toEqual([
+      { movementPattern: 'horizontal_push', totalVolume: 5, volumePct: 50 },
+      { movementPattern: 'vertical_pull', totalVolume: 5, volumePct: 50 },
     ])
   })
 })

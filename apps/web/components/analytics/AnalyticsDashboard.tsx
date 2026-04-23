@@ -7,7 +7,10 @@ import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import {
   aggregateWeeklyVolume,
+  calculateMovementPatternSetBalance,
+  buildMovementPatternWeeklySetVolume,
   buildWeeklyActivity,
+  calculateMovementPatternSetRatios,
   createEmptyAnalyticsBodyweightLane,
   createEmptyAnalyticsCoverage,
   deriveRecentPrs,
@@ -21,6 +24,8 @@ import { BodyweightWeeklyVolumeChart } from '@/components/charts/BodyweightWeekl
 import { ConsistencyHeatmap } from '@/components/charts/ConsistencyHeatmap'
 import { E1rmTrendChart } from '@/components/charts/E1rmTrendChart'
 import { MuscleBalanceChart } from '@/components/charts/MuscleBalanceChart'
+import { MovementPatternSetRatioPanel } from '@/components/charts/MovementPatternSetRatioPanel'
+import { MovementPatternSetVolumeHeatmap } from '@/components/charts/MovementPatternSetVolumeHeatmap'
 import { VolumeTrendChart } from '@/components/charts/VolumeTrendChart'
 import { formatDisplayLoad } from '@/components/charts/chart-utils'
 import { AiInsightsPanel } from './AiInsightsPanel'
@@ -120,8 +125,11 @@ export function AnalyticsDashboard() {
   const [rangeKey, setRangeKey] = useState('6m')
   const [selectedExerciseValue, setSelectedExerciseValue] = useState('all')
   const dateRange = useMemo(() => createDateRange(rangeKey), [rangeKey])
-  const selectedExerciseId = selectedExerciseValue === 'all' ? null : Number(selectedExerciseValue)
-  const { data: exercises } = useExercises()
+  const parsedSelectedExerciseId = selectedExerciseValue === 'all' ? null : Number(selectedExerciseValue)
+  const selectedExerciseId = typeof parsedSelectedExerciseId === 'number' && Number.isFinite(parsedSelectedExerciseId)
+    ? parsedSelectedExerciseId
+    : null
+  const { data: exercises, isLoading: isExercisesLoading } = useExercises()
   const exerciseSelectItems = useMemo(
     () => [
       { value: 'all', label: 'All exercises' },
@@ -136,8 +144,21 @@ export function AnalyticsDashboard() {
   const analytics = data
     ? { ...EMPTY_ANALYTICS, ...data }
     : EMPTY_ANALYTICS
+  const isAnalyticsLoading = isLoading || isExercisesLoading
   const weeklyActivity = useMemo(() => buildWeeklyActivity(analytics.volumeTrend, 12, dateRange.to), [analytics.volumeTrend, dateRange.to])
   const weeklyVolume = useMemo(() => aggregateWeeklyVolume(analytics.volumeTrend), [analytics.volumeTrend])
+  const movementPatternSetVolume = useMemo(
+    () => buildMovementPatternWeeklySetVolume(analytics.volumeTrend, exercises ?? []),
+    [analytics.volumeTrend, exercises],
+  )
+  const movementPatternSetRatios = useMemo(
+    () => calculateMovementPatternSetRatios(movementPatternSetVolume),
+    [movementPatternSetVolume],
+  )
+  const movementPatternSetBalance = useMemo(
+    () => calculateMovementPatternSetBalance(movementPatternSetVolume),
+    [movementPatternSetVolume],
+  )
   const currentWeekVolume = weeklyVolume.length > 0 ? weeklyVolume[weeklyVolume.length - 1].totalVolume : 0
   const previousWeeks = weeklyVolume.slice(Math.max(0, weeklyVolume.length - 5), weeklyVolume.length - 1)
   const averageWeeklyVolume = previousWeeks.length > 0
@@ -145,9 +166,11 @@ export function AnalyticsDashboard() {
     : 0
   const recentPrs = useMemo(() => deriveRecentPrs(analytics.prHistory, 6), [analytics.prHistory])
   const selectedDateRangeLabel = DATE_RANGE_PRESETS.find((preset) => preset.value === rangeKey)?.label ?? 'Last 6 months'
-  const selectedExerciseName = selectedExerciseId
-    ? exercises?.find((exercise) => exercise.id === selectedExerciseId)?.name ?? null
-    : null
+  const selectedExercise = useMemo(
+    () => (selectedExerciseId ? exercises?.find((exercise) => exercise.id === selectedExerciseId) ?? null : null),
+    [exercises, selectedExerciseId],
+  )
+  const selectedExerciseName = selectedExercise?.name ?? null
   const aiInsightScopeKey = [
     selectedExerciseId ?? 'all',
     formatDateAsLocalIso(dateRange.from),
@@ -155,7 +178,12 @@ export function AnalyticsDashboard() {
   ].join(':')
   const hasAnalyticsData = hasRenderableAnalyticsData(analytics)
   const isInsightEligible = hasInsightEligibleAnalyticsData(analytics)
-  const shouldShowBodyweightLane = analytics.bodyweightLane.relevant || analytics.coverage.metrics.bodyweightLane.status === 'limited'
+  const hasBodyweightLaneSignals = analytics.bodyweightLane.relevant
+    || analytics.coverage.metrics.bodyweightLane.signalCount > 0
+  const shouldRenderBodyweightLane = selectedExerciseId === null
+    || selectedExercise?.analytics_track === 'bodyweight_review'
+    || (selectedExercise === null && hasBodyweightLaneSignals)
+  const shouldShowBodyweightLane = hasBodyweightLaneSignals || analytics.coverage.metrics.bodyweightLane.status === 'limited'
 
   return (
     <div className="page-shell max-w-6xl">
@@ -298,31 +326,32 @@ export function AnalyticsDashboard() {
                 </ChartCard>
 
                 <ChartCard
-                  title="Muscle Balance"
-                  description="Volume distribution by movement pattern in the current filter window."
+                  title="Movement Balance"
+                  description="Set share by movement pattern in the current filter window."
                   emptyMessage="Logged work sets are required to compare movement balance."
-                  emptyStateNote={analytics.coverage.metrics.muscleBalance.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.muscleBalance.reasonCodes)}
-                  headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.muscleBalance} />}
-                  isEmpty={analytics.muscleBalance.length === 0}
-                  isLoading={isLoading}
+                  emptyStateNote={analytics.coverage.metrics.volumeTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.volumeTrend.reasonCodes)}
+                  headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.volumeTrend} />}
+                  isEmpty={movementPatternSetBalance.length === 0}
+                  isLoading={isAnalyticsLoading}
                 >
-                  <MuscleBalanceChart data={analytics.muscleBalance} />
+                  <MuscleBalanceChart data={movementPatternSetBalance} />
                 </ChartCard>
 
-                <ChartCard
-                  title="Bodyweight Exercise Review"
-                  description={selectedExerciseName
-                    ? `${selectedExerciseName} bodyweight review work is shown through session rep trends and weekly rep volume.`
-                    : 'Strict bodyweight movements get full rep-trend and weekly-volume charts, separate from loaded strength analytics.'}
-                  emptyMessage="No bodyweight exercise review data landed in this filter window."
-                  emptyStateNote={analytics.coverage.metrics.bodyweightLane.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.bodyweightLane.reasonCodes)}
-                  headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.bodyweightLane} />}
-                  isEmpty={!shouldShowBodyweightLane || (analytics.bodyweightLane.exerciseSummaries.length === 0 && analytics.bodyweightLane.repTrend.length === 0)}
-                  isLoading={isLoading}
-                  className="xl:col-span-2"
-                  heightClassName="h-auto"
-                >
-                  <div className="grid gap-4 xl:grid-cols-2">
+                {shouldRenderBodyweightLane ? (
+                  <ChartCard
+                    title="Bodyweight Exercise Review"
+                    description={selectedExerciseName
+                      ? `${selectedExerciseName} bodyweight review work is shown through session rep trends and weekly rep volume.`
+                      : 'Strict bodyweight movements get full rep-trend and weekly-volume charts, separate from loaded strength analytics.'}
+                    emptyMessage="No bodyweight exercise review data landed in this filter window."
+                    emptyStateNote={analytics.coverage.metrics.bodyweightLane.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.bodyweightLane.reasonCodes)}
+                    headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.bodyweightLane} />}
+                    isEmpty={!shouldShowBodyweightLane || (analytics.bodyweightLane.exerciseSummaries.length === 0 && analytics.bodyweightLane.repTrend.length === 0)}
+                    isLoading={isLoading}
+                    className="xl:col-span-2"
+                    heightClassName="h-auto"
+                  >
+                    <div className="grid gap-4 xl:grid-cols-2">
                     <div className="grid gap-3 md:grid-cols-2 xl:col-span-2">
                       {analytics.bodyweightLane.exerciseSummaries.map((summary) => (
                         <div key={summary.exerciseId} className="rounded-[20px] border border-border/70 bg-background/45 p-4">
@@ -379,8 +408,9 @@ export function AnalyticsDashboard() {
                         <BodyweightWeeklyVolumeChart data={analytics.bodyweightLane.weeklyVolumeTrend} />
                       </div>
                     </div>
-                  </div>
-                </ChartCard>
+                    </div>
+                  </ChartCard>
+                ) : null}
 
                 <ChartCard
                   title="Plateau Watch"
@@ -474,15 +504,36 @@ export function AnalyticsDashboard() {
                 </ChartCard>
 
                 <ChartCard
-                  title="Movement Balance"
-                  description="Volume share by movement pattern."
-                  emptyMessage="Movement balance appears after enough logged work sets land in this range."
-                  emptyStateNote={analytics.coverage.metrics.muscleBalance.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.muscleBalance.reasonCodes)}
-                  headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.muscleBalance} />}
-                  isEmpty={analytics.muscleBalance.length === 0}
-                  isLoading={isLoading}
+                  title="Movement Pattern Set Volume"
+                  description="Weekly work sets grouped by the primary movement patterns used in movement balance."
+                  emptyMessage="Logged work sets with movement patterns are required to build this heatmap."
+                  emptyStateNote={analytics.coverage.metrics.volumeTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.volumeTrend.reasonCodes)}
+                  headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.volumeTrend} />}
+                  isEmpty={movementPatternSetVolume.length === 0}
+                  isLoading={isAnalyticsLoading}
+                  className="min-w-0 xl:col-span-2"
+                  heightClassName="h-72"
                 >
-                  <MuscleBalanceChart data={analytics.muscleBalance} />
+                  <div className="flex min-w-0 flex-col gap-4">
+                    <MovementPatternSetRatioPanel ratios={movementPatternSetRatios} />
+                    <MovementPatternSetVolumeHeatmap
+                      data={movementPatternSetVolume}
+                      dateFrom={dateRange.from}
+                      dateTo={dateRange.to}
+                    />
+                  </div>
+                </ChartCard>
+
+                <ChartCard
+                  title="Movement Balance"
+                  description="Set share by movement pattern."
+                  emptyMessage="Movement balance appears after enough logged work sets land in this range."
+                  emptyStateNote={analytics.coverage.metrics.volumeTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.volumeTrend.reasonCodes)}
+                  headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.volumeTrend} />}
+                  isEmpty={movementPatternSetBalance.length === 0}
+                  isLoading={isAnalyticsLoading}
+                >
+                  <MuscleBalanceChart data={movementPatternSetBalance} />
                 </ChartCard>
 
                 <ChartCard

@@ -14,9 +14,15 @@ import { MeasuredChartContainer } from './MeasuredChartContainer'
 
 interface MuscleBalanceChartProps {
   data: AnalyticsMuscleBalancePoint[]
+  metricLabel?: string
+  name?: string
 }
 
-export function MuscleBalanceChart({ data }: MuscleBalanceChartProps) {
+export function MuscleBalanceChart({
+  data,
+  metricLabel = 'Set share',
+  name = 'Set balance',
+}: MuscleBalanceChartProps) {
   const rows = data.map((entry) => ({
     movementPattern: formatMovementPattern(entry.movementPattern),
     totalVolume: entry.totalVolume,
@@ -36,11 +42,11 @@ export function MuscleBalanceChart({ data }: MuscleBalanceChartProps) {
                 : typeof value === 'number'
                   ? value
                   : Number(value ?? 0)
-              return [`${numericValue.toFixed(1)}%`, 'Volume share']
+              return [`${numericValue.toFixed(1)}%`, metricLabel]
             }}
           />
           <Legend />
-          <Radar name="Volume balance" dataKey="volumePct" stroke={CHART_COLORS[0]} fill={CHART_COLORS[0]} fillOpacity={0.45} />
+          <Radar name={name} dataKey="volumePct" stroke={CHART_COLORS[0]} fill={CHART_COLORS[0]} fillOpacity={0.45} />
         </RadarChart>
       )}
     </MeasuredChartContainer>

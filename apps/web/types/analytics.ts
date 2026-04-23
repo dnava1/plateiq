@@ -265,3 +265,31 @@ export interface WeeklyVolumeSummary {
 export interface WeeklyActivitySummary extends WeeklyVolumeSummary {
   isActive: boolean
 }
+
+export interface MovementPatternExerciseSummary {
+  exerciseId: number
+  exerciseName: string
+  totalSets: number
+}
+
+export interface MovementPatternWeeklySetSummary {
+  weekStart: string
+  movementPattern: string
+  totalSets: number
+  totalVolume: number
+  exercises: MovementPatternExerciseSummary[]
+}
+
+export type MovementPatternSetRatioKey = 'pushPull' | 'squatHinge'
+export type MovementPatternSetRatioStatus = 'balanced' | 'left_dominant' | 'right_dominant' | 'insufficient_data'
+
+export interface MovementPatternSetRatio {
+  key: MovementPatternSetRatioKey
+  label: string
+  leftLabel: string
+  rightLabel: string
+  leftSets: number
+  rightSets: number
+  ratio: number | null
+  status: MovementPatternSetRatioStatus
+}

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createEmptyAnalyticsBodyweightLane, createEmptyAnalyticsCoverage } from '@/lib/analytics'
@@ -52,8 +52,8 @@ describe('AnalyticsDashboard', () => {
     mocks.usePreferredUnit.mockReturnValue('lbs')
     mocks.useExercises.mockReturnValue({
       data: [
-        { id: 1, name: 'Bench Press' },
-        { id: 2, name: 'Squat' },
+        { id: 1, name: 'Bench Press', analytics_track: 'standard', movement_pattern: 'horizontal_push' },
+        { id: 2, name: 'Squat', analytics_track: 'standard', movement_pattern: 'squat' },
       ],
     })
     mocks.useAnalytics.mockReturnValue({
@@ -138,6 +138,20 @@ describe('AnalyticsDashboard', () => {
     expect(screen.getByText('1,451.5 kg')).toBeInTheDocument()
   })
 
+  it('renders movement-pattern set heatmap and ratio summaries on the volume tab', async () => {
+    const user = userEvent.setup()
+
+    render(<AnalyticsDashboard />)
+
+    await user.click(screen.getByRole('tab', { name: 'Volume' }))
+
+    expect(screen.getByText('Movement Pattern Set Volume')).toBeInTheDocument()
+    expect(screen.getByText('Push : Pull')).toBeInTheDocument()
+    expect(screen.getByText('5 : 0')).toBeInTheDocument()
+    expect(screen.getByText('Push dominant')).toBeInTheDocument()
+    expect(screen.getByText('Horizontal Push')).toBeInTheDocument()
+  })
+
   it('shows the dedicated bodyweight review lane when bodyweight data exists', () => {
     const coverage = createEmptyAnalyticsCoverage()
     coverage.metrics.bodyweightLane = {
@@ -192,5 +206,38 @@ describe('AnalyticsDashboard', () => {
     expect(screen.getAllByText('Pull-Up').length).toBeGreaterThan(0)
     expect(screen.getByText('Rep Best Trend')).toBeInTheDocument()
     expect(screen.getByText('Weekly Rep Volume')).toBeInTheDocument()
+  })
+
+  it('hides the bodyweight review lane when filtered to a non-bodyweight exercise', async () => {
+    const user = userEvent.setup()
+
+    render(<AnalyticsDashboard />)
+
+    expect(screen.getByText('Bodyweight Exercise Review')).toBeInTheDocument()
+
+    await user.click(screen.getByLabelText('Exercise'))
+    await user.click(await screen.findByText('Bench Press'))
+
+    await waitFor(() => {
+      expect(screen.queryByText('Bodyweight Exercise Review')).not.toBeInTheDocument()
+    })
+  })
+
+  it('restores the bodyweight review lane when returning from a loaded exercise filter to all exercises', async () => {
+    const user = userEvent.setup()
+
+    render(<AnalyticsDashboard />)
+
+    await user.click(screen.getByLabelText('Exercise'))
+    await user.click(await screen.findByText('Bench Press'))
+
+    await waitFor(() => {
+      expect(screen.queryByText('Bodyweight Exercise Review')).not.toBeInTheDocument()
+    })
+
+    await user.click(screen.getByLabelText('Exercise'))
+    await user.click(await screen.findByText('All exercises'))
+
+    expect(screen.getByText('Bodyweight Exercise Review')).toBeInTheDocument()
   })
 })

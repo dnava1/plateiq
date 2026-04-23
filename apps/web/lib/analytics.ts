@@ -26,6 +26,10 @@ import type {
   DashboardRecentWorkout,
   DashboardTrainingMax,
   DerivedRecentPr,
+  MovementPatternSetRatio,
+  MovementPatternSetRatioKey,
+  MovementPatternSetRatioStatus,
+  MovementPatternWeeklySetSummary,
   StrengthProfileRawData,
   StrengthProfileRawLift,
   StrengthProfileRepMax,
@@ -36,7 +40,41 @@ import type {
 const RECENT_PR_EPSILON_LBS = 0.5
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000
 const MILLISECONDS_PER_WEEK = 7 * MILLISECONDS_PER_DAY
-
+const MOVEMENT_PATTERN_DISPLAY_ORDER = [
+  'horizontal_push',
+  'vertical_push',
+  'horizontal_pull',
+  'vertical_pull',
+  'squat',
+  'lunge',
+  'hinge',
+] as const
+const MOVEMENT_PATTERN_ANALYTICS_SET = new Set<string>(MOVEMENT_PATTERN_DISPLAY_ORDER)
+const MOVEMENT_PATTERN_SET_RATIO_CONFIGS: Array<{
+  key: MovementPatternSetRatioKey
+  label: string
+  leftLabel: string
+  leftPatterns: string[]
+  rightLabel: string
+  rightPatterns: string[]
+}> = [
+  {
+    key: 'pushPull',
+    label: 'Push : Pull',
+    leftLabel: 'Push',
+    leftPatterns: ['horizontal_push', 'vertical_push'],
+    rightLabel: 'Pull',
+    rightPatterns: ['horizontal_pull', 'vertical_pull'],
+  },
+  {
+    key: 'squatHinge',
+    label: 'Squat/Lunge : Hinge',
+    leftLabel: 'Squat/Lunge',
+    leftPatterns: ['squat', 'lunge'],
+    rightLabel: 'Hinge',
+    rightPatterns: ['hinge'],
+  },
+]
 const COVERAGE_REASON_CODES = new Set<AnalyticsCoverageReasonCode>([
   'bodyweight_only_scope',
   'limited_history',
@@ -97,6 +135,12 @@ export interface AnalyticsSourceSet {
   setType?: string | null
   weightLbs: number
   workoutId: number
+}
+
+export interface MovementPatternSourceExercise {
+  id: number
+  movement_pattern?: string | null
+  name?: string | null
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -1367,6 +1411,169 @@ export function buildWeeklyActivity(
   }
 
   return activity
+}
+
+function normalizeMovementPattern(value: string | null | undefined) {
+  return value && value.trim().length > 0 ? value : 'other'
+}
+
+function getMovementPatternSortIndex(movementPattern: string) {
+  const index = MOVEMENT_PATTERN_DISPLAY_ORDER.indexOf(movementPattern as typeof MOVEMENT_PATTERN_DISPLAY_ORDER[number])
+  return index === -1 ? MOVEMENT_PATTERN_DISPLAY_ORDER.length : index
+}
+
+export function buildMovementPatternWeekStarts(dateFrom: string | Date, dateTo: string | Date) {
+  const startWeek = startOfWeek(dateFrom)
+  const endWeek = startOfWeek(dateTo)
+  const weekStarts: string[] = []
+
+  for (
+    let currentWeek = startWeek;
+    currentWeek.getTime() <= endWeek.getTime();
+    currentWeek = new Date(currentWeek.getTime() + MILLISECONDS_PER_WEEK)
+  ) {
+    weekStarts.push(formatWeekStart(currentWeek))
+  }
+
+  return weekStarts
+}
+
+export function buildMovementPatternWeeklySetVolume(
+  volumeTrend: AnalyticsVolumePoint[],
+  exercises: MovementPatternSourceExercise[],
+): MovementPatternWeeklySetSummary[] {
+  const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise]))
+  const weeklyPatternTotals = new Map<string, {
+    exerciseSets: Map<number, { exerciseId: number; exerciseName: string; totalSets: number }>
+    movementPattern: string
+    totalSets: number
+    totalVolume: number
+    weekStart: string
+  }>()
+
+  for (const point of volumeTrend) {
+    const exercise = exerciseById.get(point.exerciseId)
+    const movementPattern = normalizeMovementPattern(exercise?.movement_pattern)
+
+    if (!MOVEMENT_PATTERN_ANALYTICS_SET.has(movementPattern)) {
+      continue
+    }
+
+    const key = `${point.weekStart}:${movementPattern}`
+    const current = weeklyPatternTotals.get(key) ?? {
+      exerciseSets: new Map<number, { exerciseId: number; exerciseName: string; totalSets: number }>(),
+      movementPattern,
+      totalSets: 0,
+      totalVolume: 0,
+      weekStart: point.weekStart,
+    }
+    const exerciseSummary = current.exerciseSets.get(point.exerciseId) ?? {
+      exerciseId: point.exerciseId,
+      exerciseName: exercise?.name ?? point.exerciseName,
+      totalSets: 0,
+    }
+
+    exerciseSummary.totalSets += point.totalSets
+    current.exerciseSets.set(point.exerciseId, exerciseSummary)
+    current.totalSets += point.totalSets
+    current.totalVolume += point.totalVolume
+    weeklyPatternTotals.set(key, current)
+  }
+
+  return Array.from(weeklyPatternTotals.values())
+    .map((entry) => ({
+      weekStart: entry.weekStart,
+      movementPattern: entry.movementPattern,
+      totalSets: entry.totalSets,
+      totalVolume: entry.totalVolume,
+      exercises: Array.from(entry.exerciseSets.values()).sort((left, right) => {
+        if (right.totalSets !== left.totalSets) {
+          return right.totalSets - left.totalSets
+        }
+
+        return left.exerciseName.localeCompare(right.exerciseName)
+      }),
+    }))
+    .sort((left, right) => {
+      if (left.weekStart !== right.weekStart) {
+        return left.weekStart.localeCompare(right.weekStart)
+      }
+
+      const patternSort = getMovementPatternSortIndex(left.movementPattern) - getMovementPatternSortIndex(right.movementPattern)
+      return patternSort === 0 ? left.movementPattern.localeCompare(right.movementPattern) : patternSort
+    })
+}
+
+function summarizeMovementPatternSets(data: MovementPatternWeeklySetSummary[]) {
+  const totals = new Map<string, number>()
+
+  for (const entry of data) {
+    totals.set(entry.movementPattern, (totals.get(entry.movementPattern) ?? 0) + entry.totalSets)
+  }
+
+  return totals
+}
+
+function sumMovementPatternSets(totals: Map<string, number>, movementPatterns: string[]) {
+  return movementPatterns.reduce((sum, movementPattern) => sum + (totals.get(movementPattern) ?? 0), 0)
+}
+
+function getMovementPatternRatioStatus(leftSets: number, rightSets: number): MovementPatternSetRatioStatus {
+  if (leftSets === 0 && rightSets === 0) {
+    return 'insufficient_data'
+  }
+
+  if (rightSets >= leftSets) {
+    return 'balanced'
+  }
+
+  if (leftSets > rightSets) {
+    return 'left_dominant'
+  }
+
+  return 'right_dominant'
+}
+
+export function calculateMovementPatternSetRatios(
+  data: MovementPatternWeeklySetSummary[],
+): MovementPatternSetRatio[] {
+  const totals = summarizeMovementPatternSets(data)
+
+  return MOVEMENT_PATTERN_SET_RATIO_CONFIGS.map((config) => {
+    const leftSets = sumMovementPatternSets(totals, config.leftPatterns)
+    const rightSets = sumMovementPatternSets(totals, config.rightPatterns)
+    const ratio = rightSets > 0 ? Math.round((leftSets / rightSets) * 100) / 100 : null
+
+    return {
+      key: config.key,
+      label: config.label,
+      leftLabel: config.leftLabel,
+      leftSets,
+      rightLabel: config.rightLabel,
+      rightSets,
+      ratio,
+      status: getMovementPatternRatioStatus(leftSets, rightSets),
+    }
+  })
+}
+
+export function calculateMovementPatternSetBalance(
+  data: MovementPatternWeeklySetSummary[],
+): AnalyticsMuscleBalancePoint[] {
+  const totals = summarizeMovementPatternSets(data)
+  const totalSets = Array.from(totals.values()).reduce((total, value) => total + value, 0)
+
+  if (totalSets === 0) {
+    return []
+  }
+
+  return Array.from(totals.entries())
+    .map(([movementPattern, movementPatternSets]) => ({
+      movementPattern,
+      totalVolume: movementPatternSets,
+      volumePct: roundToSingleDecimal((movementPatternSets * 100) / totalSets),
+    }))
+    .sort((left, right) => right.totalVolume - left.totalVolume)
 }
 
 export function getLatestE1rmPoint(points: AnalyticsE1rmPoint[], exerciseId?: number | null) {
