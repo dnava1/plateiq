@@ -44,13 +44,28 @@ const CATEGORY_OPTIONS = [
 ] as const
 
 const MOVEMENT_PATTERNS = [
-  { value: 'push', label: 'Push' },
-  { value: 'pull', label: 'Pull' },
+  { value: 'horizontal_push', label: 'Horizontal Push' },
+  { value: 'vertical_push', label: 'Vertical Push' },
+  { value: 'horizontal_pull', label: 'Horizontal Pull' },
+  { value: 'vertical_pull', label: 'Vertical Pull' },
   { value: 'hinge', label: 'Hinge' },
   { value: 'squat', label: 'Squat' },
-  { value: 'single_leg', label: 'Single Leg' },
+  { value: 'lunge', label: 'Lunge' },
   { value: 'core', label: 'Core' },
   { value: 'other', label: 'Other' },
+] as const
+
+const ANALYTICS_TRACK_OPTIONS = [
+  {
+    value: 'standard',
+    label: 'Standard Load-Based Exercise',
+    description: 'Use this for exercises that should appear in regular strength and volume analytics, including weighted pull-ups and weighted dips.',
+  },
+  {
+    value: 'bodyweight_review',
+    label: 'Bodyweight Exercise Review',
+    description: 'Use this for strict bodyweight movements that should be tracked with reps-focused bodyweight review charts.',
+  },
 ] as const
 
 function getDefaultValues(initialValues?: Partial<CreateExerciseInput>): CreateExerciseInput {
@@ -58,6 +73,7 @@ function getDefaultValues(initialValues?: Partial<CreateExerciseInput>): CreateE
     name: initialValues?.name ?? '',
     category: initialValues?.category ?? 'accessory',
     movement_pattern: initialValues?.movement_pattern ?? 'other',
+    analytics_track: initialValues?.analytics_track ?? 'standard',
   }
 }
 
@@ -105,7 +121,7 @@ export function CreateExerciseForm({
   }
 
   const handleInvalidSubmit = (formErrors: FieldErrors<CreateExerciseInput>) => {
-    const firstField = (['name', 'category', 'movement_pattern'] as const).find((field) => formErrors[field])
+    const firstField = (['name', 'category', 'movement_pattern', 'analytics_track'] as const).find((field) => formErrors[field])
     if (firstField) {
       setFocus(firstField)
     }
@@ -175,6 +191,50 @@ export function CreateExerciseForm({
             {errors.category && (
               <p id="exercise-category-error" className="text-sm text-destructive">{errors.category.message}</p>
             )}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="analytics_track">Tracked As</Label>
+            <Controller
+              control={control}
+              name="analytics_track"
+              render={({ field }) => {
+                const selectedTrack = ANALYTICS_TRACK_OPTIONS.find((option) => option.value === field.value)
+
+                return (
+                  <>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      items={ANALYTICS_TRACK_OPTIONS}
+                    >
+                      <SelectTrigger
+                        id="analytics_track"
+                        className="w-full h-9"
+                        aria-invalid={!!errors.analytics_track}
+                        aria-describedby={errors.analytics_track ? 'exercise-analytics-track-error' : 'exercise-analytics-track-help'}
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {ANALYTICS_TRACK_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    {errors.analytics_track ? (
+                      <p id="exercise-analytics-track-error" className="text-sm text-destructive">{errors.analytics_track.message}</p>
+                    ) : (
+                      <p id="exercise-analytics-track-help" className="text-xs leading-5 text-muted-foreground">
+                        {selectedTrack?.description}
+                      </p>
+                    )}
+                  </>
+                )
+              }}
+            />
           </div>
 
           <div className="flex flex-col gap-2">

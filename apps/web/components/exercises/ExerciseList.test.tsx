@@ -10,22 +10,24 @@ vi.mock('@/hooks/usePreferredWeightRounding', () => ({
 
 const exercises: Array<Tables<'exercises'>> = [
   {
+    analytics_track: 'standard',
     id: 1,
     name: 'Bench Press',
     category: 'main',
     is_main_lift: true,
-    movement_pattern: 'push',
+    movement_pattern: 'horizontal_push',
     created_by_user_id: null,
     progression_increment_lbs: 5,
     strength_lift_slug: 'bench-press',
     created_at: null,
   },
   {
+    analytics_track: 'standard',
     id: 2,
     name: 'Barbell Row',
     category: 'accessory',
     is_main_lift: false,
-    movement_pattern: 'pull',
+    movement_pattern: 'horizontal_pull',
     created_by_user_id: 'user-1',
     progression_increment_lbs: null,
     strength_lift_slug: null,

@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { CheckIcon, PlusIcon, Search, SearchX } from 'lucide-react'
 import type { Tables } from '@/types/database'
 import type { ExerciseCategory, MovementPattern } from '@/types/domain'
+import { formatMovementPattern } from '@/components/charts/chart-utils'
 
 type Exercise = Tables<'exercises'>
 
@@ -20,11 +21,13 @@ interface ExerciseSelection {
 }
 
 const MOVEMENT_PATTERN_LABELS: Record<MovementPattern, string> = {
-  push: 'Push',
-  pull: 'Pull',
+  horizontal_push: 'Horizontal push',
+  vertical_push: 'Vertical push',
+  horizontal_pull: 'Horizontal pull',
+  vertical_pull: 'Vertical pull',
   hinge: 'Hinge',
   squat: 'Squat',
-  single_leg: 'Single leg',
+  lunge: 'Lunge',
   core: 'Core',
   other: 'Other',
 }
@@ -112,7 +115,7 @@ export function ExerciseLibraryField({
           <div role="listbox" aria-label="Exercise search results" className="flex max-h-56 flex-col gap-1 overflow-y-auto">
             {filteredExercises.map((exercise) => {
               const isSelected = selectedExercise?.id === exercise.id
-              const movementLabel = MOVEMENT_PATTERN_LABELS[exercise.movement_pattern as MovementPattern] ?? exercise.movement_pattern
+              const movementLabel = MOVEMENT_PATTERN_LABELS[exercise.movement_pattern as MovementPattern] ?? formatMovementPattern(exercise.movement_pattern)
               return (
                 <button
                   key={exercise.id}
@@ -177,6 +180,7 @@ export function ExerciseLibraryField({
         onOpenChange={setCreateOpen}
         initialValues={{
           name: query.trim(),
+          analytics_track: 'standard',
           category: defaultCategory,
           movement_pattern: 'other',
         }}

@@ -92,21 +92,24 @@ const ACCESSORY_TEMPLATES_BY_DAY = {
 
 const BODYWEIGHT_VERIFICATION_TEMPLATES_BY_DAY = {
   bench: {
-    exerciseKey: 'dip',
+    strictExerciseKey: 'dip',
     strictBaseReps: 10,
     weightedBaseAddedLbs: 15,
+    weightedExerciseKey: 'weighted_dip',
     weightedReps: 5,
   },
   deadlift: {
-    exerciseKey: 'pull_up',
+    strictExerciseKey: 'pull_up',
     strictBaseReps: 8,
-    weightedBaseAddedLbs: 0,
+    weightedBaseAddedLbs: 5,
+    weightedExerciseKey: 'weighted_pull_up',
     weightedReps: 5,
   },
   ohp: {
-    exerciseKey: 'chin_up',
+    strictExerciseKey: 'chin_up',
     strictBaseReps: 9,
     weightedBaseAddedLbs: 5,
+    weightedExerciseKey: 'weighted_chin_up',
     weightedReps: 5,
   },
 }
@@ -277,7 +280,7 @@ function buildAccessorySets(dayKey, startOrder, loggedAtBase, cycleNumber, weekN
       + (exposureIndex * BODYWEIGHT_WEIGHTED_INCREMENT_LBS)
 
     sets.push({
-      exerciseKey: bodyweightVerificationTemplate.exerciseKey,
+      exerciseKey: bodyweightVerificationTemplate.strictExerciseKey,
       intensityType: 'bodyweight',
       isAmrap: false,
       loggedAt: addMinutes(loggedAtBase, (setOrder - 1) * 4),
@@ -291,8 +294,8 @@ function buildAccessorySets(dayKey, startOrder, loggedAtBase, cycleNumber, weekN
     setOrder += 1
 
     sets.push({
-      exerciseKey: bodyweightVerificationTemplate.exerciseKey,
-      intensityType: 'bodyweight',
+      exerciseKey: bodyweightVerificationTemplate.weightedExerciseKey,
+      intensityType: 'fixed_weight',
       isAmrap: false,
       loggedAt: addMinutes(loggedAtBase, (setOrder - 1) * 4),
       repsActual: bodyweightVerificationTemplate.weightedReps,

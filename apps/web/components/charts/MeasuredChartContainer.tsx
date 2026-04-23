@@ -71,7 +71,7 @@ export function MeasuredChartContainer({ children, className }: MeasuredChartCon
   }, [])
 
   return (
-    <div ref={containerRef} className={className}>
+    <div ref={containerRef} className={`min-w-0 overflow-hidden ${className}`}>
       {dimensions ? children(dimensions) : null}
     </div>
   )

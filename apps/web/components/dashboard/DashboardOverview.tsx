@@ -482,9 +482,9 @@ export function DashboardOverview() {
               <CardHeader className="gap-2">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <CardTitle className="text-base">Bodyweight Review</CardTitle>
+                    <CardTitle className="text-base">Bodyweight Exercise Review</CardTitle>
                     <CardDescription>
-                      Strict-rep and added-load work stay separate here instead of disappearing into zero-load charts.
+                      Strict bodyweight movements get their own rep-based review lane.
                     </CardDescription>
                   </div>
                   {analyticsSnapshot ? <CoverageBadge coverage={analyticsSnapshot.coverage.metrics.bodyweightLane} /> : null}
@@ -501,15 +501,15 @@ export function DashboardOverview() {
                             {summary.lastSessionDate ? `Last logged ${formatDate(summary.lastSessionDate)}` : 'No completed sessions yet'}
                           </p>
                         </div>
-                        <Badge variant="outline">{summary.strictSessionCount + summary.weightedSessionCount} sessions</Badge>
+                        <Badge variant="outline">{summary.strictSessionCount} sessions</Badge>
                       </div>
                       <p className="mt-3 text-xs text-muted-foreground">
-                        Strict best {summary.latestStrictRepBest ?? '—'} reps · latest added load {summary.latestAddedLoadLbs !== null ? formatWeight(summary.latestAddedLoadLbs, preferredUnit, weightRoundingLbs) : '—'}
+                        Last session rep best {summary.latestStrictRepBest ?? '—'} reps · {summary.totalLoggedReps} total reps logged
                       </p>
                     </div>
                   ))}
                   <Link href="/analytics" className={buttonVariants({ variant: 'outline' })}>
-                    Open bodyweight analytics
+                    Open bodyweight exercise review
                   </Link>
                 </div>
               </CardContent>

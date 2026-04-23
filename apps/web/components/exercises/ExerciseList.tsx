@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/empty'
 import { Label } from '@/components/ui/label'
 import { Search, SearchX } from 'lucide-react'
+import { formatMovementPattern } from '@/components/charts/chart-utils'
 import { formatWeight } from '@/lib/utils'
 import type { Tables } from '@/types/database'
 import type { PreferredUnit } from '@/types/domain'
@@ -79,7 +80,7 @@ export function ExerciseList({ exercises, trainingMaxes, unit, onSetTm }: Exerci
                     {exercise.is_main_lift ? 'Main' : 'Accessory'}
                   </Badge>
                   <Badge variant="outline" className="capitalize">
-                    {exercise.movement_pattern.replace('_', ' ')}
+                    {formatMovementPattern(exercise.movement_pattern)}
                   </Badge>
                 </div>
               </div>

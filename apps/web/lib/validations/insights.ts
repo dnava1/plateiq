@@ -41,7 +41,7 @@ export const trainingInsightSectionsSchema = z.object({
 })
 
 export const progressionGuidanceActionSchema = z.enum(['increase', 'hold', 'repeat', 'review'])
-export const progressionGuidanceMethodContextSchema = z.enum(['main_lift_strength', 'training_max'])
+export const progressionGuidanceMethodContextSchema = z.enum(['loaded_strength', 'training_max'])
 export const progressionGuidanceBoundedReasonSchema = z.enum([
   'broader_scope',
   'unsupported_scope',

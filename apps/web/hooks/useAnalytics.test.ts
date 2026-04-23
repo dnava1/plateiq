@@ -100,13 +100,13 @@ describe('useAnalytics', () => {
             status: 'ready',
           },
           e1rmTrend: {
-            family: 'main_lift_amrap',
+            family: 'loaded_strength',
             reasonCodes: ['limited_history'],
             signalCount: 1,
             status: 'limited',
           },
           stallDetection: {
-            family: 'main_lift_amrap',
+            family: 'loaded_strength',
             reasonCodes: ['limited_history'],
             signalCount: 1,
             status: 'limited',

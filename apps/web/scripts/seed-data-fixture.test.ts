@@ -18,7 +18,7 @@ describe('generateWendler531BbbSets', () => {
 })
 
 describe('buildSeedDataPlan', () => {
-  it('creates a reusable verification fixture with stalled bench history, bodyweight coverage, and a resumable workout', () => {
+  it('creates a reusable verification fixture with stalled bench history, strict bodyweight review data, weighted variants, and a resumable workout', () => {
     const referenceDate = new Date('2026-04-12T12:00:00.000Z')
     const plan = buildSeedDataPlan(referenceDate)
     const summary = summarizeSeedDataPlan(plan)
@@ -43,11 +43,14 @@ describe('buildSeedDataPlan', () => {
     expect(summary.totalSets).toBe(660)
     expect(summary.lastBenchPrDate).toBe('2026-03-12')
     expect(allSets.some((set) => set.exerciseKey === 'dip' && set.intensityType === 'bodyweight' && set.weightLbs === 0)).toBe(true)
-    expect(allSets.some((set) => set.exerciseKey === 'dip' && set.intensityType === 'bodyweight' && set.weightLbs > 0)).toBe(true)
+    expect(allSets.some((set) => set.exerciseKey === 'weighted_dip' && set.intensityType === 'fixed_weight' && set.weightLbs > 0)).toBe(true)
     expect(allSets.some((set) => set.exerciseKey === 'chin_up' && set.intensityType === 'bodyweight' && set.weightLbs === 0)).toBe(true)
-    expect(allSets.some((set) => set.exerciseKey === 'chin_up' && set.intensityType === 'bodyweight' && set.weightLbs > 0)).toBe(true)
+    expect(allSets.some((set) => set.exerciseKey === 'weighted_chin_up' && set.intensityType === 'fixed_weight' && set.weightLbs > 0)).toBe(true)
     expect(allSets.some((set) => set.exerciseKey === 'pull_up' && set.intensityType === 'bodyweight' && set.weightLbs === 0)).toBe(true)
-    expect(allSets.some((set) => set.exerciseKey === 'pull_up' && set.intensityType === 'bodyweight' && set.weightLbs > 0)).toBe(true)
+    expect(allSets.some((set) => set.exerciseKey === 'weighted_pull_up' && set.intensityType === 'fixed_weight' && set.weightLbs > 0)).toBe(true)
+    expect(allSets.every((set) => set.exerciseKey !== 'weighted_dip' || set.intensityType === 'fixed_weight')).toBe(true)
+    expect(allSets.every((set) => set.exerciseKey !== 'weighted_chin_up' || set.intensityType === 'fixed_weight')).toBe(true)
+    expect(allSets.every((set) => set.exerciseKey !== 'weighted_pull_up' || set.intensityType === 'fixed_weight')).toBe(true)
     expect(resumableBenchWorkout).toBeDefined()
     expect(resumableBenchWorkout?.completedAt).toBeNull()
     expect(resumableBenchWorkout?.sets).toHaveLength(8)

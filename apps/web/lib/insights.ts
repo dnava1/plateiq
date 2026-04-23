@@ -23,7 +23,7 @@ const MAX_RECENT_PRS = 3
 const MAX_E1RM_HIGHLIGHTS = 3
 const MAX_STALLED_LIFTS = 3
 const MAX_BALANCE_ENTRIES = 4
-const MIN_MAIN_LIFT_STRENGTH_READY_METRICS = 2
+const MIN_LOADED_STRENGTH_READY_METRICS = 2
 const E1RM_PROGRESS_EPSILON_LBS = 0.5
 const PROGRESSION_GUIDANCE_ACTIONS: readonly ProgressionGuidanceAction[] = ['increase', 'hold', 'repeat', 'review']
 const SHORT_DETAIL_EXPANSION_LIMIT = 160
@@ -198,7 +198,7 @@ function buildDataGaps(analytics: AnalyticsData) {
   }
 
   if (analytics.bodyweightLane.relevant && analytics.bodyweightLane.exerciseSummaries.length === 0) {
-    gaps.push('Bodyweight work is present, but there is not enough comparable strict or weighted history yet.')
+    gaps.push('Bodyweight review work is present, but there is not enough comparable rep history yet.')
   }
 
   return gaps
@@ -542,13 +542,13 @@ function buildProgressionGuidanceContext(
       null,
       'unsupported_scope',
       'The selected exercise does not resolve to a supported progression context in the current analytics snapshot.',
-      'This selected exercise can still support retrospective insight, but progression guidance stays bounded because the current analytics snapshot does not expose a supported main-lift strength or training-max context for it yet.',
+      'This selected exercise can still support retrospective insight, but progression guidance stays bounded because the current analytics snapshot does not expose a supported loaded-strength or training-max context for it yet.',
     )
   }
 
   const { coverage } = analytics
   const consistencySignalCount = coverage.metrics.consistency.signalCount
-  const mainLiftStrengthReadyMetricCount = [
+  const loadedStrengthReadyMetricCount = [
     coverage.metrics.e1rmTrend.status === 'ready',
     coverage.metrics.prHistory.status === 'ready',
     coverage.metrics.stallDetection.status === 'ready',
@@ -569,27 +569,27 @@ function buildProgressionGuidanceContext(
     )
   }
 
-  const hasSupportedMainLiftStrengthContext = mainLiftStrengthReadyMetricCount >= MIN_MAIN_LIFT_STRENGTH_READY_METRICS
+  const hasSupportedLoadedStrengthContext = loadedStrengthReadyMetricCount >= MIN_LOADED_STRENGTH_READY_METRICS
   const hasSupportedTrainingMaxContext = coverage.metrics.tmProgression.status === 'ready'
-  const hasPositiveMainLiftStrengthSignal = hasExercisePrImprovement(analytics, filter.exerciseId)
+  const hasPositiveLoadedStrengthSignal = hasExercisePrImprovement(analytics, filter.exerciseId)
     || ((getExerciseE1rmChange(analytics.e1rmTrend, filter.exerciseId) ?? 0) > E1RM_PROGRESS_EPSILON_LBS)
   const hasStallSignal = analytics.stallDetection.some((entry) => entry.exerciseId === filter.exerciseId)
   const trainingMaxChange = getExerciseTrainingMaxChange(analytics, filter.exerciseId)
   const hasTrainingMaxIncrease = (trainingMaxChange ?? 0) > 0
   const hasTrainingMaxRegression = (trainingMaxChange ?? 0) < 0
 
-  if (!hasSupportedMainLiftStrengthContext && !hasSupportedTrainingMaxContext) {
+  if (!hasSupportedLoadedStrengthContext && !hasSupportedTrainingMaxContext) {
     return createBoundedProgressionContext(
       exerciseName,
       hasLimitedMethodSignal ? 'insufficient_coverage' : 'unsupported_scope',
-      `${exerciseName} does not have enough supported main-lift strength or training-max coverage for an explicit progression action.`,
+      `${exerciseName} does not have enough supported loaded-strength or training-max coverage for an explicit progression action.`,
       hasLimitedMethodSignal
         ? `You have some relevant progression data for ${exerciseName}, but it is still too thin or too partial for a confident progression action. Keep this read retrospective for now.`
-        : `This filter still supports retrospective insight for ${exerciseName}, but progression guidance stays bounded because the current method context is outside the supported main-lift strength and training-max lanes.`,
+        : `This filter still supports retrospective insight for ${exerciseName}, but progression guidance stays bounded because the current method context is outside the supported loaded-strength and training-max lanes.`,
     )
   }
 
-  if ((hasPositiveMainLiftStrengthSignal || hasTrainingMaxIncrease) && (hasStallSignal || hasTrainingMaxRegression)) {
+  if ((hasPositiveLoadedStrengthSignal || hasTrainingMaxIncrease) && (hasStallSignal || hasTrainingMaxRegression)) {
     return createBoundedProgressionContext(
       exerciseName,
       'mixed_signal',
@@ -598,22 +598,22 @@ function buildProgressionGuidanceContext(
     )
   }
 
-  if (hasSupportedMainLiftStrengthContext) {
-    if (hasPositiveMainLiftStrengthSignal) {
+  if (hasSupportedLoadedStrengthContext) {
+    if (hasPositiveLoadedStrengthSignal) {
       return createActionableProgressionContext(
         exerciseName,
-        'main_lift_strength',
+        'loaded_strength',
         ['increase', 'hold', 'repeat'],
-        `${exerciseName} has ready main-lift strength coverage with positive recent performance signals and no conflicting caution flag. Allowed actions: increase, hold, repeat.`,
+        `${exerciseName} has ready loaded-strength coverage with positive recent performance signals and no conflicting caution flag. Allowed actions: increase, hold, repeat.`,
       )
     }
 
     if (hasStallSignal) {
       return createActionableProgressionContext(
         exerciseName,
-        'main_lift_strength',
+        'loaded_strength',
         ['hold', 'repeat', 'review'],
-        `${exerciseName} has ready main-lift strength coverage with a caution signal and no conflicting progress signal. Allowed actions: hold, repeat, review.`,
+        `${exerciseName} has ready loaded-strength coverage with a caution signal and no conflicting progress signal. Allowed actions: hold, repeat, review.`,
       )
     }
   }
@@ -842,25 +842,23 @@ export function buildAnalyticsInsightSnapshot(
     bodyweight: {
       exercises: analytics.bodyweightLane.exerciseSummaries.slice(0, 4).map((entry) => ({
         exerciseName: entry.exerciseName,
-        latestAddedLoadLbs: entry.latestAddedLoadLbs === null ? null : roundToTenth(entry.latestAddedLoadLbs),
         latestStrictRepBest: entry.latestStrictRepBest,
         strictSessionCount: entry.strictSessionCount,
-        weightedSessionCount: entry.weightedSessionCount,
+        totalLoggedReps: entry.totalLoggedReps,
       })),
-      recentStrictRepTrend: [...analytics.bodyweightLane.strictRepTrend]
-        .slice(Math.max(0, analytics.bodyweightLane.strictRepTrend.length - 4))
+      recentRepTrend: [...analytics.bodyweightLane.repTrend]
+        .slice(Math.max(0, analytics.bodyweightLane.repTrend.length - 4))
         .map((entry) => ({
           bestReps: entry.bestReps,
           date: entry.date,
           exerciseName: entry.exerciseName,
         })),
-      recentWeightedLoadTrend: [...analytics.bodyweightLane.weightedLoadTrend]
-        .slice(Math.max(0, analytics.bodyweightLane.weightedLoadTrend.length - 4))
+      recentWeeklyVolumeTrend: [...analytics.bodyweightLane.weeklyVolumeTrend]
+        .slice(Math.max(0, analytics.bodyweightLane.weeklyVolumeTrend.length - 4))
         .map((entry) => ({
-          addedWeightLbs: roundToTenth(entry.addedWeightLbs),
-          date: entry.date,
-          exerciseName: entry.exerciseName,
-          reps: entry.reps,
+          totalReps: entry.totalReps,
+          totalSessions: entry.totalSessions,
+          weekStart: entry.weekStart,
         })),
       relevant: analytics.bodyweightLane.relevant,
     },

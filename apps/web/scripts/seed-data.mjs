@@ -72,6 +72,34 @@ export function getCliOptionValue(args, optionName) {
   return args[optionIndex + 1] ?? null
 }
 
+export function getCliOptionValues(args, optionName) {
+  const values = []
+
+  for (let index = 0; index < args.length; index += 1) {
+    if (args[index] === optionName && args[index + 1]) {
+      values.push(args[index + 1])
+      index += 1
+    }
+  }
+
+  return values
+}
+
+export function getAdditionalSeedEmails({
+  args = process.argv.slice(2),
+  env = process.env,
+  verificationEmail,
+}) {
+  const cliEmails = getCliOptionValues(args, '--extra-email')
+  const envEmails = (env.SEED_EXTRA_EMAILS ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+
+  return Array.from(new Set([...cliEmails, ...envEmails]))
+    .filter((email) => email.toLowerCase() !== verificationEmail.toLowerCase())
+}
+
 function isHostedSupabaseUrl(supabaseUrl) {
   const hostname = new URL(supabaseUrl).hostname.toLowerCase()
   return hostname !== 'localhost' && hostname !== '127.0.0.1'
@@ -228,6 +256,55 @@ export async function ensureVerificationUser(admin, email, password) {
   return data.user
 }
 
+export async function requireExistingUser(admin, email) {
+  const user = await findUserByEmail(admin, email)
+
+  if (!user) {
+    throw new Error(`Could not find an existing Supabase user for ${email}.`)
+  }
+
+  return user
+}
+
+function getSeedDisplayName(user, fallbackEmail, defaultDisplayName = 'Copilot Verify') {
+  const metadata = user?.user_metadata && typeof user.user_metadata === 'object'
+    ? user.user_metadata
+    : null
+  const fullName = typeof metadata?.full_name === 'string' && metadata.full_name.trim().length > 0
+    ? metadata.full_name.trim()
+    : null
+  const name = typeof metadata?.name === 'string' && metadata.name.trim().length > 0
+    ? metadata.name.trim()
+    : null
+
+  return fullName ?? name ?? defaultDisplayName ?? fallbackEmail
+}
+
+/**
+ * @param {{ extraEmails?: string[]; verificationEmail: string; verificationPassword: string }} options
+ */
+export async function resolveSeedTargets(admin, options) {
+  const extraEmails = options.extraEmails ?? []
+  const { verificationEmail, verificationPassword } = options
+  const verificationUser = await ensureVerificationUser(admin, verificationEmail, verificationPassword)
+  const targets = [{
+    email: verificationEmail,
+    user: verificationUser,
+    displayName: 'Copilot Verify',
+  }]
+
+  for (const email of extraEmails) {
+    const user = await requireExistingUser(admin, email)
+    targets.push({
+      email,
+      user,
+      displayName: getSeedDisplayName(user, email),
+    })
+  }
+
+  return targets
+}
+
 export async function resetUserData(admin, userId) {
   const deleteByUserId = async (table) => {
     const { error } = await admin.from(table).delete().eq('user_id', userId)
@@ -318,10 +395,10 @@ export function assertSeedInvariants(actualStats, expectedSummary) {
   }
 }
 
-async function upsertProfile(admin, userId, plan) {
+async function upsertProfile(admin, userId, plan, displayName = plan.profile.displayName) {
   const { error } = await admin.from('profiles').upsert({
     avatar_url: null,
-    display_name: plan.profile.displayName,
+    display_name: displayName,
     id: userId,
     preferred_unit: plan.profile.preferredUnit,
     strength_profile_age_years: plan.profile.strengthProfileAgeYears ?? null,
@@ -464,34 +541,43 @@ async function main() {
   const admin = createAdminClient({ args, env: process.env, verificationEmail })
   const verificationPassword = getRequiredEnv('VERIFICATION_PASSWORD')
   const plan = buildSeedDataPlan(new Date())
+  const extraSeedEmails = getAdditionalSeedEmails({ args, env: process.env, verificationEmail })
+  const seedTargets = await resolveSeedTargets(admin, {
+    extraEmails: extraSeedEmails,
+    verificationEmail,
+    verificationPassword,
+  })
 
-  console.log(`Seeding verification data for ${verificationEmail}...`)
-
-  const user = await ensureVerificationUser(admin, verificationEmail, verificationPassword)
-  const userId = user.id
-
-  await resetUserData(admin, userId)
-  await upsertProfile(admin, userId, plan)
+  console.log(`Seeding verification data for ${seedTargets.map((target) => target.email).join(', ')}...`)
 
   const exercises = await fetchExercises(admin)
   const exerciseIdMap = createExerciseIdMap(exercises)
 
-  await insertTrainingMaxes(admin, userId, exerciseIdMap, plan)
-  const programId = await insertProgram(admin, userId, plan)
-  await insertCyclesAndWorkouts(admin, userId, programId, exerciseIdMap, plan)
-
   const summary = summarizeSeedDataPlan(plan)
-  const actualStats = await collectSeedStats(admin, userId)
+  const seededUsers = []
 
-  assertSeedInvariants(actualStats, summary)
+  for (const target of seedTargets) {
+    const userId = target.user.id
+
+    await resetUserData(admin, userId)
+    await upsertProfile(admin, userId, plan, target.displayName)
+    await insertTrainingMaxes(admin, userId, exerciseIdMap, plan)
+    const programId = await insertProgram(admin, userId, plan)
+    await insertCyclesAndWorkouts(admin, userId, programId, exerciseIdMap, plan)
+
+    const actualStats = await collectSeedStats(admin, userId)
+    assertSeedInvariants(actualStats, summary)
+
+    seededUsers.push({
+      email: target.email,
+      programId,
+      ...actualStats,
+      ...summary,
+    })
+  }
 
   console.log('Seed complete.')
-  console.log(JSON.stringify({
-    email: verificationEmail,
-    programId,
-    ...actualStats,
-    ...summary,
-  }, null, 2))
+  console.log(JSON.stringify({ seededUsers }, null, 2))
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {

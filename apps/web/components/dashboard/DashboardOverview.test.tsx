@@ -335,14 +335,13 @@ describe('DashboardOverview', () => {
               exerciseId: 7,
               exerciseName: 'Pull-Up',
               lastSessionDate: '2026-04-05',
-              latestAddedLoadLbs: 25,
               latestStrictRepBest: 12,
               strictSessionCount: 2,
-              weightedSessionCount: 1,
+              totalLoggedReps: 42,
             },
           ],
-          strictRepTrend: [],
-          weightedLoadTrend: [],
+          repTrend: [],
+          weeklyVolumeTrend: [],
         },
         coverage,
         e1rmTrend: [],
@@ -364,8 +363,8 @@ describe('DashboardOverview', () => {
 
     render(<DashboardOverview />)
 
-    expect(screen.getByText('Bodyweight Review')).toBeInTheDocument()
-    expect(screen.getByText('Open bodyweight analytics')).toBeInTheDocument()
-    expect(screen.getByText(/Strict best 12 reps/i)).toBeInTheDocument()
+    expect(screen.getByText('Bodyweight Exercise Review')).toBeInTheDocument()
+    expect(screen.getByText('Open bodyweight exercise review')).toBeInTheDocument()
+    expect(screen.getByText(/Last session rep best 12 reps/i)).toBeInTheDocument()
   })
 })

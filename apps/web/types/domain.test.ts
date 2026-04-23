@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import type { SetType, ExerciseCategory, MovementPattern, IntensityType, ProgressionStyle, PreferredUnit, ProgramLevel } from './domain'
+import type { SetType, ExerciseAnalyticsTrack, ExerciseCategory, MovementPattern, IntensityType, ProgressionStyle, PreferredUnit, ProgramLevel } from './domain'
 
 describe('domain enum types', () => {
   it('SetType values are valid', () => {
@@ -14,9 +14,14 @@ describe('domain enum types', () => {
   })
 
   it('MovementPattern values are valid', () => {
-    const values: MovementPattern[] = ['push', 'pull', 'hinge', 'squat', 'single_leg', 'core', 'other']
-    expect(values).toHaveLength(7)
+    const values: MovementPattern[] = ['horizontal_push', 'vertical_push', 'horizontal_pull', 'vertical_pull', 'hinge', 'squat', 'lunge', 'core', 'other']
+    expect(values).toHaveLength(9)
     values.forEach((v) => expect(v).toMatch(/^[a-z_]+$/))
+  })
+
+  it('ExerciseAnalyticsTrack values are valid', () => {
+    const values: ExerciseAnalyticsTrack[] = ['standard', 'bodyweight_review']
+    expect(values).toHaveLength(2)
   })
 
   it('IntensityType values are valid', () => {

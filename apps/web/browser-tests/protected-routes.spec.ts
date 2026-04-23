@@ -23,14 +23,6 @@ async function openSelectPopup(page: Page, triggerId: string) {
   return popup
 }
 
-async function selectPopupOption(page: Page, triggerId: string, optionName: string) {
-  const popup = await openSelectPopup(page, triggerId)
-  const option = popup.locator('[data-slot="select-item"]').filter({ hasText: optionName }).first()
-
-  await expect(option).toBeVisible()
-  await option.click()
-}
-
 async function selectAnalyticsExercise(page: Page) {
   const popup = await openSelectPopup(page, 'analytics-exercise')
   const options = popup.locator('[data-slot="select-item"]')
@@ -234,7 +226,7 @@ test.describe('authenticated dashboard and analytics flows', () => {
               disposition: 'actionable',
               action: 'increase',
               exerciseName: selectedExerciseName,
-              methodContext: 'main_lift_strength',
+              methodContext: 'loaded_strength',
               rationale: `You have enough comparable signal to move ${selectedExerciseName} forward conservatively.`,
             },
           }

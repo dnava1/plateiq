@@ -5,7 +5,7 @@ export interface GenerateInsightInput {
 }
 
 export type ProgressionGuidanceAction = 'increase' | 'hold' | 'repeat' | 'review'
-export type ProgressionGuidanceMethodContext = 'main_lift_strength' | 'training_max'
+export type ProgressionGuidanceMethodContext = 'loaded_strength' | 'training_max'
 export type ProgressionGuidanceBoundedReason =
   | 'broader_scope'
   | 'unsupported_scope'
@@ -69,21 +69,19 @@ export interface InsightSnapshot {
   bodyweight: {
     exercises: Array<{
       exerciseName: string
-      latestAddedLoadLbs: number | null
       latestStrictRepBest: number | null
       strictSessionCount: number
-      weightedSessionCount: number
+      totalLoggedReps: number
     }>
-    recentStrictRepTrend: Array<{
+    recentRepTrend: Array<{
       bestReps: number
       date: string
       exerciseName: string
     }>
-    recentWeightedLoadTrend: Array<{
-      addedWeightLbs: number
-      date: string
-      exerciseName: string
-      reps: number
+    recentWeeklyVolumeTrend: Array<{
+      totalReps: number
+      totalSessions: number
+      weekStart: string
     }>
     relevant: boolean
   }

@@ -12,12 +12,10 @@ import {
   CardHeader,
 } from '@/components/ui/card'
 import type { AnalyticsDateRange } from '@/hooks/useAnalytics'
-import type { AnalyticsCoverage } from '@/types/analytics'
 import type { ProgressionGuidanceAction, ProgressionGuidanceMethodContext, TrainingInsight } from '@/types/insights'
 import { formatDateAsLocalIso } from '@/lib/utils'
 
 interface AiInsightsPanelProps {
-  coverage: AnalyticsCoverage
   dateRange: AnalyticsDateRange
   dateRangeLabel: string
   hasAnalyticsData: boolean
@@ -55,8 +53,8 @@ function formatGuidanceActionLabel(action: ProgressionGuidanceAction) {
 
 function formatGuidanceMethodContextLabel(methodContext: ProgressionGuidanceMethodContext) {
   switch (methodContext) {
-    case 'main_lift_strength':
-      return 'Main-lift strength'
+    case 'loaded_strength':
+      return 'Loaded strength'
     case 'training_max':
       return 'Training max'
     default:
@@ -65,7 +63,6 @@ function formatGuidanceMethodContextLabel(methodContext: ProgressionGuidanceMeth
 }
 
 export function AiInsightsPanel({
-  coverage,
   dateRange,
   dateRangeLabel,
   hasAnalyticsData,

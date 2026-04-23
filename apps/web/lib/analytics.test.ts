@@ -98,10 +98,10 @@ describe('parseAnalyticsData', () => {
         metrics: {
           bodyweight_lane: { family: 'bodyweight_specific', status: 'ready', signal_count: 2, reason_codes: [] },
           consistency: { family: 'general_logging', status: 'ready', signal_count: 3, reason_codes: [] },
-          e1rm_trend: { family: 'main_lift_amrap', status: 'limited', signal_count: 1, reason_codes: ['limited_history'] },
+          e1rm_trend: { family: 'loaded_strength', status: 'limited', signal_count: 1, reason_codes: ['limited_history'] },
           muscle_balance: { family: 'general_logging', status: 'ready', signal_count: 2, reason_codes: [] },
-          pr_history: { family: 'main_lift_amrap', status: 'limited', signal_count: 1, reason_codes: ['limited_history'] },
-          stall_detection: { family: 'main_lift_amrap', status: 'limited', signal_count: 1, reason_codes: ['limited_history'] },
+          pr_history: { family: 'loaded_strength', status: 'limited', signal_count: 1, reason_codes: ['limited_history'] },
+          stall_detection: { family: 'loaded_strength', status: 'limited', signal_count: 1, reason_codes: ['limited_history'] },
           strength_profile: { family: 'benchmark_profile', status: 'limited', signal_count: 0, reason_codes: ['strength_profile_missing_profile'] },
           tm_progression: { family: 'training_max', status: 'limited', signal_count: 1, reason_codes: ['limited_history'] },
           volume_trend: { family: 'general_logging', status: 'ready', signal_count: 4, reason_codes: [] },
@@ -114,13 +114,12 @@ describe('parseAnalyticsData', () => {
             exercise_id: 7,
             exercise_name: 'Pull-Up',
             strict_session_count: 2,
-            weighted_session_count: 1,
             latest_strict_rep_best: 12,
-            latest_added_load_lbs: 25,
+            total_logged_reps: 42,
             last_session_date: '2026-04-02',
           },
         ],
-        strict_rep_trend: [
+        rep_trend: [
           {
             date: '2026-04-02',
             exercise_id: 7,
@@ -128,13 +127,11 @@ describe('parseAnalyticsData', () => {
             best_reps: 12,
           },
         ],
-        weighted_load_trend: [
+        weekly_volume_trend: [
           {
-            date: '2026-04-03',
-            exercise_id: 7,
-            exercise_name: 'Pull-Up',
-            added_weight_lbs: 25,
-            reps: 6,
+            week_start: '2026-03-30',
+            total_reps: 42,
+            total_sessions: 2,
           },
         ],
       },
@@ -171,13 +168,12 @@ describe('parseAnalyticsData', () => {
           exerciseId: 7,
           exerciseName: 'Pull-Up',
           strictSessionCount: 2,
-          weightedSessionCount: 1,
           latestStrictRepBest: 12,
-          latestAddedLoadLbs: 25,
+          totalLoggedReps: 42,
           lastSessionDate: '2026-04-02',
         },
       ],
-      strictRepTrend: [
+      repTrend: [
         {
           bestReps: 12,
           date: '2026-04-02',
@@ -185,13 +181,11 @@ describe('parseAnalyticsData', () => {
           exerciseName: 'Pull-Up',
         },
       ],
-      weightedLoadTrend: [
+      weeklyVolumeTrend: [
         {
-          addedWeightLbs: 25,
-          date: '2026-04-03',
-          exerciseId: 7,
-          exerciseName: 'Pull-Up',
-          reps: 6,
+          totalReps: 42,
+          totalSessions: 2,
+          weekStart: '2026-03-30',
         },
       ],
     })

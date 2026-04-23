@@ -14,19 +14,19 @@ function createInsightReadyCoverage() {
     status: 'ready',
   }
   coverage.metrics.e1rmTrend = {
-    family: 'main_lift_amrap',
+    family: 'loaded_strength',
     reasonCodes: [],
     signalCount: 2,
     status: 'ready',
   }
   coverage.metrics.prHistory = {
-    family: 'main_lift_amrap',
+    family: 'loaded_strength',
     reasonCodes: [],
     signalCount: 2,
     status: 'ready',
   }
   coverage.metrics.stallDetection = {
-    family: 'main_lift_amrap',
+    family: 'loaded_strength',
     reasonCodes: [],
     signalCount: 1,
     status: 'ready',
@@ -58,8 +58,8 @@ const analyticsFixture: AnalyticsData = {
     lastSession: '2026-03-20',
   },
   muscleBalance: [
-    { movementPattern: 'push', totalVolume: 7200, volumePct: 62.3 },
-    { movementPattern: 'pull', totalVolume: 4350, volumePct: 37.7 },
+    { movementPattern: 'horizontal_push', totalVolume: 7200, volumePct: 62.3 },
+    { movementPattern: 'horizontal_pull', totalVolume: 4350, volumePct: 37.7 },
   ],
   stallDetection: [
     { exerciseId: 2, exerciseName: 'Squat', lastPrDate: '2026-02-10', weeksSincePr: 6 },
@@ -94,7 +94,7 @@ describe('insights', () => {
     expect(snapshot.progressionGuidanceContext).toMatchObject({
       disposition: 'actionable',
       exerciseName: 'Bench Press',
-      methodContext: 'main_lift_strength',
+      methodContext: 'loaded_strength',
     })
     expect(snapshot.consistency.averageSessionsPerWeek).toBe(2)
     expect(snapshot.strength.recentPrs).toHaveLength(2)
@@ -110,7 +110,7 @@ describe('insights', () => {
       totalVolume: 10200,
       activeWeeksWithVolume: 3,
     })
-    expect(snapshot.balance[0]).toMatchObject({ movementPattern: 'push', volumePct: 62.3 })
+    expect(snapshot.balance[0]).toMatchObject({ movementPattern: 'horizontal_push', volumePct: 62.3 })
   })
 
   it('parseTrainingInsightResponse accepts JSON wrapped in code fences', () => {
@@ -314,7 +314,7 @@ describe('insights', () => {
         disposition: 'actionable',
         action: 'increase',
         exerciseName: 'Bench Press',
-        methodContext: 'main_lift_strength',
+        methodContext: 'loaded_strength',
       },
     })
 

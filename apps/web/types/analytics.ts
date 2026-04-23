@@ -86,15 +86,14 @@ export interface AnalyticsTmProgressionPoint {
   weightLbs: number
 }
 
-export type AnalyticsCoverageFamily = 'general_logging' | 'main_lift_amrap' | 'training_max' | 'benchmark_profile' | 'bodyweight_specific'
+export type AnalyticsCoverageFamily = 'general_logging' | 'loaded_strength' | 'training_max' | 'benchmark_profile' | 'bodyweight_specific'
 export type AnalyticsCoverageStatus = 'ready' | 'limited' | 'not_applicable'
 export type AnalyticsCoverageReasonCode =
   | 'no_completed_sessions'
   | 'limited_history'
   | 'bodyweight_only_scope'
   | 'no_external_load_sets'
-  | 'no_main_lift_sets'
-  | 'no_amrap_sets'
+  | 'no_strength_sets'
   | 'no_training_max_history'
   | 'strength_profile_missing_profile'
   | 'strength_profile_insufficient_data'
@@ -125,32 +124,29 @@ export interface AnalyticsBodyweightExerciseSummary {
   exerciseId: number
   exerciseName: string
   lastSessionDate: string | null
-  latestAddedLoadLbs: number | null
   latestStrictRepBest: number | null
   strictSessionCount: number
-  weightedSessionCount: number
+  totalLoggedReps: number
 }
 
-export interface AnalyticsBodyweightStrictRepPoint {
+export interface AnalyticsBodyweightRepPoint {
   bestReps: number
   date: string
   exerciseId: number
   exerciseName: string
 }
 
-export interface AnalyticsBodyweightLoadPoint {
-  addedWeightLbs: number
-  date: string
-  exerciseId: number
-  exerciseName: string
-  reps: number
+export interface AnalyticsBodyweightWeeklyVolumePoint {
+  totalReps: number
+  totalSessions: number
+  weekStart: string
 }
 
 export interface AnalyticsBodyweightLane {
   exerciseSummaries: AnalyticsBodyweightExerciseSummary[]
+  repTrend: AnalyticsBodyweightRepPoint[]
   relevant: boolean
-  strictRepTrend: AnalyticsBodyweightStrictRepPoint[]
-  weightedLoadTrend: AnalyticsBodyweightLoadPoint[]
+  weeklyVolumeTrend: AnalyticsBodyweightWeeklyVolumePoint[]
 }
 
 export type StrengthProfileStatus = 'missing_profile' | 'insufficient_data' | 'ready'

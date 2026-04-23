@@ -64,6 +64,7 @@ export type Database = {
       }
       exercises: {
         Row: {
+          analytics_track: string
           category: string
           created_at: string | null
           created_by_user_id: string | null
@@ -75,6 +76,7 @@ export type Database = {
           strength_lift_slug: string | null
         }
         Insert: {
+          analytics_track?: string
           category: string
           created_at?: string | null
           created_by_user_id?: string | null
@@ -86,6 +88,7 @@ export type Database = {
           strength_lift_slug?: string | null
         }
         Update: {
+          analytics_track?: string
           category?: string
           created_at?: string | null
           created_by_user_id?: string | null

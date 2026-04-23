@@ -42,10 +42,6 @@ vi.mock('@/components/charts/MuscleBalanceChart', () => ({
   MuscleBalanceChart: () => <div>muscle-balance-chart</div>,
 }))
 
-vi.mock('@/components/charts/PrTimelineChart', () => ({
-  PrTimelineChart: () => <div>pr-timeline-chart</div>,
-}))
-
 vi.mock('@/components/charts/ConsistencyHeatmap', () => ({
   ConsistencyHeatmap: () => <div>consistency-heatmap</div>,
 }))
@@ -160,17 +156,16 @@ describe('AnalyticsDashboard', () => {
               exerciseId: 7,
               exerciseName: 'Pull-Up',
               lastSessionDate: '2026-03-22',
-              latestAddedLoadLbs: 25,
               latestStrictRepBest: 12,
               strictSessionCount: 2,
-              weightedSessionCount: 1,
+              totalLoggedReps: 42,
             },
           ],
-          strictRepTrend: [
+          repTrend: [
             { bestReps: 12, date: '2026-03-22', exerciseId: 7, exerciseName: 'Pull-Up' },
           ],
-          weightedLoadTrend: [
-            { addedWeightLbs: 25, date: '2026-03-23', exerciseId: 7, exerciseName: 'Pull-Up', reps: 6 },
+          weeklyVolumeTrend: [
+            { weekStart: '2026-03-17', totalReps: 42, totalSessions: 2 },
           ],
         },
         coverage,
@@ -193,9 +188,12 @@ describe('AnalyticsDashboard', () => {
     render(<AnalyticsDashboard />)
 
     expect(screen.queryByText('Method Coverage')).not.toBeInTheDocument()
-    expect(screen.getByText('Bodyweight Review')).toBeInTheDocument()
+    expect(screen.getByText('Bodyweight Exercise Review')).toBeInTheDocument()
     expect(screen.getAllByText('Pull-Up').length).toBeGreaterThan(0)
-    expect(screen.getByText('Strict Rep Trend')).toBeInTheDocument()
-    expect(screen.getByText('Added Load Trend')).toBeInTheDocument()
+    expect(screen.getByText('Last Session Rep Best')).toBeInTheDocument()
+    expect(screen.getByText('Rep Best Trend')).toBeInTheDocument()
+    expect(screen.getByText('Track the top strict-rep set from each logged session.')).toBeInTheDocument()
+    expect(screen.getByText('Weekly Rep Volume')).toBeInTheDocument()
+    expect(screen.queryByText(/Highest recent completed set/i)).not.toBeInTheDocument()
   })
 })

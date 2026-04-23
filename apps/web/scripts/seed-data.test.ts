@@ -3,7 +3,10 @@ import {
   assertHostedSeedAuthorization,
   assertSeedInvariants,
   ensureVerificationUser,
+  getAdditionalSeedEmails,
+  requireExistingUser,
   resetUserData,
+  resolveSeedTargets,
 } from './seed-data.mjs'
 
 const TEST_ENV = { NODE_ENV: 'test' } as NodeJS.ProcessEnv
@@ -125,6 +128,75 @@ describe('ensureVerificationUser', () => {
       email_confirm: true,
       password: 'password-123',
     }))
+  })
+})
+
+describe('getAdditionalSeedEmails', () => {
+  it('deduplicates additional emails and excludes the verification email', () => {
+    expect(getAdditionalSeedEmails({
+      args: ['--extra-email', 'dannynavarro0808@gmail.com', '--extra-email', 'copilot.verify@plateiq.local'],
+      env: { ...TEST_ENV, SEED_EXTRA_EMAILS: 'dannynavarro0808@gmail.com,qa.user@plateiq.local' } as NodeJS.ProcessEnv,
+      verificationEmail: 'copilot.verify@plateiq.local',
+    })).toEqual(['dannynavarro0808@gmail.com', 'qa.user@plateiq.local'])
+  })
+})
+
+describe('requireExistingUser', () => {
+  it('returns an existing user and fails clearly when the email is missing', async () => {
+    const admin = {
+      auth: {
+        admin: {
+          listUsers: vi.fn().mockResolvedValue({
+            data: { users: [{ email: 'dannynavarro0808@gmail.com', id: 'user-7' }] },
+            error: null,
+          }),
+        },
+      },
+    }
+
+    await expect(requireExistingUser(admin as never, 'dannynavarro0808@gmail.com')).resolves.toMatchObject({ id: 'user-7' })
+    await expect(requireExistingUser(admin as never, 'missing@plateiq.local')).rejects.toThrow(/could not find an existing supabase user/i)
+  })
+})
+
+describe('resolveSeedTargets', () => {
+  it('returns both the verification target and any extra existing users without mutating their auth records', async () => {
+    const listUsers = vi.fn()
+      .mockResolvedValueOnce({ data: { users: [] }, error: null })
+      .mockResolvedValueOnce({
+        data: { users: [{ email: 'dannynavarro0808@gmail.com', id: 'user-8', user_metadata: { full_name: 'Danny Navarro' } }] },
+        error: null,
+      })
+    const createUser = vi.fn().mockResolvedValue({ data: { user: { id: 'verification-user' } }, error: null })
+    const updateUserById = vi.fn()
+    const admin = {
+      auth: {
+        admin: {
+          createUser,
+          listUsers,
+          updateUserById,
+        },
+      },
+    }
+
+    await expect(resolveSeedTargets(admin as never, {
+      extraEmails: ['dannynavarro0808@gmail.com'],
+      verificationEmail: 'copilot.verify@plateiq.local',
+      verificationPassword: 'password-123',
+    })).resolves.toEqual([
+      {
+        displayName: 'Copilot Verify',
+        email: 'copilot.verify@plateiq.local',
+        user: { id: 'verification-user' },
+      },
+      {
+        displayName: 'Danny Navarro',
+        email: 'dannynavarro0808@gmail.com',
+        user: { email: 'dannynavarro0808@gmail.com', id: 'user-8', user_metadata: { full_name: 'Danny Navarro' } },
+      },
+    ])
+
+    expect(updateUserById).not.toHaveBeenCalled()
   })
 })
 

@@ -4,7 +4,6 @@ import {
   Legend,
   PolarAngleAxis,
   PolarGrid,
-  PolarRadiusAxis,
   Radar,
   RadarChart,
   Tooltip,
@@ -30,7 +29,6 @@ export function MuscleBalanceChart({ data }: MuscleBalanceChartProps) {
         <RadarChart width={width} height={height} data={rows} outerRadius="72%">
           <PolarGrid />
           <PolarAngleAxis dataKey="movementPattern" tick={{ fontSize: 12 }} />
-          <PolarRadiusAxis angle={30} domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
           <Tooltip
             formatter={(value) => {
               const numericValue = Array.isArray(value)

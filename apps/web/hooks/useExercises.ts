@@ -145,8 +145,8 @@ export function useCreateExercise() {
         .insert({
           ...exercise,
           created_by_user_id: user.id,
-          is_main_lift: exercise.category === 'main',
-          strength_lift_slug: resolveStrengthLiftSlug(exercise.name),
+          is_main_lift: exercise.category === 'main' && exercise.analytics_track === 'standard',
+          strength_lift_slug: exercise.analytics_track === 'standard' ? resolveStrengthLiftSlug(exercise.name) : null,
         })
         .select()
         .single()
