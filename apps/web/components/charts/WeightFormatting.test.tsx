@@ -95,7 +95,7 @@ describe('chart weight formatting', () => {
   it('formats heatmap titles in the selected unit', () => {
     render(
       <ConsistencyHeatmap
-        data={[{ isActive: true, totalSets: 5, totalVolume: TEST_WEIGHT_LBS, weekStart: '2026-04-01' }]}
+        data={[{ isActive: true, totalSessions: 1, totalSets: 5, totalVolume: TEST_WEIGHT_LBS, weekStart: '2026-04-01' }]}
       />,
     )
 
@@ -129,5 +129,21 @@ describe('chart weight formatting', () => {
     expect(screen.getAllByText('Overhead Press').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Barbell Row').length).toBeGreaterThan(0)
     expect(screen.queryByText('Incline Bench')).not.toBeInTheDocument()
+  })
+
+  it('renders the non-compact strength trend legend outside the chart scroll area', () => {
+    mocks.preferredUnit = 'lbs'
+
+    render(
+      <E1rmTrendChart
+        data={[
+          { date: '2026-04-01', e1rm: 300, exerciseId: 1, exerciseName: 'Squat', reps: 5, weight: 255 },
+          { date: '2026-04-02', e1rm: 260, exerciseId: 2, exerciseName: 'Bench Press', reps: 5, weight: 225 },
+        ]}
+      />,
+    )
+
+    expect(screen.getAllByText('Squat').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Bench Press').length).toBeGreaterThan(0)
   })
 })

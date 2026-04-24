@@ -66,6 +66,11 @@ export interface AnalyticsConsistency {
   lastSession: string | null
 }
 
+export interface AnalyticsConsistencyTrendPoint {
+  weekStart: string
+  totalSessions: number
+}
+
 export interface AnalyticsMuscleBalancePoint {
   movementPattern: string
   totalVolume: number
@@ -241,6 +246,7 @@ export interface StrengthProfileData {
 
 export interface AnalyticsData {
   bodyweightLane: AnalyticsBodyweightLane
+  consistencyTrend?: AnalyticsConsistencyTrendPoint[]
   coverage: AnalyticsCoverage
   e1rmTrend: AnalyticsE1rmPoint[]
   volumeTrend: AnalyticsVolumePoint[]
@@ -264,6 +270,7 @@ export interface WeeklyVolumeSummary {
 
 export interface WeeklyActivitySummary extends WeeklyVolumeSummary {
   isActive: boolean
+  totalSessions: number
 }
 
 export interface MovementPatternExerciseSummary {

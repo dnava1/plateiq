@@ -11,7 +11,8 @@ import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { resolveWorkoutProgram, useActiveCycle, useCycleWorkouts } from '@/hooks/useWorkouts'
 import {
   aggregateWeeklyVolume,
-  buildWeeklyActivity,
+  buildConsistencyTrendFallback,
+  buildWeeklySessionActivity,
   createEmptyAnalyticsBodyweightLane,
   createEmptyAnalyticsCoverage,
   describeAnalyticsCoverageReasons,
@@ -141,9 +142,15 @@ export function DashboardOverview() {
     : template?.days[suggestedWorkout.dayIndex]?.label ?? 'Next workout'
   const recentPrs = useMemo(() => deriveRecentPrs(analyticsSnapshot?.prHistory ?? [], 4), [analyticsSnapshot?.prHistory])
   const bodyweightSummaries = analyticsSnapshot?.bodyweightLane.exerciseSummaries ?? []
+  const consistencyTrend = analyticsSnapshot?.consistencyTrend && analyticsSnapshot.consistencyTrend.length > 0
+    ? analyticsSnapshot.consistencyTrend
+    : buildConsistencyTrendFallback(
+        analyticsSnapshot?.volumeTrend ?? [],
+        analyticsSnapshot?.bodyweightLane.weeklyVolumeTrend ?? [],
+      )
   const weeklyActivity = useMemo(
-    () => buildWeeklyActivity(analyticsSnapshot?.volumeTrend ?? [], 8, analyticsRange.to),
-    [analyticsSnapshot?.volumeTrend, analyticsRange.to],
+    () => buildWeeklySessionActivity(consistencyTrend, analyticsRange.from, analyticsRange.to).slice(-8),
+    [analyticsRange.from, analyticsRange.to, consistencyTrend],
   )
   const weeklyVolume = useMemo(() => aggregateWeeklyVolume(analyticsSnapshot?.volumeTrend ?? []), [analyticsSnapshot?.volumeTrend])
   const currentWeekVolume = weeklyVolume.length > 0 ? weeklyVolume[weeklyVolume.length - 1].totalVolume : 0
@@ -425,7 +432,7 @@ export function DashboardOverview() {
               isLoading={isAnalyticsLoading}
               heightClassName="h-28"
             >
-              <ConsistencyHeatmap compact data={weeklyActivity} />
+              <ConsistencyHeatmap compact data={weeklyActivity} metric="sessions" />
             </ChartCard>
           </div>
         </div>

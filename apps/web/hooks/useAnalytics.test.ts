@@ -61,6 +61,16 @@ describe('useAnalytics', () => {
           first_session: '2026-02-01',
           last_session: '2026-03-20',
         },
+        consistency_trend: [
+          {
+            week_start: '2026-02-02',
+            total_sessions: 2,
+          },
+          {
+            week_start: '2026-03-16',
+            total_sessions: 3,
+          },
+        ],
         muscle_balance: [],
         stall_detection: [],
         tm_progression: [],
@@ -137,6 +147,16 @@ describe('useAnalytics', () => {
         firstSession: '2026-02-01',
         lastSession: '2026-03-20',
       },
+      consistencyTrend: [
+        {
+          totalSessions: 2,
+          weekStart: '2026-02-02',
+        },
+        {
+          totalSessions: 3,
+          weekStart: '2026-03-16',
+        },
+      ],
       muscleBalance: [],
       stallDetection: [],
       tmProgression: [],

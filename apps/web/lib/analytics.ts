@@ -8,6 +8,7 @@ import type {
   AnalyticsBodyweightRepPoint,
   AnalyticsBodyweightWeeklyVolumePoint,
   AnalyticsConsistency,
+  AnalyticsConsistencyTrendPoint,
   AnalyticsCoverage,
   AnalyticsCoverageFamily,
   AnalyticsCoverageReasonCode,
@@ -347,6 +348,22 @@ function parseAnalyticsConsistency(value: unknown): AnalyticsConsistency {
     weeksActive: toNumber(value.weeks_active) ?? 0,
     firstSession: toString(value.first_session),
     lastSession: toString(value.last_session),
+  }
+}
+
+function parseAnalyticsConsistencyTrendPoint(value: unknown): AnalyticsConsistencyTrendPoint | null {
+  if (!isRecord(value)) return null
+
+  const totalSessions = toNumber(value.total_sessions ?? value.totalSessions)
+  const weekStart = toString(value.week_start ?? value.weekStart)
+
+  if (totalSessions === null || weekStart === null) {
+    return null
+  }
+
+  return {
+    totalSessions,
+    weekStart,
   }
 }
 
@@ -806,6 +823,7 @@ export function parseAnalyticsData(value: Json | null, weightRoundingLbs: number
   const analyticsCore = {
     bodyweightLane,
     consistency: parseAnalyticsConsistency(record.consistency),
+    consistencyTrend: mapArray(record.consistency_trend, parseAnalyticsConsistencyTrendPoint),
     e1rmTrend: mapArray(record.e1rm_trend, parseAnalyticsE1rmPoint),
     muscleBalance: mapArray(record.muscle_balance, parseAnalyticsMuscleBalancePoint),
     prHistory: mapArray(record.pr_history, parseAnalyticsPrPoint),
@@ -818,6 +836,7 @@ export function parseAnalyticsData(value: Json | null, weightRoundingLbs: number
 
   return {
     bodyweightLane,
+    consistencyTrend: analyticsCore.consistencyTrend,
     coverage,
     e1rmTrend: analyticsCore.e1rmTrend,
     volumeTrend: analyticsCore.volumeTrend,
@@ -1285,6 +1304,18 @@ export function buildAnalyticsData({
     )
     .sort((left, right) => left.scheduledDate.localeCompare(right.scheduledDate))
   const activeWeeks = new Set(completedWorkoutsInRange.map((workout) => formatWeekStart(startOfWeek(workout.scheduledDate))))
+  const consistencyTrend = Array.from(
+    completedWorkoutsInRange.reduce<Map<string, number>>((weeklySessions, workout) => {
+      const weekStart = formatWeekStart(startOfWeek(workout.scheduledDate))
+      weeklySessions.set(weekStart, (weeklySessions.get(weekStart) ?? 0) + 1)
+      return weeklySessions
+    }, new Map<string, number>()),
+  )
+    .map(([weekStart, totalSessions]) => ({
+      totalSessions,
+      weekStart,
+    }))
+    .sort((left, right) => left.weekStart.localeCompare(right.weekStart))
   const muscleBalanceTotals = new Map<string, number>()
 
   for (const set of loadedStrengthScopedSets) {
@@ -1325,6 +1356,7 @@ export function buildAnalyticsData({
 
   const analytics = {
     bodyweightLane,
+    consistencyTrend,
     e1rmTrend,
     volumeTrend: Array.from(volumeByWeekAndExercise.values()).sort((left, right) => left.weekStart.localeCompare(right.weekStart)),
     prHistory: Array.from(prByExerciseAndDate.values()).sort((left, right) => left.date.localeCompare(right.date)),
@@ -1386,6 +1418,29 @@ export function aggregateWeeklyVolume(volumeTrend: AnalyticsVolumePoint[]): Week
   return Array.from(weeklyVolume.values()).sort((left, right) => left.weekStart.localeCompare(right.weekStart))
 }
 
+export function buildConsistencyTrendFallback(
+  volumeTrend: AnalyticsVolumePoint[],
+  bodyweightWeeklyVolumeTrend: AnalyticsBodyweightWeeklyVolumePoint[],
+): AnalyticsConsistencyTrendPoint[] {
+  const sessionsByWeek = new Map<string, number>()
+
+  for (const point of bodyweightWeeklyVolumeTrend) {
+    sessionsByWeek.set(point.weekStart, point.totalSessions)
+  }
+
+  for (const point of aggregateWeeklyVolume(volumeTrend)) {
+    sessionsByWeek.set(point.weekStart, Math.max(sessionsByWeek.get(point.weekStart) ?? 0, point.totalSets > 0 ? 1 : 0))
+  }
+
+  return Array.from(sessionsByWeek.entries())
+    .filter(([, totalSessions]) => totalSessions > 0)
+    .map(([weekStart, totalSessions]) => ({
+      totalSessions,
+      weekStart,
+    }))
+    .sort((left, right) => left.weekStart.localeCompare(right.weekStart))
+}
+
 export function buildWeeklyActivity(
   volumeTrend: AnalyticsVolumePoint[],
   weekCount: number,
@@ -1406,7 +1461,45 @@ export function buildWeeklyActivity(
       weekStart,
       totalVolume: summary?.totalVolume ?? 0,
       totalSets: summary?.totalSets ?? 0,
+      totalSessions: 0,
       isActive: Boolean(summary && summary.totalSets > 0),
+    })
+  }
+
+  return activity
+}
+
+export function buildWeeklySessionActivity(
+  consistencyTrend: AnalyticsConsistencyTrendPoint[],
+  dateFrom: string | Date,
+  dateTo: string | Date,
+): WeeklyActivitySummary[] {
+  const startWeek = startOfWeek(dateFrom)
+  const endWeek = startOfWeek(dateTo)
+
+  if (startWeek.getTime() > endWeek.getTime()) {
+    return []
+  }
+
+  const sessionsByWeek = new Map(
+    consistencyTrend.map((entry) => [entry.weekStart, entry.totalSessions]),
+  )
+  const activity: WeeklyActivitySummary[] = []
+
+  for (
+    let currentWeek = startWeek;
+    currentWeek.getTime() <= endWeek.getTime();
+    currentWeek = new Date(currentWeek.getTime() + MILLISECONDS_PER_WEEK)
+  ) {
+    const weekStart = formatWeekStart(currentWeek)
+    const totalSessions = sessionsByWeek.get(weekStart) ?? 0
+
+    activity.push({
+      weekStart,
+      totalVolume: 0,
+      totalSets: 0,
+      totalSessions,
+      isActive: totalSessions > 0,
     })
   }
 

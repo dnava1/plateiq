@@ -37,9 +37,9 @@ export function ChartCard({
   title,
 }: ChartCardProps) {
   return (
-    <Card className={cn('surface-panel overflow-visible', className)}>
+    <Card className={cn('surface-panel min-w-0 overflow-visible', className)}>
       <CardHeader className="gap-2">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-2">
             <CardTitle className="text-base">{title}</CardTitle>
             {description ? <CardDescription>{description}</CardDescription> : null}

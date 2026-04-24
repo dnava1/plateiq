@@ -16,6 +16,7 @@ import { aggregateWeeklyVolume } from '@/lib/analytics'
 import type { AnalyticsVolumePoint } from '@/types/analytics'
 import { CHART_COLORS, formatCompactDisplayLoad, formatDisplayLoad, formatShortDate } from './chart-utils'
 import { MeasuredChartContainer } from './MeasuredChartContainer'
+import { ScrollableChartFrame } from './ScrollableChartFrame'
 
 function VolumeTooltip({
   active,
@@ -129,8 +130,10 @@ export function VolumeTrendChart({ compact = false, data, exerciseId }: VolumeTr
       series: visibleSeries,
     }
   }, [compact, data, exerciseId])
+  const chartMinWidth = Math.max(320, 96 + chartData.rows.length * 44)
+  const scrollKey = `${exerciseId ?? 'all'}-${chartData.rows.length}-${chartData.series.length}`
 
-  return (
+  const chart = (
     <MeasuredChartContainer allowOverflow className={compact ? 'h-28 w-full' : 'h-72 w-full'}>
       {({ width, height }) => (
         <BarChart width={width} height={height} data={chartData.rows} margin={compact ? { top: 8, right: 8, bottom: 8, left: 8 } : { top: 8, right: 12, bottom: 8, left: 0 }}>
@@ -166,5 +169,11 @@ export function VolumeTrendChart({ compact = false, data, exerciseId }: VolumeTr
         </BarChart>
       )}
     </MeasuredChartContainer>
+  )
+
+  return compact ? chart : (
+    <ScrollableChartFrame minWidth={chartMinWidth} scrollKey={scrollKey}>
+      {chart}
+    </ScrollableChartFrame>
   )
 }

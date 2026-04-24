@@ -68,7 +68,7 @@ describe('AiInsightsPanel', () => {
       <AiInsightsPanel
         coverage={createCoverage()}
         dateRange={{ from: createMockDate('2026-02-01', '2026-01-31'), to: createMockDate('2026-04-01', '2026-03-31') }}
-        dateRangeLabel="Last 8 weeks"
+        dateRangeLabel="Last 3 months"
         hasAnalyticsData
         isInsightEligible
         selectedExerciseId={1}
@@ -129,7 +129,7 @@ describe('AiInsightsPanel', () => {
       <AiInsightsPanel
         coverage={createCoverage()}
         dateRange={{ from: createMockDate('2026-02-01', '2026-01-31'), to: createMockDate('2026-04-01', '2026-03-31') }}
-        dateRangeLabel="Last 8 weeks"
+        dateRangeLabel="Last 3 months"
         hasAnalyticsData
         isInsightEligible
         selectedExerciseId={null}
@@ -159,7 +159,7 @@ describe('AiInsightsPanel', () => {
       <AiInsightsPanel
         coverage={createCoverage()}
         dateRange={{ from: createMockDate('2026-02-01', '2026-01-31'), to: createMockDate('2026-04-01', '2026-03-31') }}
-        dateRangeLabel="Last 8 weeks"
+        dateRangeLabel="Last 3 months"
         hasAnalyticsData
         isInsightEligible
         selectedExerciseId={1}
@@ -202,7 +202,7 @@ describe('AiInsightsPanel', () => {
         key="bench"
         coverage={createCoverage()}
         dateRange={{ from: createMockDate('2026-02-01', '2026-01-31'), to: createMockDate('2026-04-01', '2026-03-31') }}
-        dateRangeLabel="Last 8 weeks"
+        dateRangeLabel="Last 3 months"
         hasAnalyticsData
         isInsightEligible
         selectedExerciseId={1}
@@ -218,7 +218,7 @@ describe('AiInsightsPanel', () => {
         key="squat"
         coverage={createCoverage()}
         dateRange={{ from: createMockDate('2026-02-01', '2026-01-31'), to: createMockDate('2026-04-01', '2026-03-31') }}
-        dateRangeLabel="Last 8 weeks"
+        dateRangeLabel="Last 3 months"
         hasAnalyticsData
         isInsightEligible
         selectedExerciseId={2}
@@ -243,7 +243,7 @@ describe('AiInsightsPanel', () => {
       <AiInsightsPanel
         coverage={createEmptyAnalyticsCoverage()}
         dateRange={{ from: createMockDate('2026-02-01', '2026-01-31'), to: createMockDate('2026-04-01', '2026-03-31') }}
-        dateRangeLabel="Last 8 weeks"
+        dateRangeLabel="Last 3 months"
         hasAnalyticsData={false}
         isInsightEligible={false}
         selectedExerciseId={null}

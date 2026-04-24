@@ -7,8 +7,10 @@ import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import {
   aggregateWeeklyVolume,
+  buildConsistencyTrendFallback,
   calculateMovementPatternSetBalance,
   buildMovementPatternWeeklySetVolume,
+  buildWeeklySessionActivity,
   buildWeeklyActivity,
   calculateMovementPatternSetRatios,
   createEmptyAnalyticsBodyweightLane,
@@ -53,6 +55,7 @@ import type { AnalyticsData, AnalyticsCoverageStatus, AnalyticsMetricCoverage } 
 
 const EMPTY_ANALYTICS: AnalyticsData = {
   bodyweightLane: createEmptyAnalyticsBodyweightLane(),
+  consistencyTrend: [],
   coverage: createEmptyAnalyticsCoverage(),
   e1rmTrend: [],
   volumeTrend: [],
@@ -103,18 +106,31 @@ function CoverageBadge({ coverage }: { coverage: AnalyticsMetricCoverage }) {
   )
 }
 
-const DATE_RANGE_PRESETS: Array<{ label: string; value: string; days: number }> = [
-  { value: '8w', label: 'Last 8 weeks', days: 56 },
-  { value: '12w', label: 'Last 12 weeks', days: 84 },
-  { value: '6m', label: 'Last 6 months', days: 183 },
-  { value: '12m', label: 'Last 12 months', days: 365 },
+const DATE_RANGE_PRESETS: Array<{ label: string; value: string; months: number }> = [
+  { value: '1m', label: 'Last month', months: 1 },
+  { value: '3m', label: 'Last 3 months', months: 3 },
+  { value: '6m', label: 'Last 6 months', months: 6 },
+  { value: '12m', label: 'Last 12 months', months: 12 },
 ]
+
+function subtractCalendarMonths(date: Date, months: number) {
+  const result = new Date(date)
+  const targetMonth = result.getMonth() - months
+  const originalDay = result.getDate()
+
+  result.setDate(1)
+  result.setMonth(targetMonth)
+
+  const lastDayOfTargetMonth = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate()
+  result.setDate(Math.min(originalDay, lastDayOfTargetMonth))
+
+  return result
+}
 
 function createDateRange(rangeKey: string): AnalyticsDateRange {
   const preset = DATE_RANGE_PRESETS.find((entry) => entry.value === rangeKey) ?? DATE_RANGE_PRESETS[2]
   const to = new Date()
-  const from = new Date(to)
-  from.setDate(to.getDate() - preset.days)
+  const from = subtractCalendarMonths(to, preset.months)
   return { from, to }
 }
 
@@ -145,7 +161,17 @@ export function AnalyticsDashboard() {
     ? { ...EMPTY_ANALYTICS, ...data }
     : EMPTY_ANALYTICS
   const isAnalyticsLoading = isLoading || isExercisesLoading
-  const weeklyActivity = useMemo(() => buildWeeklyActivity(analytics.volumeTrend, 12, dateRange.to), [analytics.volumeTrend, dateRange.to])
+  const consistencyTrend = useMemo(
+    () => analytics.consistencyTrend && analytics.consistencyTrend.length > 0
+      ? analytics.consistencyTrend
+      : buildConsistencyTrendFallback(analytics.volumeTrend, analytics.bodyweightLane.weeklyVolumeTrend),
+    [analytics.bodyweightLane.weeklyVolumeTrend, analytics.consistencyTrend, analytics.volumeTrend],
+  )
+  const consistencyActivity = useMemo(
+    () => buildWeeklySessionActivity(consistencyTrend, dateRange.from, dateRange.to),
+    [consistencyTrend, dateRange.from, dateRange.to],
+  )
+  const volumeActivity = useMemo(() => buildWeeklyActivity(analytics.volumeTrend, 12, dateRange.to), [analytics.volumeTrend, dateRange.to])
   const weeklyVolume = useMemo(() => aggregateWeeklyVolume(analytics.volumeTrend), [analytics.volumeTrend])
   const movementPatternSetVolume = useMemo(
     () => buildMovementPatternWeeklySetVolume(analytics.volumeTrend, exercises ?? []),
@@ -268,11 +294,11 @@ export function AnalyticsDashboard() {
 
         <div className="flex flex-col gap-6">
           <Tabs value={tab} onValueChange={setTab} className="min-w-0">
-            <TabsList className="rounded-2xl border border-border/70 bg-card/72 p-1">
-              <TabsTrigger value="overview" className="rounded-lg">Overview</TabsTrigger>
-              <TabsTrigger value="strength" className="rounded-lg">Strength</TabsTrigger>
-              <TabsTrigger value="volume" className="rounded-lg">Volume</TabsTrigger>
-              <TabsTrigger value="ai" className="rounded-lg">AI Insights</TabsTrigger>
+            <TabsList className="max-w-full justify-start overflow-x-auto rounded-2xl border border-border/70 bg-card/72 p-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              <TabsTrigger value="overview" className="shrink-0 rounded-lg">Overview</TabsTrigger>
+              <TabsTrigger value="strength" className="shrink-0 rounded-lg">Strength</TabsTrigger>
+              <TabsTrigger value="volume" className="shrink-0 rounded-lg">Volume</TabsTrigger>
+              <TabsTrigger value="ai" className="shrink-0 rounded-lg">AI Insights</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="mt-4">
@@ -286,7 +312,7 @@ export function AnalyticsDashboard() {
                   headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.consistency} />}
                   isEmpty={!hasAnalyticsData || analytics.consistency.totalSessions === 0}
                   isLoading={isLoading}
-                  className="xl:col-span-2"
+                  className="min-w-0 xl:col-span-2"
                 >
                   <div className="flex flex-col gap-4">
                     <div className="grid gap-3 sm:grid-cols-3">
@@ -309,7 +335,7 @@ export function AnalyticsDashboard() {
                         </p>
                       </div>
                     </div>
-                    <ConsistencyHeatmap data={weeklyActivity} />
+                    <ConsistencyHeatmap data={consistencyActivity} metric="sessions" />
                   </div>
                 </ChartCard>
 
@@ -544,7 +570,7 @@ export function AnalyticsDashboard() {
                   emptyMessage="Weekly activity appears after completed work sets are logged."
                   emptyStateNote={analytics.coverage.metrics.volumeTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.volumeTrend.reasonCodes)}
                   headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.volumeTrend} />}
-                  isEmpty={weeklyActivity.every((entry) => !entry.isActive)}
+                  isEmpty={volumeActivity.every((entry) => !entry.isActive)}
                   isLoading={isLoading}
                 >
                   <div className="flex flex-col gap-4">
@@ -558,7 +584,7 @@ export function AnalyticsDashboard() {
                         <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-foreground">{formatDisplayLoad(averageWeeklyVolume, preferredUnit)}</p>
                       </div>
                     </div>
-                    <ConsistencyHeatmap data={weeklyActivity} />
+                    <ConsistencyHeatmap data={volumeActivity} />
                   </div>
                 </ChartCard>
                 </div>

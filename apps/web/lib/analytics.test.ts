@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { createEmptyStrengthProfile } from './strength-profile'
 import {
   aggregateWeeklyVolume,
+  buildConsistencyTrendFallback,
   calculateMovementPatternSetBalance,
   buildMovementPatternWeeklySetVolume,
+  buildWeeklySessionActivity,
   buildWeeklyActivity,
   calculateMovementPatternSetRatios,
   deriveRecentPrs,
@@ -83,6 +85,12 @@ describe('parseAnalyticsData', () => {
         },
       ],
       pr_history: [],
+      consistency_trend: [
+        {
+          week_start: '2026-03-24',
+          total_sessions: 2,
+        },
+      ],
       muscle_balance: [
         { movement_pattern: 'squat', total_volume: 8250, volume_pct: 48 },
       ],
@@ -147,6 +155,9 @@ describe('parseAnalyticsData', () => {
       lastSession: null,
     })
     expect(result.e1rmTrend).toHaveLength(1)
+    expect(result.consistencyTrend).toEqual([
+      { weekStart: '2026-03-24', totalSessions: 2 },
+    ])
     expect(result.volumeTrend).toHaveLength(1)
     expect(result.muscleBalance).toEqual([
       { movementPattern: 'squat', totalVolume: 8250, volumePct: 48 },
@@ -250,9 +261,28 @@ describe('weekly aggregation helpers', () => {
     ])
 
     expect(buildWeeklyActivity(volumeTrend, 3, '2026-04-08')).toEqual([
-      { weekStart: '2026-03-23', totalVolume: 0, totalSets: 0, isActive: false },
-      { weekStart: '2026-03-30', totalVolume: 8000, totalSets: 7, isActive: true },
-      { weekStart: '2026-04-06', totalVolume: 5400, totalSets: 4, isActive: true },
+      { weekStart: '2026-03-23', totalVolume: 0, totalSets: 0, totalSessions: 0, isActive: false },
+      { weekStart: '2026-03-30', totalVolume: 8000, totalSets: 7, totalSessions: 0, isActive: true },
+      { weekStart: '2026-04-06', totalVolume: 5400, totalSets: 4, totalSessions: 0, isActive: true },
+    ])
+
+    expect(buildWeeklySessionActivity([
+      { weekStart: '2026-03-30', totalSessions: 2 },
+      { weekStart: '2026-04-06', totalSessions: 1 },
+    ], '2026-03-24', '2026-04-08')).toEqual([
+      { weekStart: '2026-03-23', totalVolume: 0, totalSets: 0, totalSessions: 0, isActive: false },
+      { weekStart: '2026-03-30', totalVolume: 0, totalSets: 0, totalSessions: 2, isActive: true },
+      { weekStart: '2026-04-06', totalVolume: 0, totalSets: 0, totalSessions: 1, isActive: true },
+    ])
+
+    expect(buildConsistencyTrendFallback(
+      volumeTrend,
+      [
+        { weekStart: '2026-04-06', totalReps: 24, totalSessions: 2 },
+      ],
+    )).toEqual([
+      { weekStart: '2026-03-30', totalSessions: 1 },
+      { weekStart: '2026-04-06', totalSessions: 2 },
     ])
   })
 })

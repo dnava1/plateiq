@@ -7,7 +7,6 @@ import { formatWeight } from '@/lib/utils'
 import { ChartTooltipContent } from './ChartTooltipContent'
 import {
   CartesianGrid,
-  Legend,
   Line,
   LineChart,
   Tooltip,
@@ -17,6 +16,7 @@ import {
 import type { AnalyticsE1rmPoint } from '@/types/analytics'
 import { CHART_COLORS, formatCompactRoundedWeight, formatShortDate } from './chart-utils'
 import { MeasuredChartContainer } from './MeasuredChartContainer'
+import { ScrollableChartFrame } from './ScrollableChartFrame'
 
 const MAX_VISIBLE_SERIES = 5
 
@@ -151,64 +151,75 @@ export function E1rmTrendChart({ compact = false, data, exerciseId }: E1rmTrendC
 
     return { rows, series: visibleSeries }
   }, [compact, data, exerciseId])
+  const chartMinWidth = Math.max(320, 96 + rows.length * 44)
+  const scrollKey = `${exerciseId ?? 'all'}-${rows.length}-${series.length}`
+  const legend = series.length > 1 ? (
+    <div className={compact
+      ? 'mt-3 flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-muted-foreground'
+      : 'mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-muted-foreground'}
+    >
+      {series.map((entry) => (
+        <div key={entry.key} className="flex min-w-0 items-center gap-2">
+          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
+          <span className={compact ? 'truncate' : undefined}>{entry.exerciseName}</span>
+        </div>
+      ))}
+    </div>
+  ) : null
+  const chart = (
+    <MeasuredChartContainer allowOverflow className={compact ? 'h-24 w-full' : 'h-72 w-full'}>
+      {({ width, height }) => (
+        <LineChart width={width} height={height} data={rows} margin={compact ? { top: 8, right: 12, bottom: 8, left: 8 } : { top: 8, right: 12, bottom: 8, left: 0 }}>
+          {!compact ? <CartesianGrid strokeDasharray="3 3" className="opacity-30" /> : null}
+          <XAxis dataKey="label" hide={compact} minTickGap={20} tickLine={false} axisLine={false} />
+          <YAxis hide={compact} tickFormatter={(value) => formatCompactRoundedWeight(Number(value), preferredUnit, weightRoundingLbs)} width={48} tickLine={false} axisLine={false} />
+          <Tooltip
+            allowEscapeViewBox={{ x: true, y: true }}
+            content={(props) => (
+              <E1rmTooltip
+                active={props.active}
+                label={typeof props.label === 'string' ? props.label : undefined}
+                payload={props.payload as unknown as Array<{
+                  color?: string
+                  dataKey?: string
+                  name?: string
+                  payload?: { date?: string; exerciseName?: string }
+                  value?: number | string | Array<number | string>
+                }> | undefined}
+                preferredUnit={preferredUnit}
+                weightRoundingLbs={weightRoundingLbs}
+              />
+            )}
+            cursor={{ className: 'stroke-border/60' }}
+            offset={18}
+            wrapperStyle={{ pointerEvents: 'none', zIndex: 30 }}
+          />
+          {series.map((entry) => (
+            <Line
+              key={entry.key}
+              type="monotone"
+              dataKey={entry.key}
+              name={entry.exerciseName}
+              stroke={entry.color}
+              strokeWidth={compact ? 2.5 : 2}
+              dot={!compact}
+              connectNulls
+              activeDot={{ r: 4 }}
+            />
+          ))}
+        </LineChart>
+      )}
+    </MeasuredChartContainer>
+  )
 
   return (
     <div className="flex h-full flex-col">
-      <MeasuredChartContainer allowOverflow className={compact ? 'h-24 w-full' : 'h-72 w-full'}>
-        {({ width, height }) => (
-          <LineChart width={width} height={height} data={rows} margin={compact ? { top: 8, right: 12, bottom: 8, left: 8 } : { top: 8, right: 12, bottom: 8, left: 0 }}>
-            {!compact ? <CartesianGrid strokeDasharray="3 3" className="opacity-30" /> : null}
-            <XAxis dataKey="label" hide={compact} minTickGap={20} tickLine={false} axisLine={false} />
-            <YAxis hide={compact} tickFormatter={(value) => formatCompactRoundedWeight(Number(value), preferredUnit, weightRoundingLbs)} width={48} tickLine={false} axisLine={false} />
-            <Tooltip
-              allowEscapeViewBox={{ x: true, y: true }}
-              content={(props) => (
-                <E1rmTooltip
-                  active={props.active}
-                  label={typeof props.label === 'string' ? props.label : undefined}
-                  payload={props.payload as unknown as Array<{
-                    color?: string
-                    dataKey?: string
-                    name?: string
-                    payload?: { date?: string; exerciseName?: string }
-                    value?: number | string | Array<number | string>
-                  }> | undefined}
-                  preferredUnit={preferredUnit}
-                  weightRoundingLbs={weightRoundingLbs}
-                />
-              )}
-              cursor={{ className: 'stroke-border/60' }}
-              offset={18}
-              wrapperStyle={{ pointerEvents: 'none', zIndex: 30 }}
-            />
-            {!compact && series.length > 1 ? <Legend /> : null}
-            {series.map((entry) => (
-              <Line
-                key={entry.key}
-                type="monotone"
-                dataKey={entry.key}
-                name={entry.exerciseName}
-                stroke={entry.color}
-                strokeWidth={compact ? 2.5 : 2}
-                dot={!compact}
-                connectNulls
-                activeDot={{ r: 4 }}
-              />
-            ))}
-          </LineChart>
-        )}
-      </MeasuredChartContainer>
-
-      {compact && series.length > 1 ? (
-        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-muted-foreground">
-          {series.map((entry) => (
-            <div key={entry.key} className="flex min-w-0 items-center gap-2">
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
-              <span className="truncate">{entry.exerciseName}</span>
-            </div>
-          ))}
-        </div>
-      ) : null}
+      {compact ? chart : (
+        <ScrollableChartFrame minWidth={chartMinWidth} scrollKey={scrollKey}>
+          {chart}
+        </ScrollableChartFrame>
+      )}
+      {legend}
     </div>
   )
 }
