@@ -40,13 +40,12 @@ import {
   type WorkoutDisplayBlock,
   type WorkoutDisplaySet,
 } from './types'
-import { WorkoutSessionNoteCard } from './WorkoutSessionNoteCard'
 
 interface ActiveWorkoutPanelProps {
   program: TrainingProgram
 }
 
-const REST_TIMER_PRESET_SECONDS = [90, 120, 180] as const
+const REST_TIMER_PRESET_SECONDS = [30, 60, 90, 120, 150, 180] as const
 
 function getBlockCardClasses(role: WorkoutDisplayBlock['role']) {
   switch (role) {
@@ -453,8 +452,6 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
           </CardContent>
         </Card>
       ) : null}
-
-      <WorkoutSessionNoteCard workoutId={activeWorkoutId} />
 
       {execution.groups.map((group) =>
         group.kind === 'single'

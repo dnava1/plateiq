@@ -45,6 +45,13 @@ const METHOD_LABELS = {
   general: 'General / flexible loading',
 } as const
 
+function formatRestDurationLabel(seconds: number) {
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+
+  return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`
+}
+
 function formatTrainingMaxTargetLabel(value: string) {
   return value
     .trim()
@@ -234,6 +241,7 @@ export function ReviewStep() {
                     {block.sets.map((set, si) => (
                       <span key={si} className="rounded-full bg-muted px-2.5 py-1 text-foreground">
                         {set.sets}×{set.reps} at {formatIntensity(set.intensity, set.intensity_type)}
+                        {typeof set.rest_seconds === 'number' && set.rest_seconds > 0 ? ` · rest ${formatRestDurationLabel(set.rest_seconds)}` : ''}
                       </span>
                     ))}
                   </div>

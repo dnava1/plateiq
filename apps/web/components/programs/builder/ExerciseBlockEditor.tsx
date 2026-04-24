@@ -23,6 +23,7 @@ const MIN_SET_COUNT = 1
 const MAX_SET_COUNT = 20
 const MIN_INTENSITY = 0
 const MAX_INTENSITY = 10000
+const REST_PRESET_SECONDS = [30, 60, 90, 120, 150, 180] as const
 
 const ROLE_LABELS: Record<ExerciseBlock['role'], string> = {
   primary: 'Primary',
@@ -58,6 +59,36 @@ function getDefaultIntensity(type: IntensityType): number {
 function getSafeNumber(value: string, fallback: number) {
   const nextValue = Number(value)
   return Number.isFinite(nextValue) ? nextValue : fallback
+}
+
+function formatRestOptionLabel(seconds: number) {
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+
+  return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`
+}
+
+function buildRestOptionItems(currentSeconds?: number) {
+  const options = [
+    { label: 'Off', value: 'off' },
+    ...REST_PRESET_SECONDS.map((seconds) => ({
+      label: formatRestOptionLabel(seconds),
+      value: String(seconds),
+    })),
+  ]
+
+  if (
+    typeof currentSeconds === 'number'
+    && currentSeconds > 0
+    && !REST_PRESET_SECONDS.includes(currentSeconds as (typeof REST_PRESET_SECONDS)[number])
+  ) {
+    options.push({
+      label: `${formatRestOptionLabel(currentSeconds)} (custom)`,
+      value: String(currentSeconds),
+    })
+  }
+
+  return options
 }
 
 export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, onRemove }: ExerciseBlockEditorProps) {
@@ -162,18 +193,19 @@ export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, o
           </Button>
         </div>
 
-        <div className="hidden grid-cols-[minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1.1fr)_auto] gap-2 px-1 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground md:grid">
+        <div className="hidden grid-cols-[minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,0.9fr)_auto] gap-2 px-1 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground md:grid">
           <span>Sets</span>
           <span>Reps</span>
           <span>Load</span>
           <span>Load Basis</span>
+          <span>Rest</span>
           <span className="sr-only">Remove</span>
         </div>
         <div className="flex flex-col gap-3">
           {block.sets.map((set, si) => (
             <div
               key={si}
-              className="grid gap-3 rounded-[18px] border border-border/70 bg-card p-3 md:grid-cols-[minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1.1fr)_auto] md:items-end"
+              className="grid gap-3 rounded-[18px] border border-border/70 bg-card p-3 md:grid-cols-[minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,0.9fr)_auto] md:items-end"
             >
               <div className="flex flex-col gap-2">
                 <Label htmlFor={`${fieldId}-sets-${si}`} className="text-xs md:sr-only">Sets</Label>
@@ -269,6 +301,28 @@ export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, o
                   <SelectContent>
                     <SelectGroup>
                       {loadBasisItems.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor={`${fieldId}-rest-${si}`} className="text-xs md:sr-only">Rest</Label>
+                <Select
+                  value={typeof set.rest_seconds === 'number' && set.rest_seconds > 0 ? String(set.rest_seconds) : 'off'}
+                  onValueChange={(value) => updateSet(si, {
+                    rest_seconds: value === 'off' ? undefined : Number(value),
+                  })}
+                  items={buildRestOptionItems(set.rest_seconds)}
+                >
+                  <SelectTrigger id={`${fieldId}-rest-${si}`} className="w-full h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {buildRestOptionItems(set.rest_seconds).map((option) => (
                         <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
                       ))}
                     </SelectGroup>

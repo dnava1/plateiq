@@ -286,7 +286,6 @@ describe('useWorkouts', () => {
         day_label: 'Lower A',
         scheduled_date: '2026-04-10',
         completed_at: '2026-04-10T12:34:56.000Z',
-        notes: 'Solid work',
         created_at: null,
         updated_at: null,
       },
@@ -315,7 +314,6 @@ describe('useWorkouts', () => {
       await result.current.mutateAsync({
         workoutId: 44,
         cycleId: 9,
-        notes: 'Solid work',
       })
     })
 

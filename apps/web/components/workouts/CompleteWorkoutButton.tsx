@@ -16,17 +16,14 @@ export function CompleteWorkoutButton({ cycleId, workoutId }: CompleteWorkoutBut
   const router = useRouter()
   const completeWorkout = useCompleteWorkout()
   const completeWorkoutSession = useWorkoutSessionStore((state) => state.completeWorkoutSession)
-  const noteDraft = useWorkoutSessionStore((state) => state.workoutNoteDrafts[workoutId] ?? '')
 
   const handleComplete = () => {
     const isOnline = typeof navigator === 'undefined' ? true : navigator.onLine
-    const notes = noteDraft.trim() || undefined
 
     completeWorkout.mutate(
       {
         workoutId,
         cycleId,
-        notes,
       },
       {
         onSuccess: () => {
@@ -42,7 +39,7 @@ export function CompleteWorkoutButton({ cycleId, workoutId }: CompleteWorkoutBut
 
     if (!isOnline) {
       toast('Workout completion queued. It will sync when you reconnect.')
-      completeWorkoutSession(workoutId, { preserveDraft: true })
+      completeWorkoutSession(workoutId)
       router.replace('/workouts')
     }
   }

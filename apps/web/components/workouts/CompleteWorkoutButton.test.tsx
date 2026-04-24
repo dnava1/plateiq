@@ -7,9 +7,6 @@ const mocks = vi.hoisted(() => ({
   completeWorkoutSession: vi.fn(),
   mutate: vi.fn(),
   replace: vi.fn(),
-  workoutNoteDrafts: {
-    44: 'Load change: dropped 10 lbs after the top set',
-  } as Record<number, string>,
 }))
 
 vi.mock('next/navigation', () => ({
@@ -35,13 +32,11 @@ vi.mock('@/hooks/useWorkouts', () => ({
 vi.mock('@/store/workoutSessionStore', () => ({
   useWorkoutSessionStore: (
     selector: (state: {
-      completeWorkoutSession: (workoutId: number, options?: { preserveDraft?: boolean }) => void
-      workoutNoteDrafts: Record<number, string>
+      completeWorkoutSession: (workoutId: number) => void
     }) => unknown,
   ) =>
     selector({
       completeWorkoutSession: mocks.completeWorkoutSession,
-      workoutNoteDrafts: mocks.workoutNoteDrafts,
     }),
 }))
 
@@ -50,12 +45,9 @@ describe('CompleteWorkoutButton', () => {
     mocks.completeWorkoutSession.mockReset()
     mocks.mutate.mockReset()
     mocks.replace.mockReset()
-    mocks.workoutNoteDrafts = {
-      44: 'Load change: dropped 10 lbs after the top set',
-    }
   })
 
-  it('submits the persisted workout note draft with workout completion', async () => {
+  it('submits workout completion without a session note payload', async () => {
     const user = userEvent.setup()
 
     render(<CompleteWorkoutButton cycleId={9} workoutId={44} />)
@@ -65,7 +57,6 @@ describe('CompleteWorkoutButton', () => {
     expect(mocks.mutate).toHaveBeenCalledWith(
       {
         cycleId: 9,
-        notes: 'Load change: dropped 10 lbs after the top set',
         workoutId: 44,
       },
       expect.objectContaining({
@@ -75,7 +66,7 @@ describe('CompleteWorkoutButton', () => {
     )
   })
 
-  it('keeps the workout note draft recoverable when completion is queued offline', async () => {
+  it('clears the active workout session when completion is queued offline', async () => {
     const user = userEvent.setup()
     const originalOnline = navigator.onLine
 
@@ -88,7 +79,7 @@ describe('CompleteWorkoutButton', () => {
 
     await user.click(screen.getByRole('button', { name: /complete workout/i }))
 
-    expect(mocks.completeWorkoutSession).toHaveBeenCalledWith(44, { preserveDraft: true })
+    expect(mocks.completeWorkoutSession).toHaveBeenCalledWith(44)
     expect(mocks.replace).toHaveBeenCalledWith('/workouts')
 
     Object.defineProperty(window.navigator, 'onLine', {

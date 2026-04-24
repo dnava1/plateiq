@@ -250,13 +250,15 @@ vi.mock('./PlateBreakdownInline', () => ({
 }))
 
 vi.mock('./SetRow', () => ({
-  SetRow: ({ set }: { set: { exerciseName: string; set_order: number } }) => (
-    <div>{set.exerciseName} set {set.set_order}</div>
+  SetRow: ({
+    autoStartRestTimer,
+    set,
+  }: {
+    autoStartRestTimer?: boolean
+    set: { exerciseName: string; set_order: number }
+  }) => (
+    <div>{set.exerciseName} set {set.set_order} auto:{String(autoStartRestTimer)}</div>
   ),
-}))
-
-vi.mock('./WorkoutSessionNoteCard', () => ({
-  WorkoutSessionNoteCard: () => <div>Session note card</div>,
 }))
 
 describe('ActiveWorkoutPanel', () => {
@@ -305,7 +307,7 @@ describe('ActiveWorkoutPanel', () => {
     expect(mocks.exitActiveWorkout).toHaveBeenCalledTimes(1)
   })
 
-  it('keeps the session note card visible after all planned sets are logged', () => {
+  it('keeps the completion state visible after all planned sets are logged', () => {
     mocks.workoutSets = [
       {
         exercise_id: 3,
@@ -352,7 +354,38 @@ describe('ActiveWorkoutPanel', () => {
       />,
     )
 
-    expect(screen.getByText('Session note card')).toBeInTheDocument()
     expect(screen.getByText('All prescribed sets are logged. Ready to finish the workout.')).toBeInTheDocument()
+  })
+
+  it('shows the expanded manual rest presets while keeping programmed auto rest active', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <ActiveWorkoutPanel
+        program={{
+          config: null,
+          id: 1,
+          name: 'Test Program',
+          template_key: 'test-program',
+        } as never}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: '0:30' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '1:00' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '1:30' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '2:00' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '2:30' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '3:00' })).toBeInTheDocument()
+    expect(screen.getAllByText('Chin-Up set 3 auto:true').length).toBeGreaterThan(0)
+
+    await user.click(screen.getByRole('button', { name: '2:30' }))
+
+    expect(mocks.startRestTimer).toHaveBeenCalledWith({
+      durationSeconds: 150,
+      label: 'Chin-Up',
+      sourceSetOrder: null,
+      workoutId: 44,
+    })
   })
 })

@@ -98,10 +98,32 @@ describe('ReviewStep', () => {
   })
 
   it('shows non-linear progression details in the review summary', () => {
+    const draft = useBuilderDraftStore.getState().draft
+
+    useBuilderDraftStore.setState({
+      draft: {
+        ...draft,
+        days: [
+          {
+            label: 'Day 1',
+            exercise_blocks: [
+              {
+                role: 'primary',
+                exercise_id: 1,
+                exercise_key: 'Squat',
+                sets: [{ sets: 3, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm', rest_seconds: 120 }],
+              },
+            ],
+          },
+        ],
+      },
+    })
+
     render(<ReviewStep />)
 
     expect(screen.getByText('Progression')).toBeInTheDocument()
     expect(screen.getByText('Style: Wave')).toBeInTheDocument()
+    expect(screen.getByText('3×5 at 75% TM · rest 2:00')).toBeInTheDocument()
     expect(screen.getByText('Deload decisions stay manual and happen during the current cycle checkpoint.')).toBeInTheDocument()
     expect(screen.queryByText('Deload trigger: Two stalled weeks')).not.toBeInTheDocument()
     expect(screen.queryByText('Deload strategy: Reduce volume by 50% for one week')).not.toBeInTheDocument()

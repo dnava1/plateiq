@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react'
+import { act, render, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ScrollableChartFrame } from './ScrollableChartFrame'
 
@@ -54,7 +54,9 @@ describe('ScrollableChartFrame', () => {
     Object.defineProperty(frame, 'clientWidth', { configurable: true, value: 400 })
     Object.defineProperty(frame, 'scrollWidth', { configurable: true, value: 400 })
 
-    mockResizeObservers.forEach((observer) => observer.trigger())
+    act(() => {
+      mockResizeObservers.forEach((observer) => observer.trigger())
+    })
 
     await waitFor(() => {
       expect(frame).toHaveClass('overflow-x-hidden')
@@ -76,7 +78,9 @@ describe('ScrollableChartFrame', () => {
     Object.defineProperty(frame, 'scrollWidth', { configurable: true, value: 520 })
     Object.defineProperty(frame, 'scrollLeft', { configurable: true, writable: true, value: 0 })
 
-    mockResizeObservers.forEach((observer) => observer.trigger())
+    act(() => {
+      mockResizeObservers.forEach((observer) => observer.trigger())
+    })
 
     await waitFor(() => {
       expect(frame).toHaveClass('overflow-x-auto')

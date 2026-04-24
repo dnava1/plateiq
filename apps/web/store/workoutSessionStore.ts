@@ -31,23 +31,20 @@ interface WorkoutSessionState {
   prToastLedger: Record<string, true>
   restTimer: RestTimerState
   syncStates: Record<number, SetSyncState>
-  completeWorkoutSession: (workoutId: number, options?: { preserveDraft?: boolean }) => void
+  completeWorkoutSession: (workoutId: number) => void
   clearRestTimer: () => void
-  clearWorkoutNoteDraft: (workoutId: number) => void
   exitActiveWorkout: () => void
   hasShownPrToast: (toastKey: string) => boolean
   markPrToastShown: (toastKey: string) => void
   setActiveWorkout: (id: number | null) => void
   setActiveContext: (context: { cycleId: number; dayIndex: number; weekNumber: number }) => void
   setSyncState: (setOrder: number, state: SetSyncState) => void
-  setWorkoutNoteDraft: (workoutId: number, note: string) => void
   startRestTimer: (timer: {
     durationSeconds: number
     label?: string | null
     sourceSetOrder?: number | null
     workoutId?: number | null
   }) => void
-  workoutNoteDrafts: Record<number, string>
   clearSession: () => void
 }
 
@@ -60,7 +57,6 @@ type PersistedWorkoutSessionState = Pick<
   | 'prToastLedger'
   | 'restTimer'
   | 'syncStates'
-  | 'workoutNoteDrafts'
 >
 
 function createPersistedWorkoutSessionState(): PersistedWorkoutSessionState {
@@ -72,7 +68,6 @@ function createPersistedWorkoutSessionState(): PersistedWorkoutSessionState {
     prToastLedger: {},
     restTimer: createEmptyRestTimer(),
     syncStates: {},
-    workoutNoteDrafts: {},
   }
 }
 
@@ -88,15 +83,16 @@ function normalizePersistedWorkoutSessionState(
     : {}
 
   return {
-    ...defaults,
-    ...persisted,
+    activeWorkoutId: persisted.activeWorkoutId ?? defaults.activeWorkoutId,
+    activeCycleId: persisted.activeCycleId ?? defaults.activeCycleId,
+    activeDayIndex: persisted.activeDayIndex ?? defaults.activeDayIndex,
+    activeWeekNumber: persisted.activeWeekNumber ?? defaults.activeWeekNumber,
     prToastLedger: persisted.prToastLedger ?? defaults.prToastLedger,
     restTimer: {
       ...defaults.restTimer,
       ...persistedRestTimer,
     },
     syncStates: persisted.syncStates ?? defaults.syncStates,
-    workoutNoteDrafts: persisted.workoutNoteDrafts ?? defaults.workoutNoteDrafts,
   }
 }
 
@@ -104,14 +100,9 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
   persist(
     (set, get) => ({
       ...createPersistedWorkoutSessionState(),
-      completeWorkoutSession: (workoutId, options) =>
+      completeWorkoutSession: (workoutId) =>
         set((current) => {
           const isActiveWorkout = current.activeWorkoutId === workoutId
-          const workoutNoteDrafts = { ...current.workoutNoteDrafts }
-
-          if (!options?.preserveDraft) {
-            delete workoutNoteDrafts[workoutId]
-          }
 
           return {
             activeWorkoutId: isActiveWorkout ? null : current.activeWorkoutId,
@@ -124,17 +115,9 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
                 ? createEmptyRestTimer()
                 : current.restTimer,
             syncStates: isActiveWorkout ? {} : current.syncStates,
-            workoutNoteDrafts,
           }
         }),
       clearRestTimer: () => set({ restTimer: createEmptyRestTimer() }),
-      clearWorkoutNoteDraft: (workoutId) =>
-        set((current) => {
-          const workoutNoteDrafts = { ...current.workoutNoteDrafts }
-          delete workoutNoteDrafts[workoutId]
-
-          return { workoutNoteDrafts }
-        }),
       exitActiveWorkout: () =>
         set({
           activeWorkoutId: null,
@@ -172,13 +155,6 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
             [setOrder]: state,
           },
         })),
-      setWorkoutNoteDraft: (workoutId, note) =>
-        set((current) => ({
-          workoutNoteDrafts: {
-            ...current.workoutNoteDrafts,
-            [workoutId]: note,
-          },
-        })),
       startRestTimer: ({ durationSeconds, label = null, sourceSetOrder = null, workoutId = null }) =>
         set({
           restTimer: {
@@ -196,7 +172,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
     }),
     {
       name: 'plateiq-workout-session',
-      version: 3,
+      version: 4,
       migrate: (persistedState) => normalizePersistedWorkoutSessionState(persistedState),
     }
   )

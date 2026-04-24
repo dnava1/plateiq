@@ -87,7 +87,6 @@ export interface LogSetInput {
 export interface CompleteWorkoutInput {
   workoutId: number
   cycleId: number
-  notes?: string
 }
 
 export interface ResolvedWorkoutProgram {
@@ -349,7 +348,6 @@ export async function completeWorkoutMutation(supabase: AppSupabaseClient, input
     .from('workouts')
     .update({
       completed_at: new Date().toISOString(),
-      notes: input.notes ?? null,
     })
     .eq('id', input.workoutId)
     .select('*')
@@ -547,7 +545,6 @@ export function useCompleteWorkout() {
             ? {
                 ...workout,
                 completed_at: now,
-                notes: input.notes ?? null,
               }
             : workout,
         ),
