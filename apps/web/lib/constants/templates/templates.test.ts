@@ -6,8 +6,8 @@ import {
 } from '@/lib/constants/templates'
 
 describe('TEMPLATE_REGISTRY', () => {
-  it('contains exactly 15 templates', () => {
-    expect(Object.keys(TEMPLATE_REGISTRY)).toHaveLength(15)
+  it('contains exactly 19 templates', () => {
+    expect(Object.keys(TEMPLATE_REGISTRY)).toHaveLength(19)
   })
 
   it('every template has the required fields', () => {
@@ -32,11 +32,18 @@ describe('TEMPLATE_REGISTRY', () => {
     expect(beginners.length).toBeGreaterThan(0)
     expect(intermediates.length).toBeGreaterThan(0)
     expect(advanced.length).toBeGreaterThan(0)
-    expect(beginners.length + intermediates.length + advanced.length).toBe(15)
+    expect(beginners.length + intermediates.length + advanced.length).toBe(19)
 
     beginners.forEach((t) => expect(t.level).toBe('beginner'))
     intermediates.forEach((t) => expect(t.level).toBe('intermediate'))
     advanced.forEach((t) => expect(t.level).toBe('advanced'))
+  })
+
+  it('includes the newly added built-in templates in the correct levels', () => {
+    expect(getTemplate('strong_curves')?.level).toBe('beginner')
+    expect(getTemplate('reddit_ppl')?.level).toBe('beginner')
+    expect(getTemplate('candito_6_week_strength')?.level).toBe('intermediate')
+    expect(getTemplate('gzcl_the_rippler')?.level).toBe('intermediate')
   })
 
   it('getTemplate returns the correct template', () => {

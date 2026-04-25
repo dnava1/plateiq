@@ -19,12 +19,14 @@ import {
   usesTrainingMaxForMethod,
   type BuilderProgrammingMethod,
 } from '@/store/builderDraftStore'
+import { resolveEditableProgramDaySlots } from '@/lib/programs/week'
 import { BuilderStepper } from '@/components/programs/builder/BuilderStepper'
 import { BasicsStep } from '@/components/programs/builder/BasicsStep'
 import { DaysStep } from '@/components/programs/builder/DaysStep'
 import { ExercisesStep } from '@/components/programs/builder/ExercisesStep'
 import { ProgressionStep } from '@/components/programs/builder/ProgressionStep'
 import { ReviewStep } from '@/components/programs/builder/ReviewStep'
+import { useBuilderStepNavigation } from '@/components/programs/builder/useBuilderStepNavigation'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, WandSparkles } from 'lucide-react'
@@ -48,6 +50,7 @@ export default function BuilderPage() {
   const hydratedSourceKeyRef = useRef<string | null>(null)
 
   const { step, currentDayIndex, draft, hydrateDraft, patchSource } = useBuilderDraftStore()
+  const { goToStep } = useBuilderStepNavigation()
   const { data: program, isLoading: isProgramLoading } = useProgram(programId)
   const { data: editability, isLoading: isEditabilityLoading } = useProgramEditability(programId)
 
@@ -138,6 +141,7 @@ export default function BuilderPage() {
   ])
 
   const builderMode = programId ? 'program' : requestedTemplate ? 'template' : 'scratch'
+  const editableDaySlots = resolveEditableProgramDaySlots(draft)
   const eyebrow = builderMode === 'scratch' ? 'Program Builder' : 'Program Editor'
   const pageTitle = builderMode === 'scratch'
     ? 'Build a Program'
@@ -145,7 +149,7 @@ export default function BuilderPage() {
       ? 'Customize a Program'
       : 'Edit Your Program'
   const pageCopy = builderMode === 'scratch'
-    ? 'Choose the load approach first, then set up your split, name each day, and dial in progression without fighting the form.'
+    ? 'Start with the basics, choose whether the block uses training max inside the flow, and move between sections without bypassing validation.'
     : builderMode === 'template'
       ? 'Start from a built-in plan, inspect the full structure, and tailor it before you save your copy.'
       : 'Update the split, exercises, and progression for this saved program in the same builder flow.'
@@ -246,8 +250,9 @@ export default function BuilderPage() {
           </div>
           <BuilderStepper
             currentStep={step}
-            totalDays={draft.days.length}
+            totalDays={editableDaySlots.length}
             currentDayIndex={currentDayIndex}
+            onStepSelect={goToStep}
           />
         </CardHeader>
 

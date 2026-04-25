@@ -26,11 +26,28 @@ const DEFAULT_PROFILE = {
   weightRoundingLbs: DEFAULT_ROUNDING_LBS,
 }
 
-const MAIN_SET_PRESCRIPTIONS = [
-  { intensity: 0.65, intensityType: 'percentage_tm', isAmrap: false, reps: 5, setType: 'main' },
-  { intensity: 0.75, intensityType: 'percentage_tm', isAmrap: false, reps: 5, setType: 'main' },
-  { intensity: 0.85, intensityType: 'percentage_tm', isAmrap: true, reps: 5, setType: 'amrap' },
-]
+const MAIN_SET_PRESCRIPTIONS_BY_WEEK = {
+  1: [
+    { intensity: 0.65, intensityType: 'percentage_tm', isAmrap: false, reps: 5, setType: 'main' },
+    { intensity: 0.75, intensityType: 'percentage_tm', isAmrap: false, reps: 5, setType: 'main' },
+    { intensity: 0.85, intensityType: 'percentage_tm', isAmrap: true, reps: 5, setType: 'amrap' },
+  ],
+  2: [
+    { intensity: 0.7, intensityType: 'percentage_tm', isAmrap: false, reps: 3, setType: 'main' },
+    { intensity: 0.8, intensityType: 'percentage_tm', isAmrap: false, reps: 3, setType: 'main' },
+    { intensity: 0.9, intensityType: 'percentage_tm', isAmrap: true, reps: 3, setType: 'amrap' },
+  ],
+  3: [
+    { intensity: 0.75, intensityType: 'percentage_tm', isAmrap: false, reps: 5, setType: 'main' },
+    { intensity: 0.85, intensityType: 'percentage_tm', isAmrap: false, reps: 3, setType: 'main' },
+    { intensity: 0.95, intensityType: 'percentage_tm', isAmrap: true, reps: 1, setType: 'amrap' },
+  ],
+  4: [
+    { intensity: 0.4, intensityType: 'percentage_tm', isAmrap: false, reps: 5, setType: 'main' },
+    { intensity: 0.5, intensityType: 'percentage_tm', isAmrap: false, reps: 5, setType: 'main' },
+    { intensity: 0.6, intensityType: 'percentage_tm', isAmrap: false, reps: 5, setType: 'main' },
+  ],
+}
 
 const BBB_SET_COUNT = 5
 const BBB_INTENSITY = 0.5
@@ -42,13 +59,6 @@ const TRAINING_MAX_SNAPSHOTS = [
   { effectiveDateOffsetDays: CYCLE_START_OFFSETS[1], values: { bench: 190, deadlift: 325, ohp: 120, squat: 285 } },
   { effectiveDateOffsetDays: CYCLE_START_OFFSETS[2], values: { bench: 190, deadlift: 335, ohp: 125, squat: 295 } },
 ]
-
-const WEEK_INTENSITY_MODIFIERS = {
-  1: 1,
-  2: 1.0769,
-  3: 1.1538,
-  4: 0.6154,
-}
 
 const BASE_AMRAP_REPS = {
   bench: 8,
@@ -205,7 +215,7 @@ export function createExerciseIdMap(exercises) {
 
 export function generateWendler531BbbSets(dayKey, weekNumber, trainingMaxes, roundingLbs = DEFAULT_ROUNDING_LBS) {
   const trainingMax = trainingMaxes[dayKey]
-  const weekModifier = WEEK_INTENSITY_MODIFIERS[weekNumber] ?? 1
+  const mainSetPrescriptions = MAIN_SET_PRESCRIPTIONS_BY_WEEK[weekNumber] ?? MAIN_SET_PRESCRIPTIONS_BY_WEEK[1]
 
   if (!trainingMax) {
     throw new Error(`Missing training max for ${dayKey}.`)
@@ -214,7 +224,7 @@ export function generateWendler531BbbSets(dayKey, weekNumber, trainingMaxes, rou
   const sets = []
   let setOrder = 1
 
-  for (const prescription of MAIN_SET_PRESCRIPTIONS) {
+  for (const prescription of mainSetPrescriptions) {
     sets.push({
       exerciseKey: dayKey,
       intensityType: prescription.intensityType,
@@ -223,7 +233,7 @@ export function generateWendler531BbbSets(dayKey, weekNumber, trainingMaxes, rou
       repsPrescribedMax: null,
       setOrder,
       setType: prescription.setType,
-      weightLbs: roundToNearest(trainingMax * prescription.intensity * weekModifier, roundingLbs),
+      weightLbs: roundToNearest(trainingMax * prescription.intensity, roundingLbs),
     })
     setOrder += 1
   }

@@ -1,3 +1,6 @@
+import type { ProgramTemplate } from '@/types/template'
+import { countProgramPlannedWorkouts, resolveProgramDays } from '@/lib/programs/week'
+
 export interface WorkoutProgressState {
   completedWorkouts: number
   completionRatio: number
@@ -16,12 +19,19 @@ interface MinimalWorkoutProgressRow {
   week_number: number
 }
 
+type WorkoutProgressTemplate = Pick<ProgramTemplate, 'cycle_length_weeks' | 'days' | 'week_schemes'>
+
 export function findSuggestedWorkoutSelection(
-  cycleLengthWeeks: number,
-  dayLabels: string[],
+  template: WorkoutProgressTemplate | undefined,
   workouts: MinimalWorkoutProgressRow[] | undefined,
 ): SuggestedWorkoutSelection {
-  for (let weekNumber = 1; weekNumber <= cycleLengthWeeks; weekNumber += 1) {
+  if (!template) {
+    return { dayIndex: 0, weekNumber: 1 }
+  }
+
+  for (let weekNumber = 1; weekNumber <= template.cycle_length_weeks; weekNumber += 1) {
+    const dayLabels = resolveProgramDays(template, weekNumber).map((day) => day.label)
+
     for (let dayIndex = 0; dayIndex < dayLabels.length; dayIndex += 1) {
       const dayLabel = dayLabels[dayIndex]
       const workout = workouts?.find((entry) => entry.week_number === weekNumber && entry.day_label === dayLabel)
@@ -36,11 +46,10 @@ export function findSuggestedWorkoutSelection(
 }
 
 export function calculateCycleProgress(
-  cycleLengthWeeks: number,
-  dayCount: number,
+  template: WorkoutProgressTemplate | undefined,
   workouts: MinimalWorkoutProgressRow[] | undefined,
 ): WorkoutProgressState {
-  const totalPlannedWorkouts = Math.max(0, cycleLengthWeeks * dayCount)
+  const totalPlannedWorkouts = template ? countProgramPlannedWorkouts(template) : 0
   const completedWorkouts = (workouts ?? []).filter((workout) => Boolean(workout.completed_at)).length
   const remainingWorkouts = Math.max(0, totalPlannedWorkouts - completedWorkouts)
 

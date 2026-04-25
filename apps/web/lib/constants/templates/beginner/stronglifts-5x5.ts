@@ -1,56 +1,67 @@
-import type { ProgramTemplate } from '@/types/template'
+import type { DayTemplate, ProgramTemplate } from '@/types/template'
+
+function createStrongliftsWorkout(
+  label: string,
+  pressExerciseKey: 'bench' | 'ohp',
+  pullExerciseKey: 'barbell_row' | 'deadlift',
+  pullSets: DayTemplate['exercise_blocks'][number]['sets'],
+): DayTemplate {
+  return {
+    label,
+    exercise_blocks: [
+      {
+        role: 'primary',
+        exercise_key: 'squat',
+        sets: [{ sets: 5, reps: 5, intensity: 0, intensity_type: 'fixed_weight' }],
+      },
+      {
+        role: 'primary',
+        exercise_key: pressExerciseKey,
+        sets: [{ sets: 5, reps: 5, intensity: 0, intensity_type: 'fixed_weight' }],
+      },
+      {
+        role: 'primary',
+        exercise_key: pullExerciseKey,
+        sets: pullSets,
+      },
+    ],
+  }
+}
+
+const STRONGLIFTS_WORKOUT_A = createStrongliftsWorkout(
+  'Workout A',
+  'bench',
+  'barbell_row',
+  [{ sets: 5, reps: 5, intensity: 0, intensity_type: 'fixed_weight' }],
+)
+const STRONGLIFTS_WORKOUT_B = createStrongliftsWorkout(
+  'Workout B',
+  'ohp',
+  'deadlift',
+  [{ sets: 1, reps: 5, intensity: 0, intensity_type: 'fixed_weight' }],
+)
 
 export const stronglifts5x5: ProgramTemplate = {
   key: 'stronglifts_5x5',
   name: 'StrongLifts 5×5',
   level: 'beginner',
   description:
-    'Mehdi\'s simple 5×5 program. Three days per week, A/B alternating workouts. Five sets of five reps on all main lifts (one set of five for deadlift). Linear progression every session.',
+    'Mehdi\'s simple 5×5 program. Three days per week with an explicit 2-week A/B/A then B/A/B rotation. Five sets of five reps on all main lifts (one set of five for deadlift). Linear progression every session.',
   days_per_week: 3,
-  cycle_length_weeks: 1,
+  cycle_length_weeks: 2,
   uses_training_max: false,
   required_exercises: ['squat', 'bench', 'ohp', 'deadlift', 'barbell_row'],
+  week_schemes: {
+    1: { label: 'Week 1 — A / B / A' },
+    2: {
+      label: 'Week 2 — B / A / B',
+      days: [STRONGLIFTS_WORKOUT_B, STRONGLIFTS_WORKOUT_A, STRONGLIFTS_WORKOUT_B],
+    },
+  },
   days: [
-    {
-      label: 'Workout A',
-      exercise_blocks: [
-        {
-          role: 'primary',
-          exercise_key: 'squat',
-          sets: [{ sets: 5, reps: 5, intensity: 0, intensity_type: 'fixed_weight' }],
-        },
-        {
-          role: 'primary',
-          exercise_key: 'bench',
-          sets: [{ sets: 5, reps: 5, intensity: 0, intensity_type: 'fixed_weight' }],
-        },
-        {
-          role: 'primary',
-          exercise_key: 'barbell_row',
-          sets: [{ sets: 5, reps: 5, intensity: 0, intensity_type: 'fixed_weight' }],
-        },
-      ],
-    },
-    {
-      label: 'Workout B',
-      exercise_blocks: [
-        {
-          role: 'primary',
-          exercise_key: 'squat',
-          sets: [{ sets: 5, reps: 5, intensity: 0, intensity_type: 'fixed_weight' }],
-        },
-        {
-          role: 'primary',
-          exercise_key: 'ohp',
-          sets: [{ sets: 5, reps: 5, intensity: 0, intensity_type: 'fixed_weight' }],
-        },
-        {
-          role: 'primary',
-          exercise_key: 'deadlift',
-          sets: [{ sets: 1, reps: 5, intensity: 0, intensity_type: 'fixed_weight' }],
-        },
-      ],
-    },
+    STRONGLIFTS_WORKOUT_A,
+    STRONGLIFTS_WORKOUT_B,
+    STRONGLIFTS_WORKOUT_A,
   ],
   progression: {
     style: 'linear_per_session',

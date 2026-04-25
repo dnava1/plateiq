@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { getTemplate } from '@/lib/constants/templates'
 import { resolveProgramNeedsTrainingMaxForExecution } from '@/lib/programs/method'
 import { normalizeEditableProgramConfig, resolveEditableProgramDefinition } from '@/lib/programs/editable'
-import { resolveTrainingMaxTargetScopeFromDays } from '@/lib/programs/trainingMax'
+import { resolveTrainingMaxTargetScope } from '@/lib/programs/trainingMax'
 import { isCustomProgramConfig } from '@/types/template'
 import type { TrainingProgram } from '@/hooks/usePrograms'
 import { useDeleteProgram, useSetActiveProgram } from '@/hooks/usePrograms'
@@ -100,7 +100,7 @@ export function ProgramCard({ program }: ProgramCardProps) {
   const editHref = `/programs/builder?programId=${program.id}`
   const canManageTrainingMaxes = resolveProgramNeedsTrainingMaxForExecution(program)
   const trainingMaxTargets = programDefinition
-    ? resolveTrainingMaxTargetScopeFromDays(programDefinition.days)
+    ? resolveTrainingMaxTargetScope(programDefinition)
     : { exerciseIds: [], exerciseKeys: [] }
 
   const handleSetActive = () => {

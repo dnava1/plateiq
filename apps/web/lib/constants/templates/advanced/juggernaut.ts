@@ -1,13 +1,121 @@
-import type { ProgramTemplate } from '@/types/template'
+import type { DayTemplate, ProgramTemplate, SetPrescription } from '@/types/template'
 
-// Juggernaut Method — 4-phase mesocycle, each phase 4 weeks.
-// Phase 1: 10s (sets of 10, AMRAP last set)
-// Phase 2: 8s  (sets of 8,  AMRAP last set)
-// Phase 3: 5s  (sets of 5,  AMRAP last set)
-// Phase 4: 3s  (sets of 3,  AMRAP last set)
-// Each phase: Accumulation(high vol) → Intensification → Realization(AMRAP) → Deload
-// For the template engine: represent 1 standard "work week" within the current phase.
-// Week schemes drive the rep/intensity changes.
+interface JuggernautWeekTarget {
+  weekNumber: number
+  label: string
+  straightSets: number
+  straightReps: number
+  amrapReps?: SetPrescription['reps']
+  intensity: number
+  notes: string
+}
+
+const JUGGERNAUT_WEEK_TARGETS: JuggernautWeekTarget[] = [
+  { weekNumber: 1, label: '10s Accumulation (60%×10×3)', straightSets: 3, straightReps: 10, intensity: 0.6, notes: '10s accumulation week.' },
+  { weekNumber: 2, label: '10s Intensification (65%×10×2 + PR set)', straightSets: 2, straightReps: 10, amrapReps: '10+', intensity: 0.65, notes: '10s intensification week with a final PR set.' },
+  { weekNumber: 3, label: '10s Realization (70%×10+ AMRAP)', straightSets: 0, straightReps: 10, amrapReps: '10+', intensity: 0.7, notes: '10s realization week — PR set only.' },
+  { weekNumber: 4, label: '10s Deload (50%×5×2)', straightSets: 2, straightReps: 5, intensity: 0.5, notes: '10s deload week.' },
+  { weekNumber: 5, label: '8s Accumulation (65%×8×3)', straightSets: 3, straightReps: 8, intensity: 0.65, notes: '8s accumulation week.' },
+  { weekNumber: 6, label: '8s Intensification (70%×8×2 + PR set)', straightSets: 2, straightReps: 8, amrapReps: '8+', intensity: 0.7, notes: '8s intensification week with a final PR set.' },
+  { weekNumber: 7, label: '8s Realization (75%×8+ AMRAP)', straightSets: 0, straightReps: 8, amrapReps: '8+', intensity: 0.75, notes: '8s realization week — PR set only.' },
+  { weekNumber: 8, label: '8s Deload (50%×5×2)', straightSets: 2, straightReps: 5, intensity: 0.5, notes: '8s deload week.' },
+  { weekNumber: 9, label: '5s Accumulation (70%×5×4)', straightSets: 4, straightReps: 5, intensity: 0.7, notes: '5s accumulation week.' },
+  { weekNumber: 10, label: '5s Intensification (75%×5×3 + PR set)', straightSets: 3, straightReps: 5, amrapReps: '5+', intensity: 0.75, notes: '5s intensification week with a final PR set.' },
+  { weekNumber: 11, label: '5s Realization (80%×5+ AMRAP)', straightSets: 0, straightReps: 5, amrapReps: '5+', intensity: 0.8, notes: '5s realization week — PR set only.' },
+  { weekNumber: 12, label: '5s Deload (55%×5×3)', straightSets: 3, straightReps: 5, intensity: 0.55, notes: '5s deload week.' },
+  { weekNumber: 13, label: '3s Accumulation (75%×3×5)', straightSets: 5, straightReps: 3, intensity: 0.75, notes: '3s accumulation week.' },
+  { weekNumber: 14, label: '3s Intensification (80%×3×4 + PR set)', straightSets: 4, straightReps: 3, amrapReps: '3+', intensity: 0.8, notes: '3s intensification week with a final PR set.' },
+  { weekNumber: 15, label: '3s Realization (85%×3+ AMRAP)', straightSets: 0, straightReps: 3, amrapReps: '3+', intensity: 0.85, notes: '3s realization week — PR set only.' },
+  { weekNumber: 16, label: '3s Deload (60%×3×4)', straightSets: 4, straightReps: 3, intensity: 0.6, notes: '3s deload week.' },
+]
+
+const JUGGERNAUT_DAY_DEFINITIONS = [
+  {
+    label: 'Day 1 — Squat',
+    exerciseKey: 'squat',
+    variationExerciseKey: 'leg_press',
+    variationNotes: 'Squat supplemental — leg press, front squat, or SSB squat',
+    accessoryExerciseKey: 'ab_work',
+    accessoryNotes: 'Core accessory',
+  },
+  {
+    label: 'Day 2 — Bench',
+    exerciseKey: 'bench',
+    variationExerciseKey: 'incline_bench',
+    variationNotes: 'Bench supplemental — incline, dumbbell press, close-grip',
+    accessoryExerciseKey: 'row',
+    accessoryNotes: 'Back accessory — rows, lat pulldowns',
+  },
+  {
+    label: 'Day 3 — Deadlift',
+    exerciseKey: 'deadlift',
+    variationExerciseKey: 'rdl',
+    variationNotes: 'Deadlift supplemental — RDL, SLDL, trap bar',
+    accessoryExerciseKey: 'ab_work',
+    accessoryNotes: 'Core accessory',
+  },
+  {
+    label: 'Day 4 — OHP',
+    exerciseKey: 'ohp',
+    variationExerciseKey: 'incline_bench',
+    variationNotes: 'OHP supplemental — push press, dumbbell OHP',
+    accessoryExerciseKey: 'row',
+    accessoryNotes: 'Back volume',
+  },
+] as const
+
+function createJuggernautPrimarySets(target: JuggernautWeekTarget): SetPrescription[] {
+  const sets: SetPrescription[] = []
+
+  if (target.straightSets > 0) {
+    sets.push({
+      sets: target.straightSets,
+      reps: target.straightReps,
+      intensity: target.intensity,
+      intensity_type: 'percentage_tm',
+    })
+  }
+
+  if (target.amrapReps) {
+    sets.push({
+      sets: 1,
+      reps: target.amrapReps,
+      intensity: target.intensity,
+      intensity_type: 'percentage_tm',
+      is_amrap: true,
+    })
+  }
+
+  return sets
+}
+
+function createJuggernautDays(target: JuggernautWeekTarget): DayTemplate[] {
+  return JUGGERNAUT_DAY_DEFINITIONS.map((day) => ({
+    label: day.label,
+    exercise_blocks: [
+      {
+        role: 'primary',
+        exercise_key: day.exerciseKey,
+        sets: createJuggernautPrimarySets(target),
+        notes: target.notes,
+      },
+      {
+        role: 'variation',
+        exercise_key: day.variationExerciseKey,
+        sets: [{ sets: 3, reps: 'varies', intensity: 7.0, intensity_type: 'rpe' }],
+        notes: day.variationNotes,
+      },
+      {
+        role: 'accessory',
+        exercise_key: day.accessoryExerciseKey,
+        sets: [{ sets: day.accessoryExerciseKey === 'row' ? 4 : 3, reps: 10, intensity: 7.0, intensity_type: 'rpe' }],
+        notes: day.accessoryNotes,
+      },
+    ],
+  }))
+}
+
+const [JUGGERNAUT_WEEK_ONE, ...JUGGERNAUT_REMAINING_WEEKS] = JUGGERNAUT_WEEK_TARGETS
 
 export const juggernaut: ProgramTemplate = {
   key: 'juggernaut',
@@ -20,129 +128,17 @@ export const juggernaut: ProgramTemplate = {
   uses_training_max: true,
   default_tm_percentage: 0.9,
   required_exercises: ['squat', 'bench', 'deadlift', 'ohp'],
-  week_schemes: {
-    1: { label: '10s Accumulation (60%×10×3)', intensity_modifier: 1.0 },
-    2: { label: '10s Intensification (65%×10×2 + PR set)', intensity_modifier: 1.083 },
-    3: { label: '10s Realization (70%×10+ AMRAP)' , intensity_modifier: 1.167 },
-    4: { label: '10s Deload (50%×5×2)', intensity_modifier: 0.833 },
-    5: { label: '8s Accumulation (65%×8×3)', intensity_modifier: 1.0 },
-    6: { label: '8s Intensification (70%×8×2 + PR set)', intensity_modifier: 1.077 },
-    7: { label: '8s Realization (75%×8+ AMRAP)', intensity_modifier: 1.154 },
-    8: { label: '8s Deload (50%×5×2)', intensity_modifier: 0.769 },
-    9:  { label: '5s Accumulation (70%×5×4)', intensity_modifier: 1.0 },
-    10: { label: '5s Intensification (75%×5×3 + PR set)', intensity_modifier: 1.071 },
-    11: { label: '5s Realization (80%×5+ AMRAP)', intensity_modifier: 1.143 },
-    12: { label: '5s Deload (55%×5×3)', intensity_modifier: 0.786 },
-    13: { label: '3s Accumulation (75%×3×5)', intensity_modifier: 1.0 },
-    14: { label: '3s Intensification (80%×3×4 + PR set)', intensity_modifier: 1.067 },
-    15: { label: '3s Realization (85%×3+ AMRAP)', intensity_modifier: 1.133 },
-    16: { label: '3s Deload (60%×3×4)', intensity_modifier: 0.8 },
-  },
-  days: [
-    {
-      label: 'Day 1 — Squat',
-      exercise_blocks: [
-        {
-          role: 'primary',
-          exercise_key: 'squat',
-          sets: [
-            { sets: 3, reps: 10, intensity: 0.6, intensity_type: 'percentage_tm' },
-            { sets: 1, reps: '10+', intensity: 0.6, intensity_type: 'percentage_tm', is_amrap: true },
-          ],
-          notes: 'Base: 60% TM × 10. Week scheme modifies intensity for periodization phases.',
-        },
-        {
-          role: 'variation',
-          exercise_key: 'leg_press',
-          sets: [{ sets: 3, reps: 'varies', intensity: 7.0, intensity_type: 'rpe' }],
-          notes: 'Squat supplemental — leg press, front squat, or SSB squat',
-        },
-        {
-          role: 'accessory',
-          exercise_key: 'ab_work',
-          sets: [{ sets: 3, reps: 10, intensity: 7.0, intensity_type: 'rpe' }],
-          notes: 'Core accessory',
-        },
-      ],
-    },
-    {
-      label: 'Day 2 — Bench',
-      exercise_blocks: [
-        {
-          role: 'primary',
-          exercise_key: 'bench',
-          sets: [
-            { sets: 3, reps: 10, intensity: 0.6, intensity_type: 'percentage_tm' },
-            { sets: 1, reps: '10+', intensity: 0.6, intensity_type: 'percentage_tm', is_amrap: true },
-          ],
-          notes: 'Base: 60% TM × 10. See week scheme for phase-specific weights.',
-        },
-        {
-          role: 'variation',
-          exercise_key: 'incline_bench',
-          sets: [{ sets: 3, reps: 'varies', intensity: 7.0, intensity_type: 'rpe' }],
-          notes: 'Bench supplemental — incline, dumbbell press, close-grip',
-        },
-        {
-          role: 'accessory',
-          exercise_key: 'row',
-          sets: [{ sets: 4, reps: 10, intensity: 7.0, intensity_type: 'rpe' }],
-          notes: 'Back accessory — rows, lat pulldowns',
-        },
-      ],
-    },
-    {
-      label: 'Day 3 — Deadlift',
-      exercise_blocks: [
-        {
-          role: 'primary',
-          exercise_key: 'deadlift',
-          sets: [
-            { sets: 3, reps: 10, intensity: 0.6, intensity_type: 'percentage_tm' },
-            { sets: 1, reps: '10+', intensity: 0.6, intensity_type: 'percentage_tm', is_amrap: true },
-          ],
-          notes: 'Base: 60% TM × 10.',
-        },
-        {
-          role: 'variation',
-          exercise_key: 'rdl',
-          sets: [{ sets: 3, reps: 'varies', intensity: 7.0, intensity_type: 'rpe' }],
-          notes: 'Deadlift supplemental — RDL, SLDL, trap bar',
-        },
-        {
-          role: 'accessory',
-          exercise_key: 'ab_work',
-          sets: [{ sets: 3, reps: 10, intensity: 7.0, intensity_type: 'rpe' }],
-        },
-      ],
-    },
-    {
-      label: 'Day 4 — OHP',
-      exercise_blocks: [
-        {
-          role: 'primary',
-          exercise_key: 'ohp',
-          sets: [
-            { sets: 3, reps: 10, intensity: 0.6, intensity_type: 'percentage_tm' },
-            { sets: 1, reps: '10+', intensity: 0.6, intensity_type: 'percentage_tm', is_amrap: true },
-          ],
-          notes: 'Base: 60% TM × 10.',
-        },
-        {
-          role: 'variation',
-          exercise_key: 'incline_bench',
-          sets: [{ sets: 3, reps: 'varies', intensity: 7.0, intensity_type: 'rpe' }],
-          notes: 'OHP supplemental — push press, dumbbell OHP',
-        },
-        {
-          role: 'accessory',
-          exercise_key: 'row',
-          sets: [{ sets: 4, reps: 10, intensity: 7.0, intensity_type: 'rpe' }],
-          notes: 'Back volume',
-        },
-      ],
-    },
-  ],
+  week_schemes: Object.fromEntries([
+    [JUGGERNAUT_WEEK_ONE.weekNumber, { label: JUGGERNAUT_WEEK_ONE.label }],
+    ...JUGGERNAUT_REMAINING_WEEKS.map((week) => [
+      week.weekNumber,
+      {
+        label: week.label,
+        days: createJuggernautDays(week),
+      },
+    ]),
+  ]),
+  days: createJuggernautDays(JUGGERNAUT_WEEK_ONE),
   progression: {
     style: 'percentage_cycle',
     increment_lbs: { upper: 5, lower: 10 },

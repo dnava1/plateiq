@@ -46,7 +46,7 @@ export default function ProgramsPage() {
               </Badge>
             </div>
             <p className="page-copy">
-              Plan the next block, review saved programs, or choose the method context before you build from scratch.
+              Plan the next block, review saved programs, or open the builder and choose the loading model only where it actually belongs.
             </p>
           </div>
         </div>

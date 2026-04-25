@@ -88,6 +88,7 @@ const progressionRuleSchema = z.object({
 const weekSchemeSchema = z.object({
   label: z.string().trim().min(1),
   intensity_modifier: z.number().positive().optional(),
+  days: z.array(customDaySchema).min(MIN_DAY_COUNT).max(MAX_DAY_COUNT).optional(),
 })
 
 const editableProgramMetadataSchema = z.object({

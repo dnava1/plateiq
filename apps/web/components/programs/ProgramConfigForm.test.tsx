@@ -1,10 +1,11 @@
 import { type ComponentProps } from 'react'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ProgramConfigForm } from './ProgramConfigForm'
 
 const pushMock = vi.fn()
+const scrollIntoViewMock = vi.fn()
 
 vi.mock('next/link', () => ({
   default: ({ children, href, ...props }: ComponentProps<'a'>) => (
@@ -41,31 +42,24 @@ vi.mock('sonner', () => ({
 describe('ProgramConfigForm', () => {
   beforeEach(() => {
     pushMock.mockReset()
+    scrollIntoViewMock.mockReset()
+    Object.defineProperty(window.HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoViewMock,
+    })
   })
 
-  it('shows only extra template context in the lower detail card', async () => {
+  it('scrolls into the selected-template setup and removes the separate details card', async () => {
     const user = userEvent.setup()
 
     render(<ProgramConfigForm open onOpenChange={vi.fn()} />)
 
-    const templateTitle = screen.getByText("Wendler's 5/3/1")
-    const templateCard = templateTitle.closest('[role="radio"]')
-    expect(templateCard).not.toBeNull()
+    await user.click(screen.getByText("Wendler's 5/3/1"))
 
-    await user.click(templateCard as HTMLElement)
-
-    const detailCard = screen.getByText('Template details').closest('[data-slot="card-content"]')
-    expect(detailCard).not.toBeNull()
-
-    const detailPanel = within(detailCard as HTMLElement)
-
-    expect(detailPanel.getByText('Required lifts')).toBeInTheDocument()
-    expect(detailPanel.getByText('Weekly structure')).toBeInTheDocument()
-    expect(detailPanel.getByText('Available variations')).toBeInTheDocument()
-    expect(detailPanel.getByText(/Training max default 90%/i)).toBeInTheDocument()
-    expect(detailPanel.getByText(/Bench Press/)).toBeInTheDocument()
-    expect(detailPanel.queryByText(/Wendler's 5\/3\/1/i)).not.toBeInTheDocument()
-    expect(detailPanel.queryByText(/Jim Wendler's 5\/3\/1 program/i)).not.toBeInTheDocument()
+    expect(scrollIntoViewMock).toHaveBeenCalled()
+    expect(screen.getByText('Selected template')).toBeInTheDocument()
+    expect(screen.queryByText('Template details')).not.toBeInTheDocument()
+    expect(screen.getByText(/Use the info button there for weekly structure/i)).toBeInTheDocument()
   })
 
   it('routes the selected template into the builder with the active setup values', async () => {
@@ -74,8 +68,7 @@ describe('ProgramConfigForm', () => {
     render(<ProgramConfigForm open onOpenChange={vi.fn()} />)
 
     await user.click(screen.getByText("Wendler's 5/3/1"))
-    const variationOption = screen.getAllByText('Boring But Big (BBB)')[1]
-    await user.click(variationOption as HTMLElement)
+    await user.click(screen.getByRole('radio', { name: /Boring But Big \(BBB\)/i }))
     await user.click(screen.getByRole('button', { name: 'Customize in Builder' }))
 
     expect(pushMock).toHaveBeenCalledTimes(1)
@@ -91,13 +84,10 @@ describe('ProgramConfigForm', () => {
     expect(url.searchParams.get('rounding')).toBeNull()
   })
 
-  it('exposes method-first scratch builder entry links', () => {
+  it('exposes a single scratch builder entry instead of separate method links', () => {
     render(<ProgramConfigForm open onOpenChange={vi.fn()} />)
 
-    const generalLink = screen.getByRole('link', { name: /General Program/i })
-    const trainingMaxLink = screen.getByRole('link', { name: /Training-Max Driven/i })
-
-    expect(generalLink).toHaveAttribute('href', '/programs/builder?method=general')
-    expect(trainingMaxLink).toHaveAttribute('href', '/programs/builder?method=tm_driven')
+    expect(screen.getByRole('link', { name: /Open Program Builder/i })).toHaveAttribute('href', '/programs/builder')
+    expect(screen.queryByRole('link', { name: /Training-Max Driven/i })).not.toBeInTheDocument()
   })
 })

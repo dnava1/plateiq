@@ -1,16 +1,11 @@
-import type { ProgramTemplate } from '@/types/template'
+import type { DayTemplate, ProgramTemplate } from '@/types/template'
 
-export const texasMethod: ProgramTemplate = {
-  key: 'texas_method',
-  name: 'Texas Method',
-  level: 'intermediate',
-  description:
-    'A classic intermediate program with a 3-day weekly structure: Monday (Volume — high volume at moderate intensity), Wednesday (Recovery — light work), Friday (Intensity — work to a new 5RM PR). Excellent transition from linear progression.',
-  days_per_week: 3,
-  cycle_length_weeks: 1,
-  uses_training_max: false,
-  required_exercises: ['squat', 'bench', 'ohp', 'deadlift', 'row', 'power_clean'],
-  days: [
+function createTexasMethodDays(
+  mondayPressKey: 'bench' | 'ohp',
+  wednesdayPressKey: 'bench' | 'ohp',
+  fridayPressKey: 'bench' | 'ohp',
+): DayTemplate[] {
+  return [
     {
       label: 'Monday — Volume Day',
       exercise_blocks: [
@@ -22,9 +17,9 @@ export const texasMethod: ProgramTemplate = {
         },
         {
           role: 'primary',
-          exercise_key: 'bench',
+          exercise_key: mondayPressKey,
           sets: [{ sets: 5, reps: 5, intensity: 0.9, intensity_type: 'percentage_1rm' }],
-          notes: 'Alternate bench/OHP Mon/Wed/Fri each week',
+          notes: 'Volume press alternates weekly with the Friday intensity press.',
         },
         {
           role: 'variation',
@@ -44,9 +39,9 @@ export const texasMethod: ProgramTemplate = {
         },
         {
           role: 'primary',
-          exercise_key: 'ohp',
+          exercise_key: wednesdayPressKey,
           sets: [{ sets: 3, reps: 5, intensity: 0.8, intensity_type: 'percentage_1rm' }],
-          notes: 'Recovery — light overhead press',
+          notes: 'Recovery press alternates opposite the Monday/Friday lift.',
         },
         {
           role: 'variation',
@@ -67,9 +62,9 @@ export const texasMethod: ProgramTemplate = {
         },
         {
           role: 'primary',
-          exercise_key: 'bench',
+          exercise_key: fridayPressKey,
           sets: [{ sets: 1, reps: '5+', intensity: 1.0, intensity_type: 'percentage_1rm', is_amrap: true }],
-          notes: 'New 5-rep PR attempt',
+          notes: 'New 5-rep PR attempt on the same lift used Monday that week.',
         },
         {
           role: 'variation',
@@ -79,7 +74,27 @@ export const texasMethod: ProgramTemplate = {
         },
       ],
     },
-  ],
+  ]
+}
+
+export const texasMethod: ProgramTemplate = {
+  key: 'texas_method',
+  name: 'Texas Method',
+  level: 'intermediate',
+  description:
+    'A classic intermediate program with a 3-day weekly structure: Monday (Volume — high volume at moderate intensity), Wednesday (Recovery — light work), Friday (Intensity — work to a new 5RM PR). Bench and overhead press alternate over an explicit 2-week cycle.',
+  days_per_week: 3,
+  cycle_length_weeks: 2,
+  uses_training_max: false,
+  required_exercises: ['squat', 'bench', 'ohp', 'deadlift', 'row', 'power_clean'],
+  week_schemes: {
+    1: { label: 'Week 1 — Bench Focus' },
+    2: {
+      label: 'Week 2 — OHP Focus',
+      days: createTexasMethodDays('ohp', 'bench', 'ohp'),
+    },
+  },
+  days: createTexasMethodDays('bench', 'ohp', 'bench'),
   progression: {
     style: 'linear_per_week',
     increment_lbs: { upper: 5, lower: 10 },

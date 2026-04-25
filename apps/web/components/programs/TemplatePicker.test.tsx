@@ -28,7 +28,26 @@ describe('TemplatePicker', () => {
     expect(screen.queryByText(/lat_pulldown|barbell_row/i)).not.toBeInTheDocument()
     expect(screen.getAllByText('3 days per week').length).toBeGreaterThan(0)
     expect(screen.getAllByText('1-week cycle').length).toBeGreaterThan(0)
-    expect(screen.getByText(/Lifts:.*Lat Pulldown/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/Lifts:.*Lat Pulldown/i).length).toBeGreaterThan(0)
+  })
+
+  it('filters templates by search query and days per week', async () => {
+    const user = userEvent.setup()
+
+    render(<TemplatePickerHarness />)
+
+    await user.click(screen.getByRole('button', { name: '4 days' }))
+
+    expect(screen.queryByText(/StrongLifts/i)).not.toBeInTheDocument()
+    expect(screen.getByText(/PHUL/i)).toBeInTheDocument()
+
+    await user.type(screen.getByRole('searchbox', { name: 'Search program templates' }), 'wendler')
+
+    await waitFor(() => {
+      expect(screen.getByRole('radio', { name: /Wendler's 5\/3\/1/i })).toBeInTheDocument()
+    })
+
+    expect(screen.queryByText(/PHUL/i)).not.toBeInTheDocument()
   })
 
   it('keeps selection on the card highlight without rendering a dot indicator', async () => {
@@ -36,11 +55,24 @@ describe('TemplatePicker', () => {
 
     render(<TemplatePickerHarness />)
 
-    const templateCard = screen.getByRole('radio', { name: /StrongLifts 5×5/i })
+    const templateCard = screen.getByRole('radio', { name: /StrongLifts/i })
     await user.click(templateCard)
 
     expect(templateCard).toHaveAttribute('aria-checked', 'true')
     expect(templateCard.querySelector('.size-3.rounded-full.bg-primary')).toBeNull()
+    expect(screen.getByText(/Selected\. Setup opens below/i)).toBeInTheDocument()
+  })
+
+  it('expands inline template details from the info button', async () => {
+    const user = userEvent.setup()
+
+    render(<TemplatePickerHarness />)
+
+    await user.click(screen.getByRole('button', { name: /Template details for Wendler's 5\/3\/1/i }))
+
+    expect(screen.getByText('Weekly structure')).toBeInTheDocument()
+    expect(screen.getByText('5s Week')).toBeInTheDocument()
+    expect(screen.getByText('Variation notes')).toBeInTheDocument()
   })
 
   it('supports arrow-key navigation across template radios', async () => {
@@ -59,5 +91,12 @@ describe('TemplatePicker', () => {
     await waitFor(() => {
       expect(secondTemplate).toHaveAttribute('aria-checked', 'true')
     })
+  })
+
+  it('exposes a single scratch builder entry instead of separate method cards', () => {
+    render(<TemplatePickerHarness />)
+
+    expect(screen.getByRole('link', { name: /Open Program Builder/i })).toHaveAttribute('href', '/programs/builder')
+    expect(screen.queryByRole('link', { name: /Training-Max Driven/i })).not.toBeInTheDocument()
   })
 })

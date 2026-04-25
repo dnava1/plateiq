@@ -1,9 +1,12 @@
-import type { DayTemplate } from '@/types/template'
+import type { DayTemplate, ProgramTemplate } from '@/types/template'
+import { collectProgramDays } from './week'
 
 export interface TrainingMaxTargetScope {
   exerciseIds: number[]
   exerciseKeys: string[]
 }
+
+type WeekAwareTrainingMaxProgram = Pick<ProgramTemplate, 'cycle_length_weeks' | 'days' | 'week_schemes'>
 
 const EXECUTION_BACKED_INTENSITY_TYPES = new Set(['percentage_tm', 'percentage_1rm'])
 
@@ -52,9 +55,17 @@ export function resolveTrainingMaxTargetScopeFromDays(days: DayTemplate[]): Trai
   return collectTrainingMaxTargetScope(days, (day, blockIndex) => day.exercise_blocks[blockIndex]?.role === 'primary')
 }
 
+export function resolveTrainingMaxTargetScope(program: WeekAwareTrainingMaxProgram): TrainingMaxTargetScope {
+  return resolveTrainingMaxTargetScopeFromDays(collectProgramDays(program))
+}
+
 export function resolveExecutionTrainingMaxTargetScopeFromDays(days: DayTemplate[]): TrainingMaxTargetScope {
   return collectTrainingMaxTargetScope(
     days,
     (day, blockIndex) => day.exercise_blocks[blockIndex]?.sets.some((set) => EXECUTION_BACKED_INTENSITY_TYPES.has(set.intensity_type)),
   )
+}
+
+export function resolveExecutionTrainingMaxTargetScope(program: WeekAwareTrainingMaxProgram): TrainingMaxTargetScope {
+  return resolveExecutionTrainingMaxTargetScopeFromDays(collectProgramDays(program))
 }

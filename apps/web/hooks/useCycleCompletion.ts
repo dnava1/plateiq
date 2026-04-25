@@ -6,6 +6,7 @@ import { getExerciseLookupKeys, useExercises, type Exercise } from '@/hooks/useE
 import { useCurrentTrainingMaxes } from '@/hooks/useTrainingMaxes'
 import { getProgressionIncrements } from '@/lib/constants/templates/engine'
 import { formatEffortValue } from '@/lib/effort'
+import { collectProgramDays } from '@/lib/programs/week'
 import { isCustomProgramConfig, type CustomProgramConfig, type ProgressionRule } from '@/types/template'
 import type { Database } from '@/types/database'
 import { analyticsQueryKeys } from './useAnalytics'
@@ -437,7 +438,7 @@ function resolveCustomLifts(
   const seen = new Set<string>()
   const lifts: ResolvedProgressionLift[] = []
 
-  for (const day of config.days) {
+  for (const day of collectProgramDays(config)) {
     for (const block of day.exercise_blocks) {
       if (block.role !== 'primary') {
         continue

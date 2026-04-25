@@ -6,7 +6,7 @@ import type {
   ProgressionRule,
   ProgramWeekSchemes,
 } from '@/types/template'
-import type { BuilderDraftSource } from '@/lib/programs/editable'
+import { cloneWeekSchemes, type BuilderDraftSource } from '@/lib/programs/editable'
 import type { ProgramLevel, ProgressionStyle } from '@/types/domain'
 
 export type BuilderStep = 'basics' | 'days' | 'exercises' | 'progression' | 'review'
@@ -71,8 +71,11 @@ interface BuilderDraftStore {
   currentDayIndex: number
   draft: BuilderDraft
   source: BuilderDraftSource | null
+  stepError: string | null
   setStep: (s: BuilderStep) => void
   setDayIndex: (i: number) => void
+  setStepError: (error: string | null) => void
+  clearStepError: () => void
   patchDraft: (patch: Partial<BuilderDraft>) => void
   patchSource: (source: BuilderDraftSource | null) => void
   updateDay: (index: number, day: DayTemplate) => void
@@ -86,19 +89,23 @@ export const useBuilderDraftStore = create<BuilderDraftStore>((set, get) => ({
   currentDayIndex: 0,
   draft: createInitialBuilderDraft(),
   source: null,
-  setStep: (step) => set({ step }),
-  setDayIndex: (currentDayIndex) => set({ currentDayIndex }),
-  patchDraft: (patch) => set((s) => ({ draft: { ...s.draft, ...patch } })),
+  stepError: null,
+  setStep: (step) => set({ step, stepError: null }),
+  setDayIndex: (currentDayIndex) => set({ currentDayIndex, stepError: null }),
+  setStepError: (stepError) => set({ stepError }),
+  clearStepError: () => set({ stepError: null }),
+  patchDraft: (patch) => set((s) => ({ draft: { ...s.draft, ...patch }, stepError: null })),
   patchSource: (source) => set({ source }),
   updateDay: (index, day) =>
     set((s) => {
       const days = [...s.draft.days]
       days[index] = day
-      return { draft: { ...s.draft, days } }
+      return { draft: { ...s.draft, days }, stepError: null }
     }),
   hydrateDraft: (draft, source) => set({
     step: 'basics',
     currentDayIndex: 0,
+    stepError: null,
     draft: {
       ...draft,
       days: [...draft.days],
@@ -106,16 +113,18 @@ export const useBuilderDraftStore = create<BuilderDraftStore>((set, get) => ({
         ...draft.progression,
         increment_lbs: draft.progression.increment_lbs ? { ...draft.progression.increment_lbs } : undefined,
       },
-      week_schemes: draft.week_schemes
-        ? Object.fromEntries(
-            Object.entries(draft.week_schemes).map(([weekNumber, scheme]) => [weekNumber, { ...scheme }]),
-          )
-        : undefined,
+      week_schemes: cloneWeekSchemes(draft.week_schemes),
       metadata: draft.metadata ? { ...draft.metadata } : undefined,
     },
     source,
   }),
-  resetDraft: () => set({ step: 'basics', currentDayIndex: 0, draft: createInitialBuilderDraft(), source: null }),
+  resetDraft: () => set({
+    step: 'basics',
+    currentDayIndex: 0,
+    draft: createInitialBuilderDraft(),
+    source: null,
+    stepError: null,
+  }),
   toConfig: () => {
     const d = get().draft
     const progression = usesLinearProgression(d.progression.style)

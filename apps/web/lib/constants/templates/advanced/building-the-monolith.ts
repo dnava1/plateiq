@@ -1,42 +1,126 @@
-import type { ProgramTemplate } from '@/types/template'
+import type { DayTemplate, ProgramTemplate, SetPrescription } from '@/types/template'
 
-// Building the Monolith is a 6-week 5/3/1 variant by Jim Wendler.
-// High accessory volume, 3 days/week with 5/3/1 loading on main lifts.
-// Widowmaker = 1×20 at FSL (first set last) weight — absolutely brutal.
+interface BuildingTheMonolithWeekTarget {
+  weekNumber: number
+  label: string
+  targets: [
+    { intensity: number; reps: SetPrescription['reps'] },
+    { intensity: number; reps: SetPrescription['reps'] },
+    { intensity: number; reps: SetPrescription['reps'] },
+  ]
+  firstSetLastIntensity: number
+  notes: string
+}
 
-export const buildingTheMonolith: ProgramTemplate = {
-  key: 'building_the_monolith',
-  name: 'Building the Monolith',
-  level: 'advanced',
-  description:
-    "Jim Wendler's 5/3/1 building the monolith. 3 days/week, 6-week challenge. Combines classic 5/3/1 wave loading with extremely high accessory volume (100 chins, 100 dips, 100 face pulls per week). Uses a TM and includes a 'Widowmaker' 20-rep back-off set.",
-  days_per_week: 3,
-  cycle_length_weeks: 6,
-  uses_training_max: true,
-  default_tm_percentage: 0.9,
-  required_exercises: ['squat', 'bench', 'ohp', 'deadlift'],
-  week_schemes: {
-    1: { label: 'Week 1 — 5s', intensity_modifier: 1.0 },
-    2: { label: 'Week 2 — 3s', intensity_modifier: 1.0769 },
-    3: { label: 'Week 3 — 5/3/1', intensity_modifier: 1.1538 },
-    4: { label: 'Week 4 — 5s (cycle 2)', intensity_modifier: 1.0 },
-    5: { label: 'Week 5 — 3s (cycle 2)', intensity_modifier: 1.0769 },
-    6: { label: 'Week 6 — 5/3/1 (cycle 2)', intensity_modifier: 1.1538 },
+const BUILDING_THE_MONOLITH_WEEK_TARGETS: BuildingTheMonolithWeekTarget[] = [
+  {
+    weekNumber: 1,
+    label: 'Week 1 — 5s',
+    targets: [
+      { intensity: 0.65, reps: 5 },
+      { intensity: 0.75, reps: 5 },
+      { intensity: 0.85, reps: '5+' },
+    ],
+    firstSetLastIntensity: 0.65,
+    notes: 'Week 1: 5/5/5+ with first-set-last supplemental work.',
   },
-  days: [
+  {
+    weekNumber: 2,
+    label: 'Week 2 — 3s',
+    targets: [
+      { intensity: 0.7, reps: 3 },
+      { intensity: 0.8, reps: 3 },
+      { intensity: 0.9, reps: '3+' },
+    ],
+    firstSetLastIntensity: 0.7,
+    notes: 'Week 2: 3/3/3+ with first-set-last supplemental work.',
+  },
+  {
+    weekNumber: 3,
+    label: 'Week 3 — 5/3/1',
+    targets: [
+      { intensity: 0.75, reps: 5 },
+      { intensity: 0.85, reps: 3 },
+      { intensity: 0.95, reps: '1+' },
+    ],
+    firstSetLastIntensity: 0.75,
+    notes: 'Week 3: 5/3/1+ with first-set-last supplemental work.',
+  },
+  {
+    weekNumber: 4,
+    label: 'Week 4 — 5s (Cycle 2)',
+    targets: [
+      { intensity: 0.65, reps: 5 },
+      { intensity: 0.75, reps: 5 },
+      { intensity: 0.85, reps: '5+' },
+    ],
+    firstSetLastIntensity: 0.65,
+    notes: 'Week 4: restart the 5s wave with the second cycle.',
+  },
+  {
+    weekNumber: 5,
+    label: 'Week 5 — 3s (Cycle 2)',
+    targets: [
+      { intensity: 0.7, reps: 3 },
+      { intensity: 0.8, reps: 3 },
+      { intensity: 0.9, reps: '3+' },
+    ],
+    firstSetLastIntensity: 0.7,
+    notes: 'Week 5: second-cycle 3s wave with first-set-last work.',
+  },
+  {
+    weekNumber: 6,
+    label: 'Week 6 — 5/3/1 (Cycle 2)',
+    targets: [
+      { intensity: 0.75, reps: 5 },
+      { intensity: 0.85, reps: 3 },
+      { intensity: 0.95, reps: '1+' },
+    ],
+    firstSetLastIntensity: 0.75,
+    notes: 'Week 6: second-cycle 5/3/1 wave with first-set-last work.',
+  },
+]
+
+function createBuildingTheMonolithMainSets(
+  week: BuildingTheMonolithWeekTarget,
+  includeWidowmaker: boolean,
+): SetPrescription[] {
+  const sets: SetPrescription[] = [
+    { sets: 1, reps: week.targets[0].reps, intensity: week.targets[0].intensity, intensity_type: 'percentage_tm' },
+    { sets: 1, reps: week.targets[1].reps, intensity: week.targets[1].intensity, intensity_type: 'percentage_tm' },
+    {
+      sets: 1,
+      reps: week.targets[2].reps,
+      intensity: week.targets[2].intensity,
+      intensity_type: 'percentage_tm',
+      is_amrap: typeof week.targets[2].reps === 'string' && week.targets[2].reps.endsWith('+'),
+    },
+  ]
+
+  if (includeWidowmaker) {
+    sets.push({
+      sets: 1,
+      reps: '20+',
+      intensity: week.firstSetLastIntensity,
+      intensity_type: 'percentage_tm',
+      display_type: 'backoff',
+      is_amrap: true,
+    })
+  }
+
+  return sets
+}
+
+function createBuildingTheMonolithDays(week: BuildingTheMonolithWeekTarget): DayTemplate[] {
+  return [
     {
       label: 'Day 1 — Squat',
       exercise_blocks: [
         {
           role: 'primary',
           exercise_key: 'squat',
-          sets: [
-            { sets: 1, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' },
-            { sets: 1, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' },
-            { sets: 1, reps: '5+', intensity: 0.85, intensity_type: 'percentage_tm', is_amrap: true },
-            { sets: 1, reps: '20+', intensity: 0.65, intensity_type: 'percentage_tm', display_type: 'backoff', is_amrap: true },
-          ],
-          notes: 'Standard 5/3/1 sets + Widowmaker set @ first-set-last weight (65%) for 20 reps',
+          sets: createBuildingTheMonolithMainSets(week, true),
+          notes: `${week.notes} Widowmaker set at the first-set-last weight.`,
         },
         {
           role: 'variation',
@@ -46,8 +130,8 @@ export const buildingTheMonolith: ProgramTemplate = {
             type: 'superset',
           },
           exercise_key: 'ohp',
-          sets: [{ sets: 5, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm', display_type: 'backoff' }],
-          notes: 'OHP 5×5 at FSL (65% OHP TM)',
+          sets: [{ sets: 5, reps: 5, intensity: week.firstSetLastIntensity, intensity_type: 'percentage_tm', display_type: 'backoff' }],
+          notes: `OHP 5×5 at first-set-last (${Math.round(week.firstSetLastIntensity * 100)}%)`,
         },
         {
           role: 'accessory',
@@ -80,18 +164,14 @@ export const buildingTheMonolith: ProgramTemplate = {
         {
           role: 'primary',
           exercise_key: 'deadlift',
-          sets: [
-            { sets: 1, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' },
-            { sets: 1, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' },
-            { sets: 1, reps: '5+', intensity: 0.85, intensity_type: 'percentage_tm', is_amrap: true },
-          ],
-          notes: 'Standard 5/3/1 — no Widowmaker on deadlift day',
+          sets: createBuildingTheMonolithMainSets(week, false),
+          notes: `${week.notes} No Widowmaker on deadlift day.`,
         },
         {
           role: 'variation',
           exercise_key: 'bench',
-          sets: [{ sets: 5, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm', display_type: 'backoff' }],
-          notes: 'Bench 5×5 @ FSL (65% bench TM)',
+          sets: [{ sets: 5, reps: 5, intensity: week.firstSetLastIntensity, intensity_type: 'percentage_tm', display_type: 'backoff' }],
+          notes: `Bench 5×5 at first-set-last (${Math.round(week.firstSetLastIntensity * 100)}%)`,
         },
         {
           role: 'accessory',
@@ -113,18 +193,14 @@ export const buildingTheMonolith: ProgramTemplate = {
         {
           role: 'primary',
           exercise_key: 'ohp',
-          sets: [
-            { sets: 1, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' },
-            { sets: 1, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' },
-            { sets: 1, reps: '5+', intensity: 0.85, intensity_type: 'percentage_tm', is_amrap: true },
-          ],
-          notes: 'Standard 5/3/1 OHP',
+          sets: createBuildingTheMonolithMainSets(week, false),
+          notes: week.notes,
         },
         {
           role: 'variation',
           exercise_key: 'squat',
-          sets: [{ sets: 5, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm', display_type: 'backoff' }],
-          notes: 'Squat 5×5 @ FSL (65% squat TM)',
+          sets: [{ sets: 5, reps: 5, intensity: week.firstSetLastIntensity, intensity_type: 'percentage_tm', display_type: 'backoff' }],
+          notes: `Squat 5×5 at first-set-last (${Math.round(week.firstSetLastIntensity * 100)}%)`,
         },
         {
           role: 'accessory',
@@ -146,7 +222,33 @@ export const buildingTheMonolith: ProgramTemplate = {
         },
       ],
     },
-  ],
+  ]
+}
+
+const [BUILDING_THE_MONOLITH_WEEK_ONE, ...BUILDING_THE_MONOLITH_REMAINING_WEEKS] = BUILDING_THE_MONOLITH_WEEK_TARGETS
+
+export const buildingTheMonolith: ProgramTemplate = {
+  key: 'building_the_monolith',
+  name: 'Building the Monolith',
+  level: 'advanced',
+  description:
+    "Jim Wendler's 5/3/1 building the monolith. 3 days/week, 6-week challenge. Combines classic 5/3/1 wave loading with extremely high accessory volume (100 chins, 100 dips, 100 face pulls per week). Uses a TM and includes a 'Widowmaker' 20-rep back-off set.",
+  days_per_week: 3,
+  cycle_length_weeks: 6,
+  uses_training_max: true,
+  default_tm_percentage: 0.9,
+  required_exercises: ['squat', 'bench', 'ohp', 'deadlift'],
+  week_schemes: Object.fromEntries([
+    [BUILDING_THE_MONOLITH_WEEK_ONE.weekNumber, { label: BUILDING_THE_MONOLITH_WEEK_ONE.label }],
+    ...BUILDING_THE_MONOLITH_REMAINING_WEEKS.map((week) => [
+      week.weekNumber,
+      {
+        label: week.label,
+        days: createBuildingTheMonolithDays(week),
+      },
+    ]),
+  ]),
+  days: createBuildingTheMonolithDays(BUILDING_THE_MONOLITH_WEEK_ONE),
   progression: {
     style: 'linear_per_cycle',
     increment_lbs: { upper: 5, lower: 10 },

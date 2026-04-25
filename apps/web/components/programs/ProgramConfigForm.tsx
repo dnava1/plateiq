@@ -1,16 +1,17 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm, Controller, type FieldErrors, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createProgramSchema, type CreateProgramInput } from '@/lib/validations/program'
 import { useCreateProgram } from '@/hooks/usePrograms'
 import { getTemplate } from '@/lib/constants/templates'
-import { formatExerciseKey } from '@/lib/utils'
+import { formatDaysPerWeek, formatWeekCycle } from '@/lib/utils'
 import { TemplatePicker } from './TemplatePicker'
 import { VariationSelector } from './VariationSelector'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -53,6 +54,8 @@ const TM_PERCENTAGE_OPTIONS = [
 export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps) {
   const router = useRouter()
   const createProgram = useCreateProgram()
+  const selectedTemplateRef = useRef<HTMLDivElement | null>(null)
+  const shouldFocusSelectedTemplateRef = useRef(false)
 
   const {
     register,
@@ -70,14 +73,27 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
 
   const templateKey = useWatch({ control, name: 'template_key' })
   const template = templateKey ? getTemplate(templateKey) : null
-  const hasVariations = (template?.variation_options?.length ?? 0) > 0
-  const requiredLifts = template?.required_exercises.map(formatExerciseKey).join(', ') ?? ''
+
+  useEffect(() => {
+    if (!open || !template || !shouldFocusSelectedTemplateRef.current) {
+      return
+    }
+
+    shouldFocusSelectedTemplateRef.current = false
+    selectedTemplateRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+
+    window.requestAnimationFrame(() => {
+      setFocus('name')
+    })
+  }, [open, setFocus, template])
 
   const handleTemplateSelect = (key: string) => {
     const tpl = getTemplate(key)
+    shouldFocusSelectedTemplateRef.current = true
     setValue('template_key', key, { shouldDirty: true, shouldValidate: true })
     setValue('name', tpl?.name ?? '', { shouldDirty: true })
     setValue('variation_key', undefined, { shouldDirty: true })
+
     if (tpl?.default_tm_percentage) {
       setValue('tm_percentage', tpl.default_tm_percentage, { shouldDirty: true })
     }
@@ -98,16 +114,18 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
 
   const handleInvalidSubmit = (formErrors: FieldErrors<CreateProgramInput>) => {
     const firstField = (['name', 'tm_percentage'] as const).find((field) => formErrors[field])
+
     if (firstField) {
       setFocus(firstField)
     }
   }
 
-  const handleOpenChange = (open: boolean) => {
-    if (!open) {
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
       reset(DEFAULT_VALUES)
     }
-    onOpenChange(open)
+
+    onOpenChange(nextOpen)
   }
 
   const handleCustomizeInBuilder = () => {
@@ -145,7 +163,7 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
           <div className="flex flex-col gap-1.5">
             <DialogTitle>Start a Program</DialogTitle>
             <DialogDescription>
-              Pick a template, or choose the load approach first for a scratch build, then tune the setup details without bouncing through a fake stepper.
+              Pick a template and adjust its setup, or open the builder once and choose training-max behavior inside the flow only if the program actually needs it.
             </DialogDescription>
           </div>
         </DialogHeader>
@@ -157,62 +175,35 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
               onSelect={handleTemplateSelect}
               onOpenChange={handleOpenChange}
             />
-            {errors.template_key && (
+            {errors.template_key ? (
               <p role="alert" className="text-sm text-destructive">{errors.template_key.message}</p>
-            )}
+            ) : null}
           </div>
 
-          {template && (
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-              <Card className="border-border/70 bg-card/70">
-                <CardContent className="flex h-full flex-col gap-4 pt-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex flex-col gap-1">
-                      <p className="text-sm font-medium text-foreground">Template details</p>
-                      <p className="text-xs leading-5 text-muted-foreground">
-                        A quick breakdown of the required lifts and weekly flow before you create the program.
-                      </p>
-                    </div>
-                    {template.uses_training_max && (
-                      <span className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
-                        Training max default {Math.round((template.default_tm_percentage ?? 0.9) * 100)}%
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col gap-2 text-sm">
-                    <p className="font-medium text-foreground">Required lifts</p>
-                    <p className="leading-6 text-muted-foreground">{requiredLifts}</p>
-                  </div>
-
-                  <div className="flex flex-col gap-2 text-sm">
-                    <p className="font-medium text-foreground">Weekly structure</p>
-                    <div className="flex flex-wrap gap-2">
-                      {template.days.map((day, index) => (
-                        <span key={`${template.key}-${day.label}-${index}`} className="rounded-full bg-background px-2.5 py-1 text-xs text-muted-foreground">
-                          {day.label}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {hasVariations && (
-                    <div className="flex flex-col gap-2 text-sm">
-                      <p className="font-medium text-foreground">Available variations</p>
-                      <div className="flex flex-wrap gap-2">
-                        {template.variation_options?.map((option) => (
-                          <span key={option.key} className="rounded-full bg-background px-2.5 py-1 text-xs text-muted-foreground">
-                            {option.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+          {template ? (
+            <div
+              ref={selectedTemplateRef}
+              className="flex flex-col gap-4 rounded-[24px] border border-border/70 bg-card/70 p-5"
+            >
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="secondary">Selected template</Badge>
+                  <p className="text-sm font-medium text-foreground">{template.name}</p>
+                  <Badge variant="outline" className="text-xs">{formatDaysPerWeek(template.days_per_week)}</Badge>
+                  <Badge variant="outline" className="text-xs">{formatWeekCycle(template.cycle_length_weeks)}</Badge>
+                  {template.uses_training_max ? (
+                    <Badge variant="outline" className="text-xs">
+                      TM default {Math.round((template.default_tm_percentage ?? 0.9) * 100)}%
+                    </Badge>
+                  ) : null}
+                </div>
+                <p className="text-xs leading-5 text-muted-foreground">
+                  The template card already carries the lift list. Use the info button there for weekly structure and variation context, then finish setup here.
+                </p>
+              </div>
 
               <div className="flex flex-col gap-4">
-                {template.variation_options && template.variation_options.length > 0 && (
+                {template.variation_options && template.variation_options.length > 0 ? (
                   <Controller
                     name="variation_key"
                     control={control}
@@ -224,7 +215,7 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
                       />
                     )}
                   />
-                )}
+                ) : null}
 
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="name">Program Name</Label>
@@ -235,12 +226,12 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
                     aria-describedby={errors.name ? 'program-name-error' : undefined}
                     {...register('name')}
                   />
-                  {errors.name && (
+                  {errors.name ? (
                     <p id="program-name-error" className="text-sm text-destructive">{errors.name.message}</p>
-                  )}
+                  ) : null}
                 </div>
 
-                {template.uses_training_max && (
+                {template.uses_training_max ? (
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="tm_percentage">
                       Training Max Percentage{' '}
@@ -259,7 +250,7 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
                         >
                           <SelectTrigger
                             id="tm_percentage"
-                            className="w-full h-9"
+                            className="h-9 w-full"
                             aria-invalid={!!errors.tm_percentage}
                             aria-describedby={errors.tm_percentage ? 'tm-percentage-error' : undefined}
                           >
@@ -275,15 +266,14 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
                         </Select>
                       )}
                     />
-                    {errors.tm_percentage && (
+                    {errors.tm_percentage ? (
                       <p id="tm-percentage-error" className="text-sm text-destructive">{errors.tm_percentage.message}</p>
-                    )}
+                    ) : null}
                   </div>
-                )}
-
+                ) : null}
               </div>
             </div>
-          )}
+          ) : null}
 
           <div className="flex gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} className="flex-1">
@@ -303,7 +293,7 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
               disabled={!templateKey || createProgram.isPending}
               className="flex-1"
             >
-              {createProgram.isPending ? 'Creating…' : 'Create Program'}
+              {createProgram.isPending ? 'Creating...' : 'Create Program'}
             </Button>
           </div>
         </form>

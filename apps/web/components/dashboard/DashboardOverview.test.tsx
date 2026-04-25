@@ -181,6 +181,56 @@ describe('DashboardOverview', () => {
     expect(screen.getByText('In progress')).toBeInTheDocument()
   })
 
+  it('uses week-specific day layouts when suggesting the next workout and cycle progress', () => {
+    mocks.useActiveProgram.mockReturnValue({
+      data: {
+        id: 12,
+        name: 'Alternating Upper',
+        config: null,
+      },
+      isLoading: false,
+    })
+    mocks.resolveWorkoutProgram.mockReturnValue({
+      isCustom: true,
+      template: {
+        cycle_length_weeks: 2,
+        days_per_week: 1,
+        days: [{ label: 'Week 1 OHP', exercise_blocks: [] }],
+        week_schemes: {
+          '2': {
+            label: 'Week 2',
+            days: [
+              { label: 'Week 2 Bench', exercise_blocks: [] },
+              { label: 'Week 2 Row', exercise_blocks: [] },
+            ],
+          },
+        },
+      },
+    })
+    mocks.useDashboard.mockReturnValue({
+      data: {
+        activeProgram: { id: 12, name: 'Alternating Upper', templateKey: 'custom' },
+        currentCycle: { id: 7, cycleNumber: 3 },
+        currentTms: [],
+        recentWorkouts: [],
+      },
+      isLoading: false,
+    })
+    mocks.useActiveCycle.mockReturnValue({ data: { id: 7, cycle_number: 3 }, isLoading: false })
+    mocks.useCycleWorkouts.mockReturnValue({
+      data: [
+        { week_number: 1, day_label: 'Week 1 OHP', completed_at: '2026-04-05T12:00:00Z' },
+      ],
+    })
+
+    render(<DashboardOverview />)
+
+    expect(screen.getAllByText('Week 2').length).toBeGreaterThan(0)
+    expect(screen.getByText('33%')).toBeInTheDocument()
+    expect(screen.getByText('1 of 3 sessions complete.')).toBeInTheDocument()
+    expect(screen.getByText('2 sessions still open in this block.')).toBeInTheDocument()
+  })
+
   it('formats volume pace copy in kilograms when kg is selected', () => {
     mocks.usePreferredUnit.mockReturnValue('kg')
     mocks.useActiveProgram.mockReturnValue({

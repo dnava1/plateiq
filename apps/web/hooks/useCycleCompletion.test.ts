@@ -1,4 +1,6 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { resolveRepoPath } from '@/test/resolveRepoPath'
 import type { CustomProgramConfig } from '@/types/template'
 import type { TrainingProgram } from './usePrograms'
 import { buildCycleCompletionPreview, buildCycleProgressionPayload } from './useCycleCompletion'
@@ -38,6 +40,20 @@ function createCustomProgram(style: CustomProgramConfig['progression']['style'])
 }
 
 describe('buildCycleCompletionPreview', () => {
+  it('keeps the cycle completion RPC schema-safe', () => {
+    const migrationSql = readFileSync(
+      resolveRepoPath('supabase/migrations/20260424213451_fix_complete_cycle_schema_resolution.sql'),
+      'utf8',
+    )
+
+    expect(migrationSql).toContain('CREATE OR REPLACE FUNCTION public.complete_cycle')
+    expect(migrationSql).toContain("SET search_path = ''")
+    expect(migrationSql).toContain('FROM public.cycles AS c')
+    expect(migrationSql).toContain('UPDATE public.cycles')
+    expect(migrationSql).toContain('INSERT INTO public.training_maxes')
+    expect(migrationSql).toContain('INSERT INTO public.cycles')
+  })
+
   it('multiplies linear per-session increments by completed primary sessions', () => {
     const program = createCustomProgram('linear_per_session')
 

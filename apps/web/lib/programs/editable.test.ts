@@ -20,10 +20,11 @@ describe('editable program definitions', () => {
       source_template_key: 'wendler_531',
       selected_variation_key: 'bbb',
     })
-    expect(definition.week_schemes).toEqual(template!.week_schemes)
     expect(definition.days).toHaveLength(template!.days.length)
     expect(definition.days[0]?.exercise_blocks).toHaveLength(2)
     expect(definition.days[0]?.exercise_blocks[1]?.exercise_key).toBe('ohp')
+    expect(definition.week_schemes?.['2']?.days?.[0]?.exercise_blocks).toHaveLength(2)
+    expect(definition.week_schemes?.['2']?.days?.[0]?.exercise_blocks[1]?.exercise_key).toBe('ohp')
   })
 
   it('resolves a standard template-backed program into a builder-ready editable definition', () => {

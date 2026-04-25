@@ -7,8 +7,31 @@ const mocks = vi.hoisted(() => ({
   clearRestTimer: vi.fn(),
   clearSession: vi.fn(),
   exitActiveWorkout: vi.fn(),
+  resolveWorkoutProgram: vi.fn(),
   setSyncState: vi.fn(),
+  sessionState: {
+    activeCycleId: 9,
+    activeDayIndex: 0,
+    activeWeekNumber: 1,
+    activeWorkoutId: 44,
+    clearRestTimer: vi.fn(),
+    clearSession: vi.fn(),
+    exitActiveWorkout: vi.fn(),
+    restTimer: {
+      durationSeconds: null,
+      endsAt: null,
+      label: null,
+      sourceSetOrder: null,
+      workoutId: null,
+    },
+    setSyncState: vi.fn(),
+    startRestTimer: vi.fn(),
+    syncStates: {},
+  },
   startRestTimer: vi.fn(),
+  useCycleWorkouts: vi.fn(),
+  useWorkoutExerciseContext: vi.fn(),
+  useWorkoutSets: vi.fn(),
   workoutSets: [
     {
       exercise_id: 3,
@@ -148,46 +171,11 @@ vi.mock('@/hooks/useUser', () => ({
 
 vi.mock('@/hooks/useWorkouts', () => ({
   buildTrainingMaxMap: () => new Map(),
-  resolveWorkoutProgram: () => ({
-    rounding: 5,
-    selectedVariationKeys: [],
-    template: {
-      cycle_length_weeks: 4,
-      days: [{ exercise_blocks: [], label: 'Upper A' }],
-    },
-  }),
+  resolveWorkoutProgram: (...args: unknown[]) => mocks.resolveWorkoutProgram(...args),
   useActiveCycle: () => ({ data: { cycle_number: 2, id: 9 } }),
-  useCycleWorkouts: () => ({
-    data: [{ completed_at: null, day_label: 'Upper A', id: 44, week_number: 1 }],
-  }),
-  useWorkoutExerciseContext: () => ({
-    data: {
-      2: {
-        exerciseId: 2,
-        recentSession: {
-          completedAt: '2026-04-15T10:00:00.000Z',
-          dayLabel: 'Upper A',
-          loggedSetCount: 2,
-          referenceSet: {
-            isAmrap: false,
-            repsActual: 12,
-            repsPrescribed: 10,
-            repsPrescribedMax: null,
-            setOrder: 4,
-            weightLbs: 25,
-          },
-          scheduledDate: '2026-04-15',
-          weekNumber: 1,
-          workoutId: 33,
-        },
-      },
-    },
-    isError: false,
-    isLoading: false,
-  }),
-  useWorkoutSets: () => ({
-    data: mocks.workoutSets,
-  }),
+  useCycleWorkouts: (...args: unknown[]) => mocks.useCycleWorkouts(...args),
+  useWorkoutExerciseContext: (...args: unknown[]) => mocks.useWorkoutExerciseContext(...args),
+  useWorkoutSets: (...args: unknown[]) => mocks.useWorkoutSets(...args),
 }))
 
 vi.mock('@/lib/constants/templates/engine', () => ({
@@ -196,45 +184,9 @@ vi.mock('@/lib/constants/templates/engine', () => ({
 
 vi.mock('@/store/workoutSessionStore', () => ({
   useWorkoutSessionStore: (
-    selector: (state: {
-      activeCycleId: number | null
-      activeDayIndex: number | null
-      activeWeekNumber: number | null
-      activeWorkoutId: number | null
-      clearRestTimer: () => void
-      clearSession: () => void
-      exitActiveWorkout: () => void
-      restTimer: {
-        durationSeconds: number | null
-        endsAt: number | null
-        label: string | null
-        sourceSetOrder: number | null
-        workoutId: number | null
-      }
-      setSyncState: (setOrder: number, state: { status: 'dirty' | 'queued' | 'synced' | 'error' }) => void
-      startRestTimer: (timer: { durationSeconds: number; label?: string | null; sourceSetOrder?: number | null; workoutId?: number | null }) => void
-      syncStates: Record<number, { status: 'dirty' | 'queued' | 'synced' | 'error' }>
-    }) => unknown,
+    selector: (state: typeof mocks.sessionState) => unknown,
   ) =>
-    selector({
-      activeCycleId: 9,
-      activeDayIndex: 0,
-      activeWeekNumber: 1,
-      activeWorkoutId: 44,
-      clearRestTimer: mocks.clearRestTimer,
-      clearSession: mocks.clearSession,
-      exitActiveWorkout: mocks.exitActiveWorkout,
-      restTimer: {
-        durationSeconds: null,
-        endsAt: null,
-        label: null,
-        sourceSetOrder: null,
-        workoutId: null,
-      },
-      setSyncState: mocks.setSyncState,
-      startRestTimer: mocks.startRestTimer,
-      syncStates: {},
-    }),
+    selector(mocks.sessionState),
 }))
 
 vi.mock('./CompleteWorkoutButton', () => ({
@@ -266,8 +218,12 @@ describe('ActiveWorkoutPanel', () => {
     mocks.clearRestTimer.mockReset()
     mocks.clearSession.mockReset()
     mocks.exitActiveWorkout.mockReset()
+    mocks.resolveWorkoutProgram.mockReset()
     mocks.setSyncState.mockReset()
     mocks.startRestTimer.mockReset()
+    mocks.useCycleWorkouts.mockReset()
+    mocks.useWorkoutExerciseContext.mockReset()
+    mocks.useWorkoutSets.mockReset()
     mocks.workoutSets = [
       {
         exercise_id: 3,
@@ -278,6 +234,62 @@ describe('ActiveWorkoutPanel', () => {
         weight_lbs: 95,
       },
     ]
+    mocks.sessionState = {
+      activeCycleId: 9,
+      activeDayIndex: 0,
+      activeWeekNumber: 1,
+      activeWorkoutId: 44,
+      clearRestTimer: mocks.clearRestTimer,
+      clearSession: mocks.clearSession,
+      exitActiveWorkout: mocks.exitActiveWorkout,
+      restTimer: {
+        durationSeconds: null,
+        endsAt: null,
+        label: null,
+        sourceSetOrder: null,
+        workoutId: null,
+      },
+      setSyncState: mocks.setSyncState,
+      startRestTimer: mocks.startRestTimer,
+      syncStates: {},
+    }
+    mocks.resolveWorkoutProgram.mockReturnValue({
+      rounding: 5,
+      selectedVariationKeys: [],
+      template: {
+        cycle_length_weeks: 4,
+        days: [{ exercise_blocks: [], label: 'Upper A' }],
+      },
+    })
+    mocks.useCycleWorkouts.mockReturnValue({
+      data: [{ completed_at: null, day_label: 'Upper A', id: 44, week_number: 1 }],
+    })
+    mocks.useWorkoutExerciseContext.mockReturnValue({
+      data: {
+        2: {
+          exerciseId: 2,
+          recentSession: {
+            completedAt: '2026-04-15T10:00:00.000Z',
+            dayLabel: 'Upper A',
+            loggedSetCount: 2,
+            referenceSet: {
+              isAmrap: false,
+              repsActual: 12,
+              repsPrescribed: 10,
+              repsPrescribedMax: null,
+              setOrder: 4,
+              weightLbs: 25,
+            },
+            scheduledDate: '2026-04-15',
+            weekNumber: 1,
+            workoutId: 33,
+          },
+        },
+      },
+      isError: false,
+      isLoading: false,
+    })
+    mocks.useWorkoutSets.mockReturnValue({ data: mocks.workoutSets })
   })
 
   it('renders the grouped execution cue and lets the user return to the launcher', async () => {
@@ -342,6 +354,7 @@ describe('ActiveWorkoutPanel', () => {
         weight_lbs: 0,
       },
     ]
+    mocks.useWorkoutSets.mockReturnValue({ data: mocks.workoutSets })
 
     render(
       <ActiveWorkoutPanel
@@ -387,5 +400,40 @@ describe('ActiveWorkoutPanel', () => {
       sourceSetOrder: null,
       workoutId: 44,
     })
+  })
+
+  it('fails closed when the persisted workout day label does not exist in the resolved week layout', () => {
+    mocks.sessionState.activeDayIndex = null
+    mocks.sessionState.activeWeekNumber = 2
+    mocks.resolveWorkoutProgram.mockReturnValue({
+      rounding: 5,
+      selectedVariationKeys: [],
+      template: {
+        cycle_length_weeks: 2,
+        days: [{ exercise_blocks: [], label: 'Week 1 Upper' }],
+        week_schemes: {
+          '2': {
+            label: 'Week 2',
+            days: [{ exercise_blocks: [], label: 'Week 2 Bench' }],
+          },
+        },
+      },
+    })
+    mocks.useCycleWorkouts.mockReturnValue({
+      data: [{ completed_at: null, day_label: 'Missing Day', id: 44, week_number: 2 }],
+    })
+
+    render(
+      <ActiveWorkoutPanel
+        program={{
+          config: null,
+          id: 1,
+          name: 'Test Program',
+          template_key: 'test-program',
+        } as never}
+      />,
+    )
+
+    expect(screen.getByText(/active workout context is missing/i)).toBeInTheDocument()
   })
 })

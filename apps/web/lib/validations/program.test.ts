@@ -121,6 +121,42 @@ describe('createProgramSchema', () => {
 })
 
 describe('custom program builder validation helpers', () => {
+  it('accepts week-specific day overrides in custom program definitions', () => {
+    const input = buildValidCustomProgramInput()
+    const result = createCustomProgramSchema.safeParse({
+      ...input,
+      definition: {
+        ...input.definition,
+        week_schemes: {
+          '2': {
+            label: 'Week 2',
+            days: [
+              {
+                label: 'Lower',
+                exercise_blocks: [
+                  {
+                    role: 'primary',
+                    exercise_key: 'Squat',
+                    sets: [
+                      {
+                        sets: 3,
+                        reps: 3,
+                        intensity: 0.8,
+                        intensity_type: 'percentage_tm',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+    })
+
+    expect(result.success).toBe(true)
+  })
+
   it('requires a readable program name before leaving basics', () => {
     expect(validateCustomProgramBasicsStep(' ')).toBe('Give your program a name with at least 2 characters.')
     expect(validateCustomProgramBasicsStep('Upper / Lower')).toBeNull()

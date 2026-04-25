@@ -123,10 +123,62 @@ describe('ReviewStep', () => {
 
     expect(screen.getByText('Progression')).toBeInTheDocument()
     expect(screen.getByText('Style: Wave')).toBeInTheDocument()
-    expect(screen.getByText('3×5 at 75% TM · rest 2:00')).toBeInTheDocument()
+    expect(screen.getByText('3x5 at 75% TM - rest 2:00')).toBeInTheDocument()
     expect(screen.getByText('Deload decisions stay manual and happen during the current cycle checkpoint.')).toBeInTheDocument()
     expect(screen.queryByText('Deload trigger: Two stalled weeks')).not.toBeInTheDocument()
     expect(screen.queryByText('Deload strategy: Reduce volume by 50% for one week')).not.toBeInTheDocument()
+  })
+
+  it('renders week-specific sections when the draft includes explicit cycle layouts', () => {
+    const draft = useBuilderDraftStore.getState().draft
+
+    useBuilderDraftStore.setState({
+      draft: {
+        ...draft,
+        cycle_length_weeks: 2,
+        days: [
+          {
+            label: 'Week 1 Press',
+            exercise_blocks: [
+              {
+                role: 'primary',
+                exercise_id: 1,
+                exercise_key: 'Squat',
+                sets: [{ sets: 3, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' }],
+              },
+            ],
+          },
+        ],
+        week_schemes: {
+          1: { label: 'Week 1 - Base' },
+          2: {
+            label: 'Week 2 - Intensification',
+            days: [
+              {
+                label: 'Week 2 Press',
+                exercise_blocks: [
+                  {
+                    role: 'primary',
+                    exercise_id: 2,
+                    exercise_key: 'Bench Press',
+                    sets: [{ sets: 5, reps: 3, intensity: 0.8, intensity_type: 'percentage_tm' }],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+    })
+
+    render(<ReviewStep />)
+
+    expect(screen.getByText('Week 1')).toBeInTheDocument()
+    expect(screen.getByText('Week 1 - Base')).toBeInTheDocument()
+    expect(screen.getByText('Week 2')).toBeInTheDocument()
+    expect(screen.getByText('Week 2 - Intensification')).toBeInTheDocument()
+    expect(screen.getByText('Week 1 Press')).toBeInTheDocument()
+    expect(screen.getByText('Week 2 Press')).toBeInTheDocument()
   })
 
   it('requires current training maxes before saving a TM-backed program', () => {

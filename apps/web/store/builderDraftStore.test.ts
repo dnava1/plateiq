@@ -65,6 +65,8 @@ describe('builderDraftStore', () => {
 
     expect(config.week_schemes).toEqual(definition.week_schemes)
     expect(config.metadata).toEqual(definition.metadata)
+    expect(config.week_schemes?.['2']).not.toBe(definition.week_schemes?.['2'])
+    expect(config.week_schemes?.['2']?.days?.[0]).not.toBe(definition.week_schemes?.['2']?.days?.[0])
   })
 
   it('updates source metadata without overwriting the current draft', () => {

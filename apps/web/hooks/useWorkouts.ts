@@ -14,7 +14,9 @@ import {
 import { getExerciseLookupKeys } from '@/hooks/useExercises'
 import { analyticsQueryKeys } from '@/hooks/useAnalytics'
 import { dashboardQueryKeys } from '@/hooks/useDashboard'
+import { normalizeEditableProgramConfig } from '@/lib/programs/editable'
 import { isWeightRoundingLbs, resolveWeightRoundingLbs } from '@/lib/utils'
+import { collectProgramExerciseKeys } from '@/lib/programs/week'
 import { useSupabase } from './useSupabase'
 import type { TrainingProgram } from './usePrograms'
 import type { Database, Json, Tables } from '@/types/database'
@@ -129,6 +131,7 @@ export function resolveWorkoutProgram(program: TrainingProgram | null | undefine
     : undefined
 
   if (rawConfig && isCustomProgramConfig(rawConfig)) {
+    const normalizedConfig = normalizeEditableProgramConfig(rawConfig, program.template_key)
     const rounding = resolvedPreferenceRounding ?? DEFAULT_ROUNDING_LBS
 
     return {
@@ -138,18 +141,16 @@ export function resolveWorkoutProgram(program: TrainingProgram | null | undefine
       template: {
         key: program.template_key,
         name: program.name,
-        level: rawConfig.level ?? 'intermediate',
+        level: normalizedConfig.level ?? 'intermediate',
         description: program.name,
-        days_per_week: rawConfig.days_per_week,
-        cycle_length_weeks: rawConfig.cycle_length_weeks,
-        uses_training_max: rawConfig.uses_training_max,
-        default_tm_percentage: rawConfig.tm_percentage,
-        required_exercises: dedupeStrings(
-          rawConfig.days.flatMap((day) => day.exercise_blocks.map((block) => block.exercise_key)),
-        ),
-        days: rawConfig.days,
-        week_schemes: rawConfig.week_schemes,
-        progression: rawConfig.progression,
+        days_per_week: normalizedConfig.days_per_week,
+        cycle_length_weeks: normalizedConfig.cycle_length_weeks,
+        uses_training_max: normalizedConfig.uses_training_max,
+        default_tm_percentage: normalizedConfig.tm_percentage,
+        required_exercises: dedupeStrings(collectProgramExerciseKeys(normalizedConfig)),
+        days: normalizedConfig.days,
+        week_schemes: normalizedConfig.week_schemes,
+        progression: normalizedConfig.progression,
       },
     }
   }

@@ -140,6 +140,7 @@ describe('resolveProgramNeedsTrainingMaxForExecution', () => {
 describe('resolveDefinitionNeedsTrainingMaxForExecution', () => {
   it('returns false when a legacy TM flag remains but no prescriptions still depend on TM', () => {
     expect(resolveDefinitionNeedsTrainingMaxForExecution({
+      cycle_length_weeks: 1,
       uses_training_max: true,
       days: [
         {
@@ -158,6 +159,7 @@ describe('resolveDefinitionNeedsTrainingMaxForExecution', () => {
 
   it('returns true when a definition keeps TM-backed prescriptions under a general method flag', () => {
     expect(resolveDefinitionNeedsTrainingMaxForExecution({
+      cycle_length_weeks: 1,
       uses_training_max: false,
       days: [
         {
@@ -176,6 +178,7 @@ describe('resolveDefinitionNeedsTrainingMaxForExecution', () => {
 
   it('returns false when a definition uses no TM-backed prescriptions', () => {
     expect(resolveDefinitionNeedsTrainingMaxForExecution({
+      cycle_length_weeks: 1,
       uses_training_max: false,
       days: [
         {
@@ -190,5 +193,41 @@ describe('resolveDefinitionNeedsTrainingMaxForExecution', () => {
         },
       ],
     } as never)).toBe(false)
+  })
+
+  it('returns true when a definition only uses TM-backed prescriptions in a week override', () => {
+    expect(resolveDefinitionNeedsTrainingMaxForExecution({
+      cycle_length_weeks: 2,
+      uses_training_max: false,
+      days: [
+        {
+          label: 'Week 1 Day 1',
+          exercise_blocks: [
+            {
+              role: 'primary',
+              exercise_key: 'Squat',
+              sets: [{ sets: 3, reps: 5, intensity: 225, intensity_type: 'fixed_weight' }],
+            },
+          ],
+        },
+      ],
+      week_schemes: {
+        2: {
+          label: 'Week 2',
+          days: [
+            {
+              label: 'Week 2 Day 1',
+              exercise_blocks: [
+                {
+                  role: 'variation',
+                  exercise_key: 'Bench',
+                  sets: [{ sets: 3, reps: 5, intensity: 0.8, intensity_type: 'percentage_1rm' }],
+                },
+              ],
+            },
+          ],
+        },
+      },
+    } as never)).toBe(true)
   })
 })

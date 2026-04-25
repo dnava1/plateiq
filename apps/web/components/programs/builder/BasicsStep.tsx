@@ -2,8 +2,6 @@
 
 import { Radio } from '@base-ui/react/radio'
 import { RadioGroup } from '@base-ui/react/radio-group'
-import { useState } from 'react'
-import { validateCustomProgramBasicsStep } from '@/lib/validations/program'
 import {
   resolveBuilderProgrammingMethod,
   useBuilderDraftStore,
@@ -21,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useBuilderStepNavigation } from './useBuilderStepNavigation'
 
 const DAYS_PER_WEEK_OPTIONS = [1, 2, 3, 4, 5, 6, 7].map((value) => ({
   value: String(value),
@@ -62,30 +61,11 @@ const METHOD_OPTIONS: Array<{
 ]
 
 export function BasicsStep() {
-  const { draft, patchDraft, setStep, source } = useBuilderDraftStore()
-  const [error, setError] = useState<string | null>(null)
+  const { draft, patchDraft, source } = useBuilderDraftStore()
+  const { clearStepError, goToStep, stepError } = useBuilderStepNavigation()
   const selectedMethod = resolveBuilderProgrammingMethod(draft.uses_training_max)
   const isDerivedMethod = source?.template_key !== undefined && source.template_key !== 'custom'
   const methodLabel = METHOD_OPTIONS.find((option) => option.value === selectedMethod)?.label ?? 'General Program'
-
-  const handleNext = () => {
-    const validationError = validateCustomProgramBasicsStep(draft.name)
-
-    if (validationError) {
-      setError(validationError)
-      return
-    }
-
-    // Initialize day labels if needed
-    if (draft.days.length !== draft.days_per_week) {
-      const days = Array.from({ length: draft.days_per_week }, (_, i) => ({
-        label: draft.days[i]?.label ?? `Day ${i + 1}`,
-        exercise_blocks: draft.days[i]?.exercise_blocks ?? [],
-      }))
-      patchDraft({ days })
-    }
-    setStep('days')
-  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -97,11 +77,11 @@ export function BasicsStep() {
           value={draft.name}
           onChange={(e) => {
             patchDraft({ name: e.target.value })
-            setError(null)
+            clearStepError()
           }}
           autoFocus
-          aria-invalid={!!error}
-          aria-describedby={error ? 'builder-basics-error' : undefined}
+          aria-invalid={!!stepError}
+          aria-describedby={stepError ? 'builder-basics-error' : undefined}
         />
       </div>
 
@@ -112,7 +92,7 @@ export function BasicsStep() {
             value={String(draft.days_per_week)}
             onValueChange={(value) => {
               patchDraft({ days_per_week: Number(value) })
-              setError(null)
+              clearStepError()
             }}
             items={DAYS_PER_WEEK_OPTIONS}
           >
@@ -135,7 +115,7 @@ export function BasicsStep() {
             value={String(draft.cycle_length_weeks)}
             onValueChange={(value) => {
               patchDraft({ cycle_length_weeks: Number(value) })
-              setError(null)
+              clearStepError()
             }}
             items={CYCLE_LENGTH_OPTIONS}
           >
@@ -168,7 +148,7 @@ export function BasicsStep() {
             aria-label="Programming method"
             onValueChange={(value) => {
               patchDraft({ uses_training_max: usesTrainingMaxForMethod(value as BuilderProgrammingMethod) })
-              setError(null)
+              clearStepError()
             }}
             className="flex flex-col gap-2"
           >
@@ -201,7 +181,7 @@ export function BasicsStep() {
                 value={String(draft.tm_percentage)}
                 onValueChange={(value) => {
                   patchDraft({ tm_percentage: Number(value) })
-                  setError(null)
+                  clearStepError()
                 }}
                 items={TM_PERCENTAGE_OPTIONS}
               >
@@ -224,13 +204,13 @@ export function BasicsStep() {
         )}
       </div>
 
-      {error && (
+      {stepError && (
         <p id="builder-basics-error" role="alert" className="text-sm text-destructive">
-          {error}
+          {stepError}
         </p>
       )}
 
-      <Button onClick={handleNext} className="w-full">
+      <Button onClick={() => goToStep('days')} className="w-full">
         Next
       </Button>
     </div>

@@ -129,11 +129,11 @@ export function DashboardOverview() {
     variationName,
   ].filter(Boolean)
   const cycleProgress = useMemo(
-    () => calculateCycleProgress(template?.cycle_length_weeks ?? 0, template?.days.length ?? 0, cycleWorkouts),
+    () => calculateCycleProgress(template ?? undefined, cycleWorkouts),
     [cycleWorkouts, template],
   )
   const suggestedWorkout = useMemo(
-    () => findSuggestedWorkoutSelection(template?.cycle_length_weeks ?? 1, template?.days.map((day) => day.label) ?? [], cycleWorkouts),
+    () => findSuggestedWorkoutSelection(template ?? undefined, cycleWorkouts),
     [cycleWorkouts, template],
   )
   const cycleIsComplete = cycleProgress.totalPlannedWorkouts > 0 && cycleProgress.remainingWorkouts === 0

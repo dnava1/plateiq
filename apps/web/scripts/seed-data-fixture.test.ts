@@ -12,7 +12,7 @@ describe('generateWendler531BbbSets', () => {
 
     expect(sets).toHaveLength(8)
     expect(sets.map((set) => set.setOrder)).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
-    expect(sets[2]).toMatchObject({ isAmrap: true, repsPrescribed: 5, setType: 'amrap' })
+    expect(sets[2]).toMatchObject({ isAmrap: true, repsPrescribed: 1, setType: 'amrap', weightLbs: 180 })
     expect(sets.slice(3).every((set) => set.setType === 'variation' && set.repsPrescribed === 10)).toBe(true)
   })
 })
@@ -41,7 +41,7 @@ describe('buildSeedDataPlan', () => {
     expect(summary.completedWorkoutCount).toBe(42)
     expect(summary.incompleteWorkoutCount).toBe(1)
     expect(summary.totalSets).toBe(660)
-    expect(summary.lastBenchPrDate).toBe('2026-03-12')
+    expect(summary.lastBenchPrDate).toBe('2026-03-05')
     expect(allSets.some((set) => set.exerciseKey === 'dip' && set.intensityType === 'bodyweight' && set.weightLbs === 0)).toBe(true)
     expect(allSets.some((set) => set.exerciseKey === 'weighted_dip' && set.intensityType === 'fixed_weight' && set.weightLbs > 0)).toBe(true)
     expect(allSets.some((set) => set.exerciseKey === 'chin_up' && set.intensityType === 'bodyweight' && set.weightLbs === 0)).toBe(true)

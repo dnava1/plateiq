@@ -1,77 +1,71 @@
-import type { ProgramTemplate } from '@/types/template'
+import type { DayTemplate, ProgramTemplate } from '@/types/template'
+
+function createGreyskullWorkout(
+  label: string,
+  firstExerciseKey: 'ohp' | 'bench',
+  secondExerciseKey: 'chin_up' | 'row',
+  thirdExerciseKey: 'squat' | 'deadlift',
+  thirdExerciseNotes: string,
+): DayTemplate {
+  return {
+    label,
+    exercise_blocks: [
+      {
+        role: 'primary',
+        exercise_key: firstExerciseKey,
+        sets: [
+          { sets: 2, reps: 5, intensity: 0, intensity_type: 'fixed_weight' },
+          { sets: 1, reps: '5+', intensity: 0, intensity_type: 'fixed_weight', is_amrap: true },
+        ],
+        notes: 'Last set AMRAP — aim for 10+ reps to increase weight next session',
+      },
+      {
+        role: 'primary',
+        exercise_key: secondExerciseKey,
+        sets: [
+          { sets: 2, reps: 5, intensity: 0, intensity_type: secondExerciseKey === 'chin_up' ? 'bodyweight' : 'fixed_weight' },
+          { sets: 1, reps: '5+', intensity: 0, intensity_type: secondExerciseKey === 'chin_up' ? 'bodyweight' : 'fixed_weight', is_amrap: true },
+        ],
+      },
+      {
+        role: 'primary',
+        exercise_key: thirdExerciseKey,
+        sets: thirdExerciseKey === 'deadlift'
+          ? [{ sets: 1, reps: '5+', intensity: 0, intensity_type: 'fixed_weight', is_amrap: true }]
+          : [
+              { sets: 2, reps: 5, intensity: 0, intensity_type: 'fixed_weight' },
+              { sets: 1, reps: '5+', intensity: 0, intensity_type: 'fixed_weight', is_amrap: true },
+            ],
+        notes: thirdExerciseNotes,
+      },
+    ],
+  }
+}
+
+const GREYSKULL_WORKOUT_A = createGreyskullWorkout('Workout A', 'ohp', 'chin_up', 'squat', 'Last set AMRAP')
+const GREYSKULL_WORKOUT_B = createGreyskullWorkout('Workout B', 'bench', 'row', 'deadlift', 'Last (only) set AMRAP')
 
 export const greyskulllp: ProgramTemplate = {
   key: 'greyskull_lp',
   name: 'Greyskull LP',
   level: 'beginner',
   description:
-    'John Sheaffer\'s (Johnny Pain) Greyskull Linear Progression. Based on Starting Strength but with AMRAP (as many reps as possible) on the last set of every exercise to allow for faster strength/rep gains. 3 days/week, A/B alternating.',
+    'John Sheaffer\'s (Johnny Pain) Greyskull Linear Progression. Based on Starting Strength but with AMRAP (as many reps as possible) on the last set of every exercise to allow for faster strength/rep gains. Runs as a 2-week A/B/A then B/A/B rotation.',
   days_per_week: 3,
-  cycle_length_weeks: 1,
+  cycle_length_weeks: 2,
   uses_training_max: false,
   required_exercises: ['squat', 'bench', 'ohp', 'deadlift', 'chin_up', 'row'],
+  week_schemes: {
+    1: { label: 'Week 1 — A / B / A' },
+    2: {
+      label: 'Week 2 — B / A / B',
+      days: [GREYSKULL_WORKOUT_B, GREYSKULL_WORKOUT_A, GREYSKULL_WORKOUT_B],
+    },
+  },
   days: [
-    {
-      label: 'Workout A',
-      exercise_blocks: [
-        {
-          role: 'primary',
-          exercise_key: 'ohp',
-          sets: [
-            { sets: 2, reps: 5, intensity: 0, intensity_type: 'fixed_weight' },
-            { sets: 1, reps: '5+', intensity: 0, intensity_type: 'fixed_weight', is_amrap: true },
-          ],
-          notes: 'Last set AMRAP — aim for 10+ reps to increase weight next session',
-        },
-        {
-          role: 'primary',
-          exercise_key: 'chin_up',
-          sets: [
-            { sets: 2, reps: 5, intensity: 0, intensity_type: 'bodyweight' },
-            { sets: 1, reps: '5+', intensity: 0, intensity_type: 'bodyweight', is_amrap: true },
-          ],
-        },
-        {
-          role: 'primary',
-          exercise_key: 'squat',
-          sets: [
-            { sets: 2, reps: 5, intensity: 0, intensity_type: 'fixed_weight' },
-            { sets: 1, reps: '5+', intensity: 0, intensity_type: 'fixed_weight', is_amrap: true },
-          ],
-          notes: 'Last set AMRAP',
-        },
-      ],
-    },
-    {
-      label: 'Workout B',
-      exercise_blocks: [
-        {
-          role: 'primary',
-          exercise_key: 'bench',
-          sets: [
-            { sets: 2, reps: 5, intensity: 0, intensity_type: 'fixed_weight' },
-            { sets: 1, reps: '5+', intensity: 0, intensity_type: 'fixed_weight', is_amrap: true },
-          ],
-          notes: 'Last set AMRAP',
-        },
-        {
-          role: 'primary',
-          exercise_key: 'row',
-          sets: [
-            { sets: 2, reps: 5, intensity: 0, intensity_type: 'fixed_weight' },
-            { sets: 1, reps: '5+', intensity: 0, intensity_type: 'fixed_weight', is_amrap: true },
-          ],
-        },
-        {
-          role: 'primary',
-          exercise_key: 'deadlift',
-          sets: [
-            { sets: 1, reps: '5+', intensity: 0, intensity_type: 'fixed_weight', is_amrap: true },
-          ],
-          notes: 'Last (only) set AMRAP',
-        },
-      ],
-    },
+    GREYSKULL_WORKOUT_A,
+    GREYSKULL_WORKOUT_B,
+    GREYSKULL_WORKOUT_A,
   ],
   progression: {
     style: 'linear_per_session',

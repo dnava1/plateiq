@@ -17,6 +17,7 @@ import {
 } from '@/hooks/useWorkouts'
 import type { TrainingProgram } from '@/hooks/usePrograms'
 import { generateWorkoutPlan } from '@/lib/constants/templates/engine'
+import { resolveProgramDays } from '@/lib/programs/week'
 import { cn, formatDate, formatExerciseKey, formatWeight } from '@/lib/utils'
 import { useWorkoutSessionStore } from '@/store/workoutSessionStore'
 import { Badge } from '@/components/ui/badge'
@@ -101,11 +102,19 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
 
   const currentWorkout = cycleWorkouts?.find((workout) => workout.id === activeWorkoutId) ?? null
   const effectiveWeekNumber = activeWeekNumber ?? currentWorkout?.week_number ?? 1
-  const effectiveDayIndex =
-    activeDayIndex ??
-    (template && currentWorkout?.day_label
-      ? template.days.findIndex((day) => day.label === currentWorkout.day_label)
-      : 0)
+  const daysForCurrentWeek = useMemo(
+    () => (template ? resolveProgramDays(template, effectiveWeekNumber) : []),
+    [effectiveWeekNumber, template],
+  )
+  const resolvedDayIndexFromWorkoutLabel = currentWorkout?.day_label
+    ? daysForCurrentWeek.findIndex((day) => day.label === currentWorkout.day_label)
+    : null
+  const effectiveDayIndex = currentWorkout?.day_label
+    ? (resolvedDayIndexFromWorkoutLabel ?? -1)
+    : activeDayIndex !== null
+      ? (activeDayIndex >= 0 && activeDayIndex < daysForCurrentWeek.length ? activeDayIndex : -1)
+      : 0
+  const selectedDay = effectiveDayIndex >= 0 ? daysForCurrentWeek[effectiveDayIndex] : undefined
 
   useEffect(() => {
     const isTimerForCurrentWorkout = restTimer.workoutId === activeWorkoutId && restTimer.endsAt !== null
@@ -216,7 +225,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
   const isRestComplete = remainingRestSeconds === 0 && isRestTimerForCurrentWorkout
   const completedCount = execution.completedSets
 
-  if (!activeWorkoutId || !template || effectiveDayIndex < 0) {
+  if (!activeWorkoutId || !template || !selectedDay) {
     return (
       <Card className="surface-panel">
         <CardContent className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -230,7 +239,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
   const startManualRestTimer = (durationSeconds: number) => {
     startRestTimer({
       durationSeconds,
-      label: nextSet?.exerciseName ?? template.days[effectiveDayIndex]?.label ?? 'Workout rest',
+      label: nextSet?.exerciseName ?? selectedDay.label ?? 'Workout rest',
       sourceSetOrder: restTimer.sourceSetOrder,
       workoutId: activeWorkoutId,
     })
@@ -310,7 +319,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex flex-col gap-3">
               <div className="flex flex-wrap items-center gap-2">
-                <CardTitle className="text-xl">{template.days[effectiveDayIndex]?.label ?? 'Active Workout'}</CardTitle>
+                <CardTitle className="text-xl">{selectedDay.label}</CardTitle>
                 <Badge>Week {effectiveWeekNumber}</Badge>
                 {fallbackCycle ? <Badge variant="outline">Cycle {fallbackCycle.cycle_number}</Badge> : null}
                 <Badge variant="outline">

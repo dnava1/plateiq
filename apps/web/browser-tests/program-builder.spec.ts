@@ -231,6 +231,23 @@ test.describe('program builder browser flow', () => {
     await expect(main.getByText('Training Max Working Percentage', { exact: true })).toBeVisible()
   })
 
+  test('lets users click later builder steps without bypassing validation', async ({ page }) => {
+    const main = page.getByRole('main')
+
+    await page.goto('/programs/builder')
+
+    await expect(page).toHaveURL(/\/programs\/builder$/)
+    await main.getByRole('button', { name: /Review/i }).first().click()
+    await expect(main.getByText('Give your program a name with at least 2 characters.')).toBeVisible()
+
+    await page.locator('#name').fill('Bridge Block')
+    await expect(page.locator('#name')).toHaveValue('Bridge Block')
+    await main.getByRole('button', { name: /Review/i }).first().click()
+
+    await expect(main.getByRole('button', { name: 'Add Exercise Block' })).toBeVisible()
+    await expect(main.getByText('Add at least one exercise to Day 1 before continuing.')).toBeVisible()
+  })
+
   test('keeps deload guidance manual in progression and review', async ({ page }) => {
     const main = page.getByRole('main')
 

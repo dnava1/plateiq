@@ -4,10 +4,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   fetchRecentExerciseHistory,
+  resolveWorkoutProgram,
   useActiveCycle,
   useCompleteWorkout,
   useLogSet,
 } from './useWorkouts'
+import { generateWorkoutPlan } from '@/lib/constants/templates/engine'
+import { getTemplate } from '@/lib/constants/templates'
+import { buildEditableConfigFromTemplate } from '@/lib/programs/editable'
 
 const useSupabaseMock = vi.fn()
 
@@ -238,6 +242,41 @@ describe('useWorkouts', () => {
     ).rejects.toThrow('Logged reps must be a whole number.')
 
     expect(upsert).not.toHaveBeenCalled()
+  })
+
+  it('resolveWorkoutProgram preserves explicit week overrides for custom template copies', () => {
+    const template = getTemplate('wendler_531')
+    expect(template).toBeTruthy()
+
+    const editableConfig = buildEditableConfigFromTemplate(template!, { variationKey: 'bbb' })
+
+    const resolved = resolveWorkoutProgram({
+      id: 1,
+      name: 'Wendler 5/3/1 BBB',
+      template_key: 'wendler_531',
+      config: editableConfig,
+    } as never)
+
+    expect(resolved.template?.week_schemes?.['2']?.days?.[0]?.exercise_blocks).toHaveLength(2)
+
+    const generatedSets = generateWorkoutPlan(
+      resolved.template!,
+      0,
+      2,
+      new Map([
+        ['bench', 195],
+        ['deadlift', 345],
+        ['ohp', 130],
+        ['squat', 305],
+      ]),
+      [],
+      5,
+    )
+
+    expect(generatedSets.slice(0, 3).map((set) => set.reps_prescribed)).toEqual([3, 3, 3])
+    expect(generatedSets[0]?.weight_lbs).toBe(90)
+    expect(generatedSets[2]?.is_amrap).toBe(true)
+    expect(generatedSets[3]?.exercise_key).toBe('ohp')
   })
 
   it('fetchRecentExerciseHistory excludes the current workout and limits to completed logged history', async () => {

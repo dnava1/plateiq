@@ -1,13 +1,50 @@
-import type { ProgramTemplate } from '@/types/template'
+import type { DayTemplate, ProgramTemplate, SetPrescription } from '@/types/template'
 
-// Wendler 5/3/1: The sets shown are the "working sets" after warm-up.
-// Week schemes apply intensity multipliers to the base percentages.
-// Base percentages: Set 1=65%, Set 2=75%, Set 3=85%
-// Week 1 (5s week): multiply by 1.0 → 65/75/85
-// Week 2 (3s week): multiply by ~1.077 → 70/80/90
-// Week 3 (5/3/1 week): multiply by ~1.154 → 75/85/95
-// Week 4 (Deload): multiply by ~0.615 → 40/50/60
+// Wendler 5/3/1: The sets shown are the working sets after warm-up.
+// Each week carries its own exact percentages and rep targets.
 // The AMRAP set is the last set of weeks 1-3.
+
+interface Wendler531SetTarget {
+  intensity: number
+  reps: SetPrescription['reps']
+}
+
+type Wendler531WeekTargets = [Wendler531SetTarget, Wendler531SetTarget, Wendler531SetTarget]
+
+const WENDLER_531_DAY_DEFINITIONS = [
+  { label: 'OHP Day', exerciseKey: 'ohp' },
+  { label: 'Deadlift Day', exerciseKey: 'deadlift' },
+  { label: 'Bench Day', exerciseKey: 'bench' },
+  { label: 'Squat Day', exerciseKey: 'squat' },
+] as const
+
+function createWendler531Sets(targets: Wendler531WeekTargets): SetPrescription[] {
+  return [
+    { sets: 1, reps: targets[0].reps, intensity: targets[0].intensity, intensity_type: 'percentage_tm' },
+    { sets: 1, reps: targets[1].reps, intensity: targets[1].intensity, intensity_type: 'percentage_tm' },
+    {
+      sets: 1,
+      reps: targets[2].reps,
+      intensity: targets[2].intensity,
+      intensity_type: 'percentage_tm',
+      is_amrap: typeof targets[2].reps === 'string' && targets[2].reps.endsWith('+'),
+    },
+  ]
+}
+
+function createWendler531Days(targets: Wendler531WeekTargets, notes: string): DayTemplate[] {
+  return WENDLER_531_DAY_DEFINITIONS.map(({ label, exerciseKey }) => ({
+    label,
+    exercise_blocks: [
+      {
+        role: 'primary',
+        exercise_key: exerciseKey,
+        sets: createWendler531Sets(targets),
+        notes,
+      },
+    ],
+  }))
+}
 
 export const wendler531: ProgramTemplate = {
   key: 'wendler_531',
@@ -21,73 +58,40 @@ export const wendler531: ProgramTemplate = {
   default_tm_percentage: 0.9,
   required_exercises: ['squat', 'bench', 'ohp', 'deadlift'],
   week_schemes: {
-    1: { label: '5s Week', intensity_modifier: 1.0 },
-    2: { label: '3s Week', intensity_modifier: 1.0769 },
-    3: { label: '5/3/1 Week', intensity_modifier: 1.1538 },
-    4: { label: 'Deload', intensity_modifier: 0.6154 },
+    1: { label: '5s Week' },
+    2: {
+      label: '3s Week',
+      days: createWendler531Days([
+        { intensity: 0.7, reps: 3 },
+        { intensity: 0.8, reps: 3 },
+        { intensity: 0.9, reps: '3+' },
+      ], 'Week 2: 3/3/3+'),
+    },
+    3: {
+      label: '5/3/1 Week',
+      days: createWendler531Days([
+        { intensity: 0.75, reps: 5 },
+        { intensity: 0.85, reps: 3 },
+        { intensity: 0.95, reps: '1+' },
+      ], 'Week 3: 5/3/1+'),
+    },
+    4: {
+      label: 'Deload',
+      days: createWendler531Days([
+        { intensity: 0.4, reps: 5 },
+        { intensity: 0.5, reps: 5 },
+        { intensity: 0.6, reps: 5 },
+      ], 'Week 4: Deload'),
+    },
   },
-  days: [
-    {
-      label: 'OHP Day',
-      exercise_blocks: [
-        {
-          role: 'primary',
-          exercise_key: 'ohp',
-          sets: [
-            { sets: 1, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' },
-            { sets: 1, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' },
-            { sets: 1, reps: '5+', intensity: 0.85, intensity_type: 'percentage_tm', is_amrap: true },
-          ],
-          notes: 'Week 1: 5/5/5+  |  Week 2: 3/3/3+  |  Week 3: 5/3/1+  |  Week 4: Deload',
-        },
-      ],
-    },
-    {
-      label: 'Deadlift Day',
-      exercise_blocks: [
-        {
-          role: 'primary',
-          exercise_key: 'deadlift',
-          sets: [
-            { sets: 1, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' },
-            { sets: 1, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' },
-            { sets: 1, reps: '5+', intensity: 0.85, intensity_type: 'percentage_tm', is_amrap: true },
-          ],
-          notes: 'Last set AMRAP on weeks 1-3',
-        },
-      ],
-    },
-    {
-      label: 'Bench Day',
-      exercise_blocks: [
-        {
-          role: 'primary',
-          exercise_key: 'bench',
-          sets: [
-            { sets: 1, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' },
-            { sets: 1, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' },
-            { sets: 1, reps: '5+', intensity: 0.85, intensity_type: 'percentage_tm', is_amrap: true },
-          ],
-          notes: 'Last set AMRAP on weeks 1-3',
-        },
-      ],
-    },
-    {
-      label: 'Squat Day',
-      exercise_blocks: [
-        {
-          role: 'primary',
-          exercise_key: 'squat',
-          sets: [
-            { sets: 1, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' },
-            { sets: 1, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' },
-            { sets: 1, reps: '5+', intensity: 0.85, intensity_type: 'percentage_tm', is_amrap: true },
-          ],
-          notes: 'Last set AMRAP on weeks 1-3',
-        },
-      ],
-    },
-  ],
+  days: createWendler531Days(
+    [
+      { intensity: 0.65, reps: 5 },
+      { intensity: 0.75, reps: 5 },
+      { intensity: 0.85, reps: '5+' },
+    ],
+    'Week 1: 5/5/5+  |  Week 2: 3/3/3+  |  Week 3: 5/3/1+  |  Week 4: Deload',
+  ),
   variation_options: [
     {
       key: 'bbb',
@@ -110,7 +114,7 @@ export const wendler531: ProgramTemplate = {
         {
           role: 'variation',
           exercise_key: undefined,
-          sets: [{ sets: 5, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm', display_type: 'backoff' }],
+          sets: [{ sets: 5, reps: 5, intensity: 1.0, intensity_type: 'percentage_work_set', display_type: 'backoff' }],
           notes: 'FSL — 5×5 at first working set weight',
         },
       ],

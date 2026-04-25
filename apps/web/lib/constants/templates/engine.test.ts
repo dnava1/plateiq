@@ -124,12 +124,21 @@ describe('generateWorkoutPlan', () => {
     const sets = generateWorkoutPlan(template, 3, 2, trainingMaxes)
 
     // Week 2 modifier is 1.0769
-    // Set 1: 300 * 0.65 * 1.0769 = 209.9955 → 205 when rounded down to 5
-    expect(sets[0].weight_lbs).toBe(205)
-    // Set 2: 300 * 0.75 * 1.0769 = 242.3.. → 240
+    // Set 1: 300 * 0.65 * 1.0769 = 210 (rounded to 5)
+    expect(sets[0].weight_lbs).toBe(210)
     expect(sets[1].weight_lbs).toBe(240)
-    // Set 3: 300 * 0.85 * 1.0769 = 274.6.. → 270 when rounded down to 5
     expect(sets[2].weight_lbs).toBe(270)
+    expect(sets.map((set) => set.reps_prescribed)).toEqual([3, 3, 3])
+    expect(sets[2].is_amrap).toBe(true)
+  })
+
+  it('applies week 3 rep targets for 5/3/1', () => {
+    const template = TEMPLATE_REGISTRY['wendler_531']
+    const sets = generateWorkoutPlan(template, 3, 3, trainingMaxes)
+
+    expect(sets.map((set) => set.weight_lbs)).toEqual([225, 255, 285])
+    expect(sets.map((set) => set.reps_prescribed)).toEqual([5, 3, 1])
+    expect(sets[2].is_amrap).toBe(true)
   })
 
   it('applies week 4 deload modifier for 5/3/1', () => {
@@ -137,8 +146,9 @@ describe('generateWorkoutPlan', () => {
     const sets = generateWorkoutPlan(template, 3, 4, trainingMaxes)
 
     // Week 4 modifier is 0.6154
-    // Set 1: 300 * 0.65 * 0.6154 = 120 (rounded to 5)
-    expect(sets[0].weight_lbs).toBe(120)
+    expect(sets.map((set) => set.weight_lbs)).toEqual([120, 150, 180])
+    expect(sets.map((set) => set.reps_prescribed)).toEqual([5, 5, 5])
+    expect(sets.every((set) => !set.is_amrap)).toBe(true)
   })
 
   it('handles variation options (5/3/1 BBB)', () => {
@@ -271,11 +281,46 @@ describe('generateWorkoutPlan', () => {
     expect(generateWorkoutPlan(template, 99, 1, trainingMaxes)).toEqual([])
   })
 
-  // Test plan generation for all 15 templates
+  it('uses explicit Candito week schemes when generating plans', () => {
+    const template = TEMPLATE_REGISTRY['candito_6_week_strength']
+    const sets = generateWorkoutPlan(template, 0, 4, trainingMaxes)
+
+    expect(sets).toHaveLength(3)
+    expect(sets.map((set) => set.exercise_key)).toEqual(['squat', 'bench', 'bench'])
+    expect(sets.map((set) => set.weight_lbs)).toEqual([275, 180, 180])
+    expect(sets.map((set) => set.reps_prescribed)).toEqual([2, 3, 3])
+  })
+
+  it('uses explicit Rippler week schemes when generating plans', () => {
+    const template = TEMPLATE_REGISTRY['gzcl_the_rippler']
+    const sets = generateWorkoutPlan(template, 0, 2, trainingMaxes)
+
+    expect(sets).toHaveLength(19)
+    expect(sets[0]).toMatchObject({ exercise_key: 'bench', reps_prescribed: 3, weight_lbs: 170 })
+    expect(sets[3]).toMatchObject({ exercise_key: 'bench', reps_prescribed: 3, is_amrap: true, weight_lbs: 170 })
+    expect(sets.filter((set) => set.exercise_key === 'incline_bench').every((set) => set.weight_lbs === 0)).toBe(true)
+    expect(sets.filter((set) => set.exercise_key === 'lateral_raise').length).toBe(5)
+    expect(sets.filter((set) => set.exercise_key === 'tricep_pushdown').length).toBe(5)
+  })
+
+  it('uses explicit Sheiko week schemes when generating plans', () => {
+    const template = TEMPLATE_REGISTRY['sheiko']
+    const sets = generateWorkoutPlan(template, 0, 3, trainingMaxes)
+
+    expect(sets).toHaveLength(21)
+    expect(sets[0]).toMatchObject({ exercise_key: 'squat', reps_prescribed: 5, weight_lbs: 150 })
+    expect(sets[6]).toMatchObject({ exercise_key: 'squat', reps_prescribed: 3, weight_lbs: 240 })
+    expect(sets[7]).toMatchObject({ exercise_key: 'bench', reps_prescribed: 5, weight_lbs: 100 })
+    expect(sets[14]).toMatchObject({ exercise_key: 'bench', reps_prescribed: 2, weight_lbs: 150 })
+    expect(sets[15]).toMatchObject({ exercise_key: 'squat', reps_prescribed: 5, weight_lbs: 150 })
+    expect(sets[20]).toMatchObject({ exercise_key: 'squat', reps_prescribed: 4, weight_lbs: 210 })
+  })
+
+  // Test plan generation for all 19 templates
   const allTemplateKeys = Object.keys(TEMPLATE_REGISTRY)
 
-  it('has all 15 templates in the registry', () => {
-    expect(allTemplateKeys).toHaveLength(15)
+  it('has all 19 templates in the registry', () => {
+    expect(allTemplateKeys).toHaveLength(19)
   })
 
   it.each(allTemplateKeys)('generates a valid plan for %s', (key) => {

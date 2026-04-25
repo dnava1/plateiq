@@ -42,6 +42,7 @@ export interface VariationOption {
 export interface ProgramWeekScheme {
   label: string
   intensity_modifier?: number
+  days?: DayTemplate[]
 }
 
 export type ProgramWeekSchemes = Record<string, ProgramWeekScheme>

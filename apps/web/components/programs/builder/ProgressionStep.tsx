@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { ProgressionRule } from '@/types/template'
 import type { ProgressionStyle } from '@/types/domain'
+import { useBuilderStepNavigation } from './useBuilderStepNavigation'
 
 const STYLE_OPTIONS: { value: ProgressionStyle; label: string; description: string }[] = [
   { value: 'linear_per_session', label: 'Linear per Session', description: 'Add weight every session' },
@@ -29,6 +30,7 @@ const MIN_INCREMENT_LBS = 0
 
 export function ProgressionStep() {
   const { draft, patchDraft, setStep } = useBuilderDraftStore()
+  const { clearStepError, goToStep } = useBuilderStepNavigation()
   const preferredUnit = usePreferredUnit()
   const prog = draft.progression
   const upperDisplay = lbsToDisplay(prog.increment_lbs?.upper ?? 5, preferredUnit)
@@ -39,6 +41,7 @@ export function ProgressionStep() {
 
   const update = (patch: Partial<ProgressionRule>) => {
     patchDraft({ progression: { ...prog, ...patch } })
+    clearStepError()
   }
 
   return (
@@ -130,7 +133,7 @@ export function ProgressionStep() {
         <Button variant="outline" onClick={() => setStep('exercises')} className="flex-1">
           Back
         </Button>
-        <Button onClick={() => setStep('review')} className="flex-1">
+        <Button onClick={() => goToStep('review')} className="flex-1">
           Review
         </Button>
       </div>

@@ -3,10 +3,11 @@ import type { Tables } from '@/types/database'
 import type { IntensityType } from '@/types/domain'
 import type { CustomProgramConfig } from '@/types/template'
 import type { ExerciseBlock, ProgramTemplate } from '@/types/template'
+import { collectProgramDays } from '@/lib/programs/week'
 import { isCustomProgramConfig } from '@/types/template'
 
 type ProgramMethodSource = Pick<Tables<'training_programs'>, 'config' | 'template_key'>
-type ProgramExecutionDefinition = Pick<CustomProgramConfig, 'uses_training_max' | 'days'>
+type ProgramExecutionDefinition = Pick<CustomProgramConfig, 'cycle_length_weeks' | 'uses_training_max' | 'days' | 'week_schemes'>
 const TM_BACKED_INTENSITY_TYPES = new Set<IntensityType>(['percentage_tm', 'percentage_1rm'])
 
 function blocksNeedTrainingMaxForExecution(blocks: ExerciseBlock[]) {
@@ -18,7 +19,7 @@ function templateNeedsTrainingMaxForExecution(template: ProgramTemplate, selecte
     return true
   }
 
-  if (template.days.some((day) => blocksNeedTrainingMaxForExecution(day.exercise_blocks))) {
+  if (collectProgramDays(template).some((day) => blocksNeedTrainingMaxForExecution(day.exercise_blocks))) {
     return true
   }
 
@@ -41,7 +42,7 @@ function getSelectedVariationKey(rawConfig: ProgramMethodSource['config']) {
 }
 
 export function resolveDefinitionNeedsTrainingMaxForExecution(definition: ProgramExecutionDefinition) {
-  return definition.days.some((day) => blocksNeedTrainingMaxForExecution(day.exercise_blocks))
+  return collectProgramDays(definition).some((day) => blocksNeedTrainingMaxForExecution(day.exercise_blocks))
 }
 
 export function resolveProgramUsesTrainingMax(program: ProgramMethodSource) {

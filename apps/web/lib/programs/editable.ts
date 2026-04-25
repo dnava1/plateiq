@@ -77,7 +77,13 @@ export function cloneWeekSchemes(weekSchemes: ProgramWeekSchemes | undefined) {
   }
 
   return Object.fromEntries(
-    Object.entries(weekSchemes).map(([weekNumber, scheme]) => [weekNumber, { ...scheme }]),
+    Object.entries(weekSchemes).map(([weekNumber, scheme]) => [
+      weekNumber,
+      {
+        ...scheme,
+        days: scheme.days?.map(cloneDayTemplate),
+      },
+    ]),
   ) as ProgramWeekSchemes
 }
 
@@ -119,6 +125,22 @@ function materializeTemplateDay(day: DayTemplate, variationBlocks: ExerciseBlock
   }
 }
 
+function materializeWeekSchemes(weekSchemes: ProgramWeekSchemes | undefined, variationBlocks: ExerciseBlock[]) {
+  if (!weekSchemes) {
+    return undefined
+  }
+
+  return Object.fromEntries(
+    Object.entries(weekSchemes).map(([weekNumber, scheme]) => [
+      weekNumber,
+      {
+        ...scheme,
+        days: scheme.days?.map((day) => materializeTemplateDay(day, variationBlocks)),
+      },
+    ]),
+  ) as ProgramWeekSchemes
+}
+
 export function buildEditableConfigFromTemplate(
   template: ProgramTemplate,
   options: TemplateDraftHydrationOptions = {},
@@ -135,7 +157,7 @@ export function buildEditableConfigFromTemplate(
       ? options.tmPercentage ?? template.default_tm_percentage ?? DEFAULT_TM_PERCENTAGE
       : undefined,
     days: template.days.map((day) => materializeTemplateDay(day, variationBlocks)),
-    week_schemes: cloneWeekSchemes(template.week_schemes),
+    week_schemes: materializeWeekSchemes(template.week_schemes, variationBlocks),
     progression: cloneProgressionRule(template.progression),
     metadata: {
       source_template_key: template.key,
@@ -149,19 +171,18 @@ export function normalizeEditableProgramConfig(
   templateKey: string,
 ): CustomProgramConfig {
   const sourceTemplateKey = config.metadata?.source_template_key ?? (templateKey !== 'custom' ? templateKey : undefined)
-  const sourceTemplate = sourceTemplateKey ? getTemplate(sourceTemplateKey) : undefined
 
   return {
     type: 'custom',
-    level: config.level ?? sourceTemplate?.level,
+    level: config.level,
     days_per_week: config.days_per_week,
     cycle_length_weeks: config.cycle_length_weeks,
     uses_training_max: config.uses_training_max,
     tm_percentage: config.uses_training_max
-      ? config.tm_percentage ?? sourceTemplate?.default_tm_percentage ?? DEFAULT_TM_PERCENTAGE
+      ? config.tm_percentage ?? DEFAULT_TM_PERCENTAGE
       : undefined,
     days: config.days.map(cloneDayTemplate),
-    week_schemes: cloneWeekSchemes(config.week_schemes ?? sourceTemplate?.week_schemes),
+    week_schemes: cloneWeekSchemes(config.week_schemes),
     progression: cloneProgressionRule(config.progression),
     metadata: sourceTemplateKey || config.metadata?.selected_variation_key !== undefined
       ? {

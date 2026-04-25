@@ -10,6 +10,7 @@ import { useUser } from '@/hooks/useUser'
 import { useCycleWorkouts, useActiveCycle, useEnsureWorkout, resolveWorkoutProgram, buildTrainingMaxMap } from '@/hooks/useWorkouts'
 import type { TrainingProgram } from '@/hooks/usePrograms'
 import { generateWorkoutPlan } from '@/lib/constants/templates/engine'
+import { resolveProgramDays } from '@/lib/programs/week'
 import { findSuggestedWorkoutSelection } from '@/lib/workout-progress'
 import { formatExerciseKey, formatWeekCycle } from '@/lib/utils'
 import { useWorkoutSessionStore } from '@/store/workoutSessionStore'
@@ -47,10 +48,10 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
     weekNumber: number
   } | null>(null)
 
-  const suggestedSelection = useMemo(() => {
-    const dayLabels = template?.days.map((day) => day.label) ?? []
-    return findSuggestedWorkoutSelection(template?.cycle_length_weeks ?? 1, dayLabels, cycleWorkouts)
-  }, [cycleWorkouts, template])
+  const suggestedSelection = useMemo(
+    () => findSuggestedWorkoutSelection(template ?? undefined, cycleWorkouts),
+    [cycleWorkouts, template],
+  )
 
   const selectionScope = `${program.id}:${activeCycle?.id ?? 'none'}`
   const sessionSelection = template
@@ -58,17 +59,22 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
     && sessionDayIndex !== null
     && sessionWeekNumber !== null
     ? {
-        dayIndex: Math.min(Math.max(0, sessionDayIndex), Math.max(0, template.days.length - 1)),
+        dayIndex: sessionDayIndex,
         weekNumber: Math.min(Math.max(1, sessionWeekNumber), template.cycle_length_weeks),
       }
     : null
   const currentWeekNumber = manualSelection?.scope === selectionScope
     ? manualSelection.weekNumber
     : (sessionSelection?.weekNumber ?? suggestedSelection.weekNumber)
-  const currentDayIndex = manualSelection?.scope === selectionScope
+  const requestedDayIndex = manualSelection?.scope === selectionScope
     ? manualSelection.dayIndex
     : (sessionSelection?.dayIndex ?? suggestedSelection.dayIndex)
-  const selectedDay = template?.days[currentDayIndex]
+  const daysForCurrentWeek = useMemo(
+    () => (template ? resolveProgramDays(template, currentWeekNumber) : []),
+    [currentWeekNumber, template],
+  )
+  const currentDayIndex = Math.min(Math.max(0, requestedDayIndex), Math.max(0, daysForCurrentWeek.length - 1))
+  const selectedDay = daysForCurrentWeek[currentDayIndex]
   const trainingMaxMap = useMemo(() => buildTrainingMaxMap(trainingMaxes), [trainingMaxes])
   const exerciseNameById = useMemo(
     () => new Map((exercises ?? []).map((exercise) => [exercise.id, exercise.name])),
@@ -105,7 +111,7 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
 
   const daySetCounts = useMemo(
     () => (template
-      ? template.days.map((_, index) =>
+      ? daysForCurrentWeek.map((_, index) =>
           generateWorkoutPlan(
             template,
             index,
@@ -116,7 +122,7 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
           ).length,
         )
       : []),
-    [currentWeekNumber, rounding, selectedVariationKeys, template, trainingMaxMap],
+    [currentWeekNumber, daysForCurrentWeek, rounding, selectedVariationKeys, template, trainingMaxMap],
   )
 
   const selectedWorkout = cycleWorkouts?.find(
@@ -221,7 +227,10 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
                 size="icon-sm"
                 onClick={() =>
                   setManualSelection({
-                    dayIndex: currentDayIndex,
+                    dayIndex: Math.min(
+                      currentDayIndex,
+                      Math.max(0, resolveProgramDays(template, Math.max(1, currentWeekNumber - 1)).length - 1),
+                    ),
                     scope: selectionScope,
                     weekNumber: Math.max(1, currentWeekNumber - 1),
                   })
@@ -237,7 +246,10 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
                 size="icon-sm"
                 onClick={() =>
                   setManualSelection({
-                    dayIndex: currentDayIndex,
+                    dayIndex: Math.min(
+                      currentDayIndex,
+                      Math.max(0, resolveProgramDays(template, Math.min(template.cycle_length_weeks, currentWeekNumber + 1)).length - 1),
+                    ),
                     scope: selectionScope,
                     weekNumber: Math.min(template.cycle_length_weeks, currentWeekNumber + 1),
                   })
@@ -257,7 +269,7 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
             <CardDescription>Select the session you’re training and launch the logger.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3 pt-0">
-            {template.days.map((day, index) => {
+            {daysForCurrentWeek.map((day, index) => {
               const workout = cycleWorkouts?.find(
                 (item) => item.week_number === currentWeekNumber && item.day_label === day.label,
               )

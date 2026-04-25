@@ -5,6 +5,7 @@ import type {
   ExerciseBlock,
 } from '@/types/template'
 import { roundToIncrement } from '@/lib/utils'
+import { resolveProgramDay } from '@/lib/programs/week'
 
 const GENERATED_BLOCK_ID_DELIMITER = '-'
 
@@ -143,17 +144,17 @@ export function generateWorkoutPlan(
   selectedVariations: string[] = [],
   preferredRounding: number = 5
 ): GeneratedSet[] {
-  const day = template.days[dayIndex]
+  const day = resolveProgramDay(template, dayIndex, weekNumber)
   if (!day) return []
 
   const allSets: GeneratedSet[] = []
   let setOrder = 1
   let blockOrder = 1
 
-  // Get week scheme modifier if applicable (e.g., 5/3/1 wave loading)
   const weekScheme = template.week_schemes?.[weekNumber]
+  const shouldApplyWeekModifier = Boolean(weekScheme?.intensity_modifier) && !weekScheme?.days
   const adjustedDayBlocks = day.exercise_blocks.map((block) =>
-    weekScheme?.intensity_modifier
+    shouldApplyWeekModifier
       ? {
           ...block,
           sets: block.sets.map((set) => ({
