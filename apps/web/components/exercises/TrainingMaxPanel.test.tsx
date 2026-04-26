@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, beforeEach, vi } from 'vitest'
 import { TrainingMaxPanel } from './TrainingMaxPanel'
@@ -138,11 +138,10 @@ describe('TrainingMaxPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Close' }))
     await user.click(card.getByRole('button', { name: 'Update TM' }))
 
-    expect(screen.getByRole('heading', { name: 'Set Training Max — Safety Squat Bar' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Set Training Max - Safety Squat Bar' })).toBeInTheDocument()
 
     const tmInput = screen.getByLabelText('Training Max (lbs)')
-    await user.clear(tmInput)
-    await user.type(tmInput, '320')
+    fireEvent.change(tmInput, { target: { value: '320' } })
     await user.click(screen.getByRole('button', { name: 'Save Training Max' }))
 
     expect(mutateMock).toHaveBeenCalledWith(
@@ -250,5 +249,23 @@ describe('TrainingMaxPanel', () => {
     )
 
     expect(screen.getByText('Create a main lift in Programs before setting a training max here.')).toBeInTheDocument()
+  })
+
+  it('switches to 1RM-first actions and dialog copy when the panel scope requires it', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <TrainingMaxPanel
+        description="Manage required max inputs for the selected lifts."
+        inputMode="1rm"
+        targetExerciseIds={[10]}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Update 1RM' }))
+
+    expect(screen.getByRole('heading', { name: 'Set 1RM - Safety Squat Bar' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Estimated 1RM (lbs)')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save 1RM' })).toBeInTheDocument()
   })
 })

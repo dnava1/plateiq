@@ -11,6 +11,26 @@ export interface EditableProgramDaySlot {
   weekNumber: number
 }
 
+function resolveWeekLabelValue(label: string | undefined, weekNumber: number): string {
+  return label?.trim().length ? label.trim() : `Week ${weekNumber}`
+}
+
+function stripWeekSpecificDayEntries<T extends WeekAwareProgram['week_schemes']>(weekSchemes: T): T {
+  if (!weekSchemes) {
+    return weekSchemes
+  }
+
+  return Object.fromEntries(
+    Object.entries(weekSchemes).map(([weekNumber, scheme]) => [
+      weekNumber,
+      {
+        ...scheme,
+        days: undefined,
+      },
+    ]),
+  ) as T
+}
+
 export function resolveProgramDays(program: WeekAwareProgram, weekNumber: number): DayTemplate[] {
   return program.week_schemes?.[weekNumber]?.days ?? program.days
 }
@@ -44,11 +64,15 @@ export function collectProgramDays(program: WeekAwareProgram): DayTemplate[] {
 }
 
 export function hasProgramWeekSpecificDays(program: WeekAwareProgram): boolean {
+  if (program.cycle_length_weeks <= 1) {
+    return false
+  }
+
   return Object.values(program.week_schemes ?? {}).some((scheme) => Boolean(scheme.days?.length))
 }
 
 export function resolveProgramWeekLabel(program: WeekAwareProgram, weekNumber: number): string {
-  return program.week_schemes?.[weekNumber]?.label ?? `Week ${weekNumber}`
+  return resolveWeekLabelValue(program.week_schemes?.[weekNumber]?.label, weekNumber)
 }
 
 export function resolveEditableProgramDaySlots(program: WeekAwareProgram): EditableProgramDaySlot[] {
@@ -93,6 +117,16 @@ function createNormalizedDayTemplate(day: DayTemplate | undefined, dayIndex: num
   }
 }
 
+function cloneDayTemplate(day: DayTemplate): DayTemplate {
+  return {
+    ...day,
+    exercise_blocks: day.exercise_blocks.map((block) => ({
+      ...block,
+      sets: block.sets.map((set) => ({ ...set })),
+    })),
+  }
+}
+
 export function normalizeProgramStructure<
   T extends WeekAwareProgram & Pick<ProgramTemplate, 'days_per_week'>
 >(program: T): Pick<T, 'days' | 'week_schemes'> {
@@ -122,6 +156,15 @@ export function normalizeProgramStructure<
           ]),
       )
     : undefined
+
+  if (program.cycle_length_weeks <= 1) {
+    const collapsedDays = (normalizedWeekSchemes?.[1]?.days ?? normalizedDays).map(cloneDayTemplate)
+
+    return {
+      days: collapsedDays as T['days'],
+      week_schemes: stripWeekSpecificDayEntries(normalizedWeekSchemes) as T['week_schemes'],
+    }
+  }
 
   return {
     days: normalizedDays as T['days'],
@@ -160,6 +203,63 @@ export function updateProgramDay(
   return {
     days: program.days,
     week_schemes: nextWeekSchemes,
+  }
+}
+
+export function materializeProgramWeekSpecificDays<
+  T extends WeekAwareProgram & Pick<ProgramTemplate, 'days_per_week'>
+>(program: T): Pick<T, 'days' | 'week_schemes'> {
+  const normalizedProgram = normalizeProgramStructure(program)
+
+  const nextWeekSchemes = Object.fromEntries(
+    Array.from({ length: program.cycle_length_weeks }, (_, index) => {
+      const weekNumber = index + 1
+      const existingDays = normalizedProgram.week_schemes?.[weekNumber]?.days ?? normalizedProgram.days
+
+      return [
+        String(weekNumber),
+        {
+          label: resolveProgramWeekLabel(program, weekNumber),
+          days: existingDays.map(cloneDayTemplate),
+        },
+      ]
+    }),
+  )
+
+  return {
+    days: normalizedProgram.days as T['days'],
+    week_schemes: nextWeekSchemes as T['week_schemes'],
+  }
+}
+
+export function collapseProgramWeekSpecificDays<
+  T extends WeekAwareProgram & Pick<ProgramTemplate, 'days_per_week'>
+>(program: T): Pick<T, 'days' | 'week_schemes'> {
+  const normalizedProgram = normalizeProgramStructure(program)
+  const nextDays = (normalizedProgram.week_schemes?.[1]?.days ?? normalizedProgram.days).map(cloneDayTemplate)
+
+  return {
+    days: nextDays as T['days'],
+    week_schemes: stripWeekSpecificDayEntries(normalizedProgram.week_schemes) as T['week_schemes'],
+  }
+}
+
+export function updateProgramWeekLabel(
+  program: WeekAwareProgram,
+  weekNumber: number,
+  label: string,
+): Pick<WeekAwareProgram, 'week_schemes'> {
+  const targetScheme = program.week_schemes?.[weekNumber]
+
+  return {
+    week_schemes: {
+      ...(program.week_schemes ?? {}),
+      [weekNumber]: {
+        ...targetScheme,
+        label,
+        days: targetScheme?.days,
+      },
+    },
   }
 }
 

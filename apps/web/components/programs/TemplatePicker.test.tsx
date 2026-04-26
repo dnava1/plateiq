@@ -1,5 +1,5 @@
 import { useState, type ComponentProps } from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { TemplatePicker } from './TemplatePicker'
@@ -18,6 +18,10 @@ function TemplatePickerHarness() {
   return <TemplatePicker selectedKey={selectedKey} onSelect={setSelectedKey} />
 }
 
+function getTemplateRadioByTitle(title: string) {
+  return screen.getAllByRole('radio').find((radio) => radio.textContent?.startsWith(title))
+}
+
 describe('TemplatePicker', () => {
   it('renders human-readable template metadata and lift labels', () => {
     render(<TemplatePickerHarness />)
@@ -31,23 +35,28 @@ describe('TemplatePicker', () => {
     expect(screen.getAllByText(/Lifts:.*Lat Pulldown/i).length).toBeGreaterThan(0)
   })
 
-  it('filters templates by search query and days per week', async () => {
+  it('filters templates by difficulty, search query, and days per week', async () => {
     const user = userEvent.setup()
 
     render(<TemplatePickerHarness />)
 
+    await user.click(screen.getByRole('button', { name: 'Advanced' }))
+
+    expect(screen.queryByText(/StrongLifts/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: /Sheiko/i })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'All Levels' }))
     await user.click(screen.getByRole('button', { name: '4 days' }))
 
     expect(screen.queryByText(/StrongLifts/i)).not.toBeInTheDocument()
     expect(screen.getByText(/PHUL/i)).toBeInTheDocument()
 
-    await user.type(screen.getByRole('searchbox', { name: 'Search program templates' }), 'wendler')
-
-    await waitFor(() => {
-      expect(screen.getByRole('radio', { name: /Wendler's 5\/3\/1/i })).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search program templates' }), {
+      target: { value: 'wendler' },
     })
 
     expect(screen.queryByText(/PHUL/i)).not.toBeInTheDocument()
+    expect(getTemplateRadioByTitle("Wendler's 5/3/1")).toBeDefined()
   })
 
   it('keeps selection on the card highlight without rendering a dot indicator', async () => {
@@ -60,7 +69,7 @@ describe('TemplatePicker', () => {
 
     expect(templateCard).toHaveAttribute('aria-checked', 'true')
     expect(templateCard.querySelector('.size-3.rounded-full.bg-primary')).toBeNull()
-    expect(screen.getByText(/Selected\. Setup opens below/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Selected\. Setup opens below/i)).not.toBeInTheDocument()
   })
 
   it('expands inline template details from the info button', async () => {

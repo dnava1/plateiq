@@ -69,6 +69,26 @@ describe('builderDraftStore', () => {
     expect(config.week_schemes?.['2']?.days?.[0]).not.toBe(definition.week_schemes?.['2']?.days?.[0])
   })
 
+  it('normalizes blank week labels back to defaults when serializing a custom program', () => {
+    const draft = useBuilderDraftStore.getState().draft
+
+    useBuilderDraftStore.setState({
+      draft: {
+        ...draft,
+        cycle_length_weeks: 2,
+        week_schemes: {
+          1: { label: 'Week 1 - Base' },
+          2: { label: '' },
+        },
+      },
+    })
+
+    const config = useBuilderDraftStore.getState().toConfig()
+
+    expect(config.week_schemes?.['1']?.label).toBe('Week 1 - Base')
+    expect(config.week_schemes?.['2']?.label).toBe('Week 2')
+  })
+
   it('updates source metadata without overwriting the current draft', () => {
     useBuilderDraftStore.getState().patchDraft({ name: 'Edited Draft' })
 

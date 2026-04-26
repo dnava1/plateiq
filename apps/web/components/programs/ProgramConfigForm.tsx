@@ -197,9 +197,6 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
                     </Badge>
                   ) : null}
                 </div>
-                <p className="text-xs leading-5 text-muted-foreground">
-                  The template card already carries the lift list. Use the info button there for weekly structure and variation context, then finish setup here.
-                </p>
               </div>
 
               <div className="flex flex-col gap-4">

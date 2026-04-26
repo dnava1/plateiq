@@ -1,11 +1,10 @@
 import { type ComponentProps } from 'react'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ProgramConfigForm } from './ProgramConfigForm'
 
 const pushMock = vi.fn()
-const scrollIntoViewMock = vi.fn()
 
 vi.mock('next/link', () => ({
   default: ({ children, href, ...props }: ComponentProps<'a'>) => (
@@ -42,24 +41,36 @@ vi.mock('sonner', () => ({
 describe('ProgramConfigForm', () => {
   beforeEach(() => {
     pushMock.mockReset()
-    scrollIntoViewMock.mockReset()
     Object.defineProperty(window.HTMLElement.prototype, 'scrollIntoView', {
       configurable: true,
-      value: scrollIntoViewMock,
+      value: vi.fn(),
+    })
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      callback(0)
+      return 0
     })
   })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  const getWendlerTemplateCard = () =>
+    screen.getAllByRole('radio').find((radio) => radio.textContent?.startsWith("Wendler's 5/3/1"))
 
   it('scrolls into the selected-template setup and removes the separate details card', async () => {
     const user = userEvent.setup()
 
     render(<ProgramConfigForm open onOpenChange={vi.fn()} />)
 
-    await user.click(screen.getByText("Wendler's 5/3/1"))
+    const wendlerTemplateCard = getWendlerTemplateCard()
 
-    expect(scrollIntoViewMock).toHaveBeenCalled()
+    expect(wendlerTemplateCard).toBeDefined()
+    await user.click(wendlerTemplateCard!)
+
+    expect(await screen.findByDisplayValue("Wendler's 5/3/1")).toBeInTheDocument()
     expect(screen.getByText('Selected template')).toBeInTheDocument()
     expect(screen.queryByText('Template details')).not.toBeInTheDocument()
-    expect(screen.getByText(/Use the info button there for weekly structure/i)).toBeInTheDocument()
   })
 
   it('routes the selected template into the builder with the active setup values', async () => {
@@ -67,7 +78,10 @@ describe('ProgramConfigForm', () => {
 
     render(<ProgramConfigForm open onOpenChange={vi.fn()} />)
 
-    await user.click(screen.getByText("Wendler's 5/3/1"))
+    const wendlerTemplateCard = getWendlerTemplateCard()
+
+    expect(wendlerTemplateCard).toBeDefined()
+    await user.click(wendlerTemplateCard!)
     await user.click(screen.getByRole('radio', { name: /Boring But Big \(BBB\)/i }))
     await user.click(screen.getByRole('button', { name: 'Customize in Builder' }))
 

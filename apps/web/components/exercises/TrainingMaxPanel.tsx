@@ -18,6 +18,7 @@ import { Dumbbell } from 'lucide-react'
 import { CurrentTmDisplay } from './CurrentTmDisplay'
 import { TrainingMaxHistoryDialog } from './TrainingMaxHistoryDialog'
 import { TrainingMaxForm } from './TrainingMaxForm'
+import type { ExecutionMaxInputMode } from '@/lib/programs/trainingMax'
 
 interface TrainingMaxPanelProps {
   title?: string
@@ -25,16 +26,41 @@ interface TrainingMaxPanelProps {
   className?: string
   emptyStateHint?: string
   badgeLabel?: string
+  inputMode?: ExecutionMaxInputMode
   targetExerciseIds?: number[]
   targetExerciseKeys?: string[]
+}
+
+function resolvePanelActionCopy(inputMode: ExecutionMaxInputMode) {
+  switch (inputMode) {
+    case '1rm':
+      return {
+        createActionLabel: 'Set 1RM',
+        emptyStateHint: 'Create a main lift in Programs before setting an estimated 1RM here.',
+        updateActionLabel: 'Update 1RM',
+      }
+    case 'mixed':
+      return {
+        createActionLabel: 'Set Max',
+        emptyStateHint: 'Create a main lift in Programs before setting a max input here.',
+        updateActionLabel: 'Update Max',
+      }
+    default:
+      return {
+        createActionLabel: 'Set TM',
+        emptyStateHint: 'Create a main lift in Programs before setting a training max here.',
+        updateActionLabel: 'Update TM',
+      }
+  }
 }
 
 export function TrainingMaxPanel({
   title = 'Training Maxes',
   description,
   className,
-  emptyStateHint = 'Create a main lift in Programs before setting a training max here.',
+  emptyStateHint,
   badgeLabel = 'Main lifts',
+  inputMode = 'tm',
   targetExerciseIds,
   targetExerciseKeys,
 }: TrainingMaxPanelProps) {
@@ -43,6 +69,8 @@ export function TrainingMaxPanel({
   const preferredUnit = usePreferredUnit()
   const { data: exercises = [], isLoading: isExercisesLoading } = useExercises()
   const { data: trainingMaxes = [], isLoading: isTrainingMaxesLoading } = useCurrentTrainingMaxes()
+  const panelActionCopy = resolvePanelActionCopy(inputMode)
+  const resolvedEmptyStateHint = emptyStateHint ?? panelActionCopy.emptyStateHint
 
   const tmMap = useMemo(() => new Map(trainingMaxes.map((tm) => [tm.exercise_id, tm.weight_lbs])), [trainingMaxes])
   const tmDateMap = useMemo(() => new Map(trainingMaxes.map((tm) => [tm.exercise_id, tm.effective_date])), [trainingMaxes])
@@ -108,7 +136,7 @@ export function TrainingMaxPanel({
             </div>
           ) : scopedExercises.length === 0 ? (
             <div className="rounded-[22px] border border-border/70 bg-background/55 px-4 py-6 text-sm text-muted-foreground">
-              {emptyStateHint}
+              {resolvedEmptyStateHint}
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -143,7 +171,7 @@ export function TrainingMaxPanel({
                           onClick={() => setTmExercise(exercise)}
                           className="w-full"
                         >
-                          {tmMap.has(exercise.id) ? 'Update TM' : 'Set TM'}
+                          {tmMap.has(exercise.id) ? panelActionCopy.updateActionLabel : panelActionCopy.createActionLabel}
                         </Button>
                       </div>
                     </CardContent>
@@ -157,11 +185,13 @@ export function TrainingMaxPanel({
 
       {tmExercise && (
         <TrainingMaxForm
+          key={`${tmExercise.id}-${inputMode}`}
           open={!!tmExercise}
           onOpenChange={(open) => !open && setTmExercise(null)}
           exerciseId={tmExercise.id}
           exerciseName={tmExercise.name}
           currentTm={tmMap.get(tmExercise.id)}
+          mode={inputMode}
           unit={preferredUnit}
         />
       )}

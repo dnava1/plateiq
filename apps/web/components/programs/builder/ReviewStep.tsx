@@ -14,7 +14,7 @@ import { TrainingMaxPanel } from '@/components/exercises/TrainingMaxPanel'
 import { Button } from '@/components/ui/button'
 import { normalizeEditableProgramConfig } from '@/lib/programs/editable'
 import { resolveDefinitionNeedsTrainingMaxForExecution } from '@/lib/programs/method'
-import { resolveExecutionTrainingMaxTargetScope } from '@/lib/programs/trainingMax'
+import { resolveExecutionMaxInputScope, type ExecutionMaxInputMode } from '@/lib/programs/trainingMax'
 import { resolveProgramDays, resolveProgramWeekLabel } from '@/lib/programs/week'
 import {
   createCustomProgramSchema,
@@ -60,6 +60,47 @@ function formatTrainingMaxTargetLabel(value: string) {
     .replace(/\b\w/g, (segment) => segment.toUpperCase())
 }
 
+function resolveRequiredInputCopy(inputMode: ExecutionMaxInputMode) {
+  switch (inputMode) {
+    case '1rm':
+      return {
+        badgeLabel: 'Required lifts',
+        emptyStateHint: 'Choose the lifts this program depends on before setting 1RM inputs here.',
+        loadingMessage: 'Loading the required 1RM inputs for this program.',
+        missingActionMessage: 'Set current estimated 1RMs for',
+        readyMessage: 'All required 1RM inputs are set for this program.',
+        title: 'Required 1RM Inputs',
+        toastLoadingMessage: 'Required 1RM inputs are still loading for this program.',
+        toastMissingActionMessage: 'Set current estimated 1RMs for',
+        description: 'Set the current estimated 1RM for every lift in this program before you save it. Each dialog can still accept a training max directly if that is what you have.',
+      }
+    case 'mixed':
+      return {
+        badgeLabel: 'Required lifts',
+        emptyStateHint: 'Choose the lifts this program depends on before setting max inputs here.',
+        loadingMessage: 'Loading the required max inputs for this program.',
+        missingActionMessage: 'Set the required max inputs for',
+        readyMessage: 'All required max inputs are set for this program.',
+        title: 'Required Max Inputs',
+        toastLoadingMessage: 'Required max inputs are still loading for this program.',
+        toastMissingActionMessage: 'Set the required max inputs for',
+        description: 'Set the current TM or estimated 1RM for every lift in this program before you save it.',
+      }
+    default:
+      return {
+        badgeLabel: 'Required lifts',
+        emptyStateHint: 'Choose the lifts this program depends on before setting training maxes here.',
+        loadingMessage: 'Loading the required training maxes for this program.',
+        missingActionMessage: 'Set current training maxes for',
+        readyMessage: 'All required training maxes are set for this program.',
+        title: 'Required Training Maxes',
+        toastLoadingMessage: 'Training max requirements are still loading for this program.',
+        toastMissingActionMessage: 'Set current training maxes for',
+        description: 'Set the current training max for every lift in this program before you save it.',
+      }
+  }
+}
+
 export function ReviewStep() {
   const router = useRouter()
   const { draft, source, toConfig, resetDraft, setStep } = useBuilderDraftStore()
@@ -73,14 +114,15 @@ export function ReviewStep() {
     ? draft.progression.increment_lbs ?? DEFAULT_LINEAR_INCREMENT_LBS
     : null
   const methodLabel = draft.uses_training_max ? METHOD_LABELS.tm_driven : METHOD_LABELS.general
-  const requiresTrainingMaxes = resolveDefinitionNeedsTrainingMaxForExecution(draft)
-  const trainingMaxTargets = resolveExecutionTrainingMaxTargetScope(draft)
+  const requiresMaxInputs = resolveDefinitionNeedsTrainingMaxForExecution(draft)
+  const maxInputScope = resolveExecutionMaxInputScope(draft)
+  const requiredInputCopy = resolveRequiredInputCopy(maxInputScope.inputMode)
   const exerciseKeyMap = buildExerciseKeyMap(exercises)
-  const resolvedRequiredExerciseIds = [...trainingMaxTargets.exerciseIds]
+  const resolvedRequiredExerciseIds = [...maxInputScope.exerciseIds]
   const seenRequiredExerciseIds = new Set(resolvedRequiredExerciseIds)
-  const unresolvedTrainingMaxNames: string[] = []
+  const unresolvedMaxInputNames: string[] = []
 
-  for (const exerciseKey of trainingMaxTargets.exerciseKeys) {
+  for (const exerciseKey of maxInputScope.exerciseKeys) {
     const resolvedExerciseId = resolveExerciseIdFromMap(exerciseKeyMap, exerciseKey)
 
     if (resolvedExerciseId) {
@@ -91,7 +133,7 @@ export function ReviewStep() {
       continue
     }
 
-    unresolvedTrainingMaxNames.push(formatTrainingMaxTargetLabel(exerciseKey))
+    unresolvedMaxInputNames.push(formatTrainingMaxTargetLabel(exerciseKey))
   }
 
   const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise]))
@@ -100,15 +142,15 @@ export function ReviewStep() {
     return exercise ? [exercise] : []
   })
   const trainingMaxExerciseIds = new Set(trainingMaxes.map((trainingMax) => trainingMax.exercise_id))
-  const missingTrainingMaxNames = [
+  const missingMaxInputNames = [
     ...resolvedRequiredExercises
       .filter((exercise) => !trainingMaxExerciseIds.has(exercise.id))
       .map((exercise) => exercise.name),
-    ...unresolvedTrainingMaxNames,
+    ...unresolvedMaxInputNames,
   ]
 
-  if (requiresTrainingMaxes && resolvedRequiredExerciseIds.length === 0 && trainingMaxTargets.exerciseKeys.length === 0) {
-    missingTrainingMaxNames.push('the selected primary lifts')
+  if (requiresMaxInputs && resolvedRequiredExerciseIds.length === 0 && maxInputScope.exerciseKeys.length === 0) {
+    missingMaxInputNames.push('the selected primary lifts')
   }
 
   const templateKey = source?.template_key ?? draft.metadata?.source_template_key ?? 'custom'
@@ -126,20 +168,20 @@ export function ReviewStep() {
   const isPending = createProgramDefinition.isPending
     || updateProgramDefinition.isPending
     || createProgramRevision.isPending
-  const isTrainingMaxStateLoading = requiresTrainingMaxes && (areExercisesLoading || areTrainingMaxesLoading)
-  const isTrainingMaxRequirementMet = !requiresTrainingMaxes && !isTrainingMaxStateLoading
+  const isTrainingMaxStateLoading = requiresMaxInputs && (areExercisesLoading || areTrainingMaxesLoading)
+  const isTrainingMaxRequirementMet = !requiresMaxInputs && !isTrainingMaxStateLoading
     ? true
-    : requiresTrainingMaxes && !isTrainingMaxStateLoading && missingTrainingMaxNames.length === 0
-  const isSaveDisabled = isPending || isTrainingMaxStateLoading || (requiresTrainingMaxes && !isTrainingMaxRequirementMet)
+    : requiresMaxInputs && !isTrainingMaxStateLoading && missingMaxInputNames.length === 0
+  const isSaveDisabled = isPending || isTrainingMaxStateLoading || (requiresMaxInputs && !isTrainingMaxRequirementMet)
 
   const handleSubmit = () => {
     if (isTrainingMaxStateLoading) {
-      toast.error('Training max requirements are still loading for this program.')
+      toast.error(requiredInputCopy.toastLoadingMessage)
       return
     }
 
-    if (requiresTrainingMaxes && missingTrainingMaxNames.length > 0) {
-      toast.error(`Set current training maxes for ${missingTrainingMaxNames.join(', ')} before saving this program.`)
+    if (requiresMaxInputs && missingMaxInputNames.length > 0) {
+      toast.error(`${requiredInputCopy.toastMissingActionMessage} ${missingMaxInputNames.join(', ')} before saving this program.`)
       return
     }
 
@@ -296,23 +338,24 @@ export function ReviewStep() {
         <p>Deload decisions stay manual and happen during the current cycle checkpoint.</p>
       </div>
 
-      {requiresTrainingMaxes ? (
+      {requiresMaxInputs ? (
         <div className="flex flex-col gap-3">
           <TrainingMaxPanel
-            title="Required Training Maxes"
-            description="Set the current training maxes for every lift in this program that still uses TM-backed loading before you save it."
-            badgeLabel="Required lifts"
-            emptyStateHint="Choose the lifts this program depends on before setting training maxes here."
-            targetExerciseIds={trainingMaxTargets.exerciseIds}
-            targetExerciseKeys={trainingMaxTargets.exerciseKeys}
+            title={requiredInputCopy.title}
+            description={requiredInputCopy.description}
+            badgeLabel={requiredInputCopy.badgeLabel}
+            emptyStateHint={requiredInputCopy.emptyStateHint}
+            inputMode={maxInputScope.inputMode}
+            targetExerciseIds={maxInputScope.exerciseIds}
+            targetExerciseKeys={maxInputScope.exerciseKeys}
           />
           <div className="rounded-[24px] border border-border/70 bg-card/82 p-4 text-sm text-muted-foreground shadow-sm">
             {isTrainingMaxStateLoading ? (
-              <p>Loading the required training maxes for this program.</p>
+              <p>{requiredInputCopy.loadingMessage}</p>
             ) : isTrainingMaxRequirementMet ? (
-              <p>All required training maxes are set for this program.</p>
+              <p>{requiredInputCopy.readyMessage}</p>
             ) : (
-              <p>Set current training maxes for {missingTrainingMaxNames.join(', ')} before you save this program.</p>
+              <p>{requiredInputCopy.missingActionMessage} {missingMaxInputNames.join(', ')} before you save this program.</p>
             )}
           </div>
         </div>

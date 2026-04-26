@@ -248,6 +248,28 @@ test.describe('program builder browser flow', () => {
     await expect(main.getByText('Add at least one exercise to Day 1 before continuing.')).toBeVisible()
   })
 
+  test('lets scratch programs opt into week-by-week overrides for multi-week cycles', async ({ page }) => {
+    const main = page.getByRole('main')
+
+    await page.goto('/programs/builder')
+
+    await page.locator('#name').fill('Wave Builder')
+    await expect(page.locator('#name')).toHaveValue('Wave Builder')
+
+    await page.locator('#dpw').click()
+    await page.getByRole('option', { name: '1', exact: true }).click()
+
+    await page.locator('#clw').click()
+    await page.getByRole('option', { name: '2 weeks', exact: true }).click()
+
+    await clickBuilderNext(main)
+
+    await expect(main.getByRole('button', { name: 'Customize Weeks' })).toBeVisible()
+    await main.getByRole('button', { name: 'Customize Weeks' }).click()
+    await expect(main.getByText('Week 2')).toBeVisible()
+    await expect(main.getByLabel('Week Label').nth(1)).toHaveValue('Week 2')
+  })
+
   test('keeps deload guidance manual in progression and review', async ({ page }) => {
     const main = page.getByRole('main')
 
@@ -339,7 +361,7 @@ test.describe('program builder browser flow', () => {
     await expect(main.getByRole('button', { name: 'Set TM', exact: true })).toBeVisible()
     await main.getByRole('button', { name: 'Set TM', exact: true }).click()
 
-    await expect(page.getByRole('heading', { name: 'Set Training Max — Squat' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Set Training Max - Squat' })).toBeVisible()
     await page.getByLabel('Training Max (lbs)').fill('315')
     await page.getByRole('button', { name: 'Save Training Max' }).click()
 
@@ -368,7 +390,7 @@ test.describe('program builder browser flow', () => {
     await exerciseInputs.nth(1).fill('Bench Press')
     await main.getByText('Bench Press', { exact: true }).last().click()
 
-    await main.locator('button[role="combobox"]').nth(3).click()
+    await main.getByLabel('Load Basis').nth(1).click()
     await page.getByRole('option', { name: '1RM %', exact: true }).click()
 
     await main.getByRole('button', { name: 'Continue to Progression' }).click()
@@ -376,8 +398,9 @@ test.describe('program builder browser flow', () => {
 
     await main.getByRole('button', { name: 'Review', exact: true }).click()
 
-    await expect(main.getByText('Required Training Maxes', { exact: true })).toBeVisible()
-    await expect(main.getByText('Set current training maxes for Bench Press before you save this program.')).toBeVisible()
+    await expect(main.getByText('Required 1RM Inputs', { exact: true })).toBeVisible()
+    await expect(main.getByText('Set current estimated 1RMs for Bench Press before you save this program.')).toBeVisible()
     await expect(main.getByRole('button', { name: 'Create Program' })).toBeDisabled()
+    await expect(main.getByRole('button', { name: 'Set 1RM', exact: true })).toBeVisible()
   })
 })

@@ -7,6 +7,7 @@ import type {
   ProgramWeekSchemes,
 } from '@/types/template'
 import { cloneWeekSchemes, type BuilderDraftSource } from '@/lib/programs/editable'
+import { resolveProgramWeekLabel } from '@/lib/programs/week'
 import type { ProgramLevel, ProgressionStyle } from '@/types/domain'
 
 export type BuilderStep = 'basics' | 'days' | 'exercises' | 'progression' | 'review'
@@ -137,6 +138,18 @@ export const useBuilderDraftStore = create<BuilderDraftStore>((set, get) => ({
           increment_lbs: undefined,
         }
 
+    const normalizedWeekSchemes = d.week_schemes
+      ? Object.fromEntries(
+          Object.entries(d.week_schemes).map(([weekNumber, scheme]) => [
+            weekNumber,
+            {
+              ...scheme,
+              label: resolveProgramWeekLabel({ ...d, week_schemes: d.week_schemes }, Number(weekNumber)),
+            },
+          ]),
+        )
+      : undefined
+
     return {
       type: 'custom' as const,
       level: d.level,
@@ -145,7 +158,7 @@ export const useBuilderDraftStore = create<BuilderDraftStore>((set, get) => ({
       uses_training_max: d.uses_training_max,
       tm_percentage: d.uses_training_max ? d.tm_percentage : undefined,
       days: d.days,
-      week_schemes: d.week_schemes,
+      week_schemes: normalizedWeekSchemes,
       progression,
       metadata: d.metadata,
     }

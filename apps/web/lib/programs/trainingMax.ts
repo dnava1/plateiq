@@ -1,14 +1,21 @@
 import type { DayTemplate, ProgramTemplate } from '@/types/template'
 import { collectProgramDays } from './week'
+import type { IntensityType } from '@/types/domain'
 
 export interface TrainingMaxTargetScope {
   exerciseIds: number[]
   exerciseKeys: string[]
 }
 
+export type ExecutionMaxInputMode = 'none' | 'tm' | '1rm' | 'mixed'
+
+export interface ExecutionMaxInputScope extends TrainingMaxTargetScope {
+  inputMode: ExecutionMaxInputMode
+}
+
 type WeekAwareTrainingMaxProgram = Pick<ProgramTemplate, 'cycle_length_weeks' | 'days' | 'week_schemes'>
 
-const EXECUTION_BACKED_INTENSITY_TYPES = new Set(['percentage_tm', 'percentage_1rm'])
+const EXECUTION_BACKED_INTENSITY_TYPES = new Set<IntensityType>(['percentage_tm', 'percentage_1rm'])
 
 function collectTrainingMaxTargetScope(
   days: DayTemplate[],
@@ -59,13 +66,69 @@ export function resolveTrainingMaxTargetScope(program: WeekAwareTrainingMaxProgr
   return resolveTrainingMaxTargetScopeFromDays(collectProgramDays(program))
 }
 
-export function resolveExecutionTrainingMaxTargetScopeFromDays(days: DayTemplate[]): TrainingMaxTargetScope {
-  return collectTrainingMaxTargetScope(
+function resolveExecutionInputMode(seenIntensityTypes: Set<IntensityType>): ExecutionMaxInputMode {
+  const usesTrainingMax = seenIntensityTypes.has('percentage_tm')
+  const usesOneRepMax = seenIntensityTypes.has('percentage_1rm')
+
+  if (usesTrainingMax && usesOneRepMax) {
+    return 'mixed'
+  }
+
+  if (usesTrainingMax) {
+    return 'tm'
+  }
+
+  if (usesOneRepMax) {
+    return '1rm'
+  }
+
+  return 'none'
+}
+
+export function resolveExecutionMaxInputScopeFromDays(days: DayTemplate[]): ExecutionMaxInputScope {
+  const seenIntensityTypes = new Set<IntensityType>()
+
+  const targetScope = collectTrainingMaxTargetScope(
     days,
-    (day, blockIndex) => day.exercise_blocks[blockIndex]?.sets.some((set) => EXECUTION_BACKED_INTENSITY_TYPES.has(set.intensity_type)),
+    (day, blockIndex) => {
+      const block = day.exercise_blocks[blockIndex]
+
+      if (!block) {
+        return false
+      }
+
+      let blockNeedsInput = false
+
+      for (const set of block.sets) {
+        if (EXECUTION_BACKED_INTENSITY_TYPES.has(set.intensity_type)) {
+          seenIntensityTypes.add(set.intensity_type)
+          blockNeedsInput = true
+        }
+      }
+
+      return blockNeedsInput
+    },
   )
+
+  return {
+    ...targetScope,
+    inputMode: resolveExecutionInputMode(seenIntensityTypes),
+  }
+}
+
+export function resolveExecutionTrainingMaxTargetScopeFromDays(days: DayTemplate[]): TrainingMaxTargetScope {
+  const { exerciseIds, exerciseKeys } = resolveExecutionMaxInputScopeFromDays(days)
+
+  return {
+    exerciseIds,
+    exerciseKeys,
+  }
 }
 
 export function resolveExecutionTrainingMaxTargetScope(program: WeekAwareTrainingMaxProgram): TrainingMaxTargetScope {
   return resolveExecutionTrainingMaxTargetScopeFromDays(collectProgramDays(program))
+}
+
+export function resolveExecutionMaxInputScope(program: WeekAwareTrainingMaxProgram): ExecutionMaxInputScope {
+  return resolveExecutionMaxInputScopeFromDays(collectProgramDays(program))
 }

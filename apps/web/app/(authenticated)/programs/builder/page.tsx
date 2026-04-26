@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { getTemplate } from '@/lib/constants/templates'
@@ -49,7 +49,7 @@ export default function BuilderPage() {
   const requestedTemplate = templateKey ? getTemplate(templateKey) ?? null : null
   const hydratedSourceKeyRef = useRef<string | null>(null)
 
-  const { step, currentDayIndex, draft, hydrateDraft, patchSource } = useBuilderDraftStore()
+  const { step, currentDayIndex, draft, hydrateDraft, patchSource, source } = useBuilderDraftStore()
   const { goToStep } = useBuilderStepNavigation()
   const { data: program, isLoading: isProgramLoading } = useProgram(programId)
   const { data: editability, isLoading: isEditabilityLoading } = useProgramEditability(programId)
@@ -80,8 +80,16 @@ export default function BuilderPage() {
     patchSource(createProgramBuilderDraftSource(program, editability.saveStrategy))
   }, [editability, patchSource, program, programId])
 
-  useEffect(() => {
-    if (hydratedSourceKeyRef.current === hydrationKey) {
+  const isHydratedSourceReady = programId
+    ? source?.kind === 'program' && source.program_id === programId
+    : templateKey
+      ? source?.kind === 'template' && source.template_key === templateKey
+      : source?.kind === 'scratch'
+  const shouldRenderBuilder = isHydratedSourceReady
+
+  useLayoutEffect(() => {
+    if (hydratedSourceKeyRef.current === hydrationKey || isHydratedSourceReady) {
+      hydratedSourceKeyRef.current = hydrationKey
       return
     }
 
@@ -136,6 +144,7 @@ export default function BuilderPage() {
     requestedTemplate,
     scratchMethod,
     selectedVariationKey,
+    isHydratedSourceReady,
     templateKey,
     tmPercentageParam,
   ])
@@ -177,27 +186,8 @@ export default function BuilderPage() {
     )
   }
 
-  if (programId && (isProgramLoading || isEditabilityLoading)) {
-    return (
-      <div className="page-shell max-w-5xl">
-        <section className="page-header">
-          <div className="flex flex-col gap-3">
-            <span className="eyebrow">Program Editor</span>
-            <div className="flex flex-col gap-2">
-              <h1 className="page-title">Loading program</h1>
-              <p className="page-copy">
-                Pulling the saved program definition and workout history so the builder can load safely.
-              </p>
-            </div>
-          </div>
-
-          <Link href="/programs" className={buttonVariants({ variant: 'outline', size: 'lg' })}>
-            <ArrowLeft data-icon="inline-start" />
-            Back to Programs
-          </Link>
-        </section>
-      </div>
-    )
+  if (programId && (isProgramLoading || isEditabilityLoading) && !shouldRenderBuilder) {
+    return null
   }
 
   if (programId && !program) {
@@ -221,6 +211,10 @@ export default function BuilderPage() {
         </section>
       </div>
     )
+  }
+
+  if (!shouldRenderBuilder) {
+    return null
   }
 
   return (

@@ -61,11 +61,9 @@ const METHOD_OPTIONS: Array<{
 ]
 
 export function BasicsStep() {
-  const { draft, patchDraft, source } = useBuilderDraftStore()
+  const { draft, patchDraft } = useBuilderDraftStore()
   const { clearStepError, goToStep, stepError } = useBuilderStepNavigation()
   const selectedMethod = resolveBuilderProgrammingMethod(draft.uses_training_max)
-  const isDerivedMethod = source?.template_key !== undefined && source.template_key !== 'custom'
-  const methodLabel = METHOD_OPTIONS.find((option) => option.value === selectedMethod)?.label ?? 'General Program'
 
   return (
     <div className="flex flex-col gap-5">
@@ -135,39 +133,30 @@ export function BasicsStep() {
 
       <div className="flex flex-col gap-3">
         <Label>Programming Method</Label>
-        {isDerivedMethod ? (
-          <div className="rounded-[20px] border border-border/70 bg-card/70 p-3">
-            <p className="text-sm font-medium text-foreground">{methodLabel}</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Derived from the source template so this builder stays aligned with the program&apos;s original loading model.
-            </p>
-          </div>
-        ) : (
-          <RadioGroup
-            value={selectedMethod}
-            aria-label="Programming method"
-            onValueChange={(value) => {
-              patchDraft({ uses_training_max: usesTrainingMaxForMethod(value as BuilderProgrammingMethod) })
-              clearStepError()
-            }}
-            className="flex flex-col gap-2"
-          >
-            {METHOD_OPTIONS.map((option) => (
-              <Radio.Root
-                key={option.value}
-                value={option.value}
-                nativeButton
-                render={<button />}
-                className="w-full rounded-xl border border-border/70 bg-card/70 p-3 text-left transition-colors motion-reduce:transition-none outline-none hover:bg-muted/50 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-checked:border-primary aria-checked:bg-primary/5 aria-checked:ring-1 aria-checked:ring-primary/30"
-              >
-                <p className="text-sm font-medium text-foreground">{option.label}</p>
-                <p className="text-xs text-muted-foreground">{option.description}</p>
-              </Radio.Root>
-            ))}
-          </RadioGroup>
-        )}
+        <RadioGroup
+          value={selectedMethod}
+          aria-label="Programming method"
+          onValueChange={(value) => {
+            patchDraft({ uses_training_max: usesTrainingMaxForMethod(value as BuilderProgrammingMethod) })
+            clearStepError()
+          }}
+          className="flex flex-col gap-2"
+        >
+          {METHOD_OPTIONS.map((option) => (
+            <Radio.Root
+              key={option.value}
+              value={option.value}
+              nativeButton
+              render={<button />}
+              className="w-full rounded-xl border border-border/70 bg-card/70 p-3 text-left transition-colors motion-reduce:transition-none outline-none hover:bg-muted/50 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-checked:border-primary aria-checked:bg-primary/5 aria-checked:ring-1 aria-checked:ring-primary/30"
+            >
+              <p className="text-sm font-medium text-foreground">{option.label}</p>
+              <p className="text-xs text-muted-foreground">{option.description}</p>
+            </Radio.Root>
+          ))}
+        </RadioGroup>
 
-        {!isDerivedMethod && !draft.uses_training_max && (
+        {!draft.uses_training_max && (
           <p className="text-xs leading-5 text-muted-foreground">
             You can still choose fixed-weight, bodyweight, effort-based, or other non-TM prescriptions later at the exercise level.
           </p>
@@ -196,9 +185,6 @@ export function BasicsStep() {
                   </SelectGroup>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                This stays visible only for TM-driven methods so the builder does not over-center training max for every program.
-              </p>
             </div>
           </div>
         )}

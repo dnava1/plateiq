@@ -4,21 +4,22 @@ import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
-import { setTrainingMaxSchema, type SetTrainingMaxInput } from '@/lib/validations/trainingMax'
 import { useSetTrainingMax } from '@/hooks/useTrainingMaxes'
+import type { ExecutionMaxInputMode } from '@/lib/programs/trainingMax'
+import { setTrainingMaxSchema, type SetTrainingMaxInput } from '@/lib/validations/trainingMax'
+import { displayToLbs, formatUnit, formatWeight, lbsToDisplay, roundToIncrement } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { displayToLbs, formatUnit, formatWeight, lbsToDisplay, roundToIncrement } from '@/lib/utils'
 import { toast } from 'sonner'
 import type { PreferredUnit } from '@/types/domain'
 
@@ -28,6 +29,7 @@ interface TrainingMaxFormProps {
   exerciseId: number
   exerciseName: string
   currentTm?: number
+  mode?: ExecutionMaxInputMode
   unit: PreferredUnit
 }
 
@@ -39,6 +41,32 @@ type ResolveTrainingMaxWeightParams = {
   submittedWeightLbs: number
   tmPercentage?: number
   weightRoundingLbs: number
+}
+
+function resolveDialogCopy(mode: ExecutionMaxInputMode) {
+  switch (mode) {
+    case '1rm':
+      return {
+        currentValueLabel: 'Current saved max',
+        defaultInputType: '1rm' as const,
+        saveButtonLabel: 'Save 1RM',
+        title: 'Set 1RM',
+      }
+    case 'mixed':
+      return {
+        currentValueLabel: 'Current saved max',
+        defaultInputType: 'tm' as const,
+        saveButtonLabel: 'Save Max',
+        title: 'Set Max',
+      }
+    default:
+      return {
+        currentValueLabel: 'Current TM',
+        defaultInputType: 'tm' as const,
+        saveButtonLabel: 'Save Training Max',
+        title: 'Set Training Max',
+      }
+  }
 }
 
 export function resolveTrainingMaxWeightLbs({
@@ -70,12 +98,17 @@ export function TrainingMaxForm({
   exerciseId,
   exerciseName,
   currentTm,
+  mode = 'tm',
   unit,
 }: TrainingMaxFormProps) {
-  const [inputType, setInputType] = useState<'tm' | '1rm'>('tm')
+  const dialogCopy = resolveDialogCopy(mode)
+  const [inputType, setInputType] = useState<'tm' | '1rm'>(() => resolveDialogCopy(mode).defaultInputType)
   const setTrainingMax = useSetTrainingMax()
   const weightRoundingLbs = usePreferredWeightRounding()
   const roundTrainingMaxLbs = (valueLbs: number) => roundToIncrement(valueLbs, weightRoundingLbs, 'down')
+  const limitErrorMessage = unit === 'kg'
+    ? `Saved max cannot exceed ${lbsToDisplay(2000, 'kg')} kg (2000 lbs)`
+    : 'Saved max cannot exceed 2000 lbs'
 
   const {
     clearErrors,
@@ -125,9 +158,7 @@ export function TrainingMaxForm({
     if (finalWeight > 2000) {
       setError('weightLbs', {
         type: 'manual',
-        message: unit === 'kg'
-          ? `Training max cannot exceed ${lbsToDisplay(2000, 'kg')} kg (2000 lbs)`
-          : 'Training max cannot exceed 2000 lbs',
+        message: limitErrorMessage,
       })
       return
     }
@@ -138,13 +169,17 @@ export function TrainingMaxForm({
       { ...data, weightLbs: finalWeight },
       {
         onSuccess: () => {
-          toast.success(`Training max set to ${formatWeight(finalWeight, unit, weightRoundingLbs)}`)
+          toast.success(
+            mode === 'tm'
+              ? `Training max set to ${formatWeight(finalWeight, unit, weightRoundingLbs)}`
+              : `${exerciseName} max input saved.`,
+          )
           onOpenChange(false)
         },
         onError: (error) => {
           toast.error(error.message)
         },
-      }
+      },
     )
   }
 
@@ -152,11 +187,13 @@ export function TrainingMaxForm({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Set Training Max — {exerciseName}</DialogTitle>
+          <DialogTitle>{dialogCopy.title} - {exerciseName}</DialogTitle>
           <DialogDescription>
             {currentTm
-              ? `Current TM: ${formatWeight(currentTm, unit, weightRoundingLbs)}`
-              : 'No training max set yet'}
+              ? `${dialogCopy.currentValueLabel}: ${formatWeight(currentTm, unit, weightRoundingLbs)}`
+              : 'No saved max input yet'}
+            {' '}
+            Choose Training Max or Estimated 1RM below.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="mt-6 flex flex-col gap-4">
@@ -234,7 +271,7 @@ export function TrainingMaxForm({
                       <span className="font-bold text-foreground">{formatWeight(calculatedTmLbs, unit, weightRoundingLbs)}</span>
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {weight} {formatUnit(unit)} × {Math.round((tmPercentage ?? 0.9) * 100)}% = {formatWeight(calculatedTmLbs, unit, weightRoundingLbs)}
+                      {weight} {formatUnit(unit)} x {Math.round((tmPercentage ?? 0.9) * 100)}% = {formatWeight(calculatedTmLbs, unit, weightRoundingLbs)}
                     </p>
                   </CardContent>
                 </Card>
@@ -247,7 +284,7 @@ export function TrainingMaxForm({
             className="w-full"
             disabled={setTrainingMax.isPending}
           >
-            {setTrainingMax.isPending ? 'Saving...' : 'Save Training Max'}
+            {setTrainingMax.isPending ? 'Saving...' : dialogCopy.saveButtonLabel}
           </Button>
         </form>
       </DialogContent>

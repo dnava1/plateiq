@@ -2,7 +2,7 @@
 
 import { Radio } from '@base-ui/react/radio'
 import { RadioGroup } from '@base-ui/react/radio-group'
-import { useDeferredValue, useId, useState } from 'react'
+import { useDeferredValue, useId, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { getTemplatesByLevel } from '@/lib/constants/templates'
 import { resolveProgramDays } from '@/lib/programs/week'
@@ -13,7 +13,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Hammer, Info, Search, SearchX } from 'lucide-react'
 
 const LEVEL_LABELS: Record<ProgramLevel, string> = {
@@ -66,10 +65,15 @@ export function TemplatePicker({ selectedKey, onSelect, onOpenChange }: Template
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="rounded-[24px] border border-border/70 bg-card/70 p-4">
+      <div className="overflow-hidden rounded-[28px] border border-border/70 bg-[linear-gradient(145deg,rgba(249,115,22,0.10),rgba(249,115,22,0.03)_28%,rgba(255,255,255,0)_62%),rgba(255,255,255,0.72)] p-4 shadow-sm backdrop-blur sm:p-5">
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-medium text-foreground">Find a starting point</p>
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-medium text-foreground">Find a starting point</p>
+              <Badge variant="outline" className="rounded-full bg-background/75 px-2.5 text-xs">
+                {filteredTemplates.length} shown
+              </Badge>
+            </div>
             <p className="text-xs leading-5 text-muted-foreground">
               Filter by difficulty or training frequency, then select a template to jump into setup below.
             </p>
@@ -85,7 +89,7 @@ export function TemplatePicker({ selectedKey, onSelect, onOpenChange }: Template
               placeholder="Search templates, lifts, or variation notes"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              className="pl-9 pr-10"
+              className="h-10 rounded-2xl bg-background/80 pl-9 pr-10"
             />
             {search.length > 0 ? (
               <Button
@@ -102,48 +106,69 @@ export function TemplatePicker({ selectedKey, onSelect, onOpenChange }: Template
           </div>
 
           <div className="grid gap-3 lg:grid-cols-2">
-            <div className="flex flex-col gap-2">
+            <div className="min-w-0 flex flex-col gap-2">
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Difficulty</p>
-              <ToggleGroup
-                value={levelFilter}
-                variant="outline"
-                size="sm"
-                className="flex flex-wrap gap-2"
-                onValueChange={(value) => {
-                  if (value) {
-                    setLevelFilter(value as ProgramLevel | 'all')
-                  }
-                }}
-              >
-                <ToggleGroupItem value={ALL_LEVEL_FILTER}>All Levels</ToggleGroupItem>
+              <FilterChipRow>
+                <FilterChip
+                  active={levelFilter === ALL_LEVEL_FILTER}
+                  onClick={() => setLevelFilter(ALL_LEVEL_FILTER)}
+                >
+                  All Levels
+                </FilterChip>
                 {LEVEL_ORDER.map((level) => (
-                  <ToggleGroupItem key={level} value={level}>{LEVEL_LABELS[level]}</ToggleGroupItem>
+                  <FilterChip
+                    key={level}
+                    active={levelFilter === level}
+                    onClick={() => setLevelFilter(level)}
+                  >
+                    {LEVEL_LABELS[level]}
+                  </FilterChip>
                 ))}
-              </ToggleGroup>
+              </FilterChipRow>
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="min-w-0 flex flex-col gap-2">
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Days per Week</p>
-              <ToggleGroup
-                value={daysFilter}
-                variant="outline"
-                size="sm"
-                className="flex flex-wrap gap-2"
-                onValueChange={(value) => {
-                  if (value) {
-                    setDaysFilter(value)
-                  }
-                }}
-              >
-                <ToggleGroupItem value={ALL_DAYS_FILTER}>Any Split</ToggleGroupItem>
+              <FilterChipRow>
+                <FilterChip
+                  active={daysFilter === ALL_DAYS_FILTER}
+                  onClick={() => setDaysFilter(ALL_DAYS_FILTER)}
+                >
+                  Any Split
+                </FilterChip>
                 {availableDayFilters.map((daysPerWeek) => (
-                  <ToggleGroupItem key={daysPerWeek} value={String(daysPerWeek)}>
+                  <FilterChip
+                    key={daysPerWeek}
+                    active={daysFilter === String(daysPerWeek)}
+                    onClick={() => setDaysFilter(String(daysPerWeek))}
+                  >
                     {daysPerWeek} day{daysPerWeek > 1 ? 's' : ''}
-                  </ToggleGroupItem>
+                  </FilterChip>
                 ))}
-              </ToggleGroup>
+              </FilterChipRow>
             </div>
           </div>
+
+          {hasFiltersApplied ? (
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-background/70 px-3 py-2">
+              <p className="text-xs text-muted-foreground">
+                Filters are narrowing the list to {filteredTemplates.length} template{filteredTemplates.length !== 1 ? 's' : ''}.
+              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 rounded-full px-3 text-xs"
+                onClick={() => {
+                  setDaysFilter(ALL_DAYS_FILTER)
+                  setLevelFilter(ALL_LEVEL_FILTER)
+                  setSearch('')
+                }}
+              >
+                Reset
+              </Button>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -285,7 +310,6 @@ function TemplateCard({ template, isExpanded, isSelected, onToggleDetails }: Tem
           <div className="flex min-w-0 flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-base font-medium tracking-[-0.04em] text-foreground">{template.name}</span>
-              {isSelected ? <Badge variant="secondary" className="text-xs">Selected</Badge> : null}
               <Badge variant="outline" className="text-xs">
                 {formatDaysPerWeek(template.days_per_week)}
               </Badge>
@@ -307,11 +331,6 @@ function TemplateCard({ template, isExpanded, isSelected, onToggleDetails }: Tem
             <p className="text-xs leading-5 text-muted-foreground">
               Lifts: {requiredLifts}
             </p>
-            {isSelected ? (
-              <p className="text-xs font-medium text-primary">
-                Selected. Setup opens below so you can name it and adjust template options.
-              </p>
-            ) : null}
           </div>
         </Radio.Root>
 
@@ -395,5 +414,41 @@ function TemplateCard({ template, isExpanded, isSelected, onToggleDetails }: Tem
         </div>
       ) : null}
     </div>
+  )
+}
+
+interface FilterChipProps {
+  active: boolean
+  children: ReactNode
+  onClick: () => void
+}
+
+function FilterChipRow({ children }: { children: ReactNode }) {
+  return (
+    <div className="max-w-full min-w-0">
+      <div className="-mx-1 overflow-hidden px-1">
+        <div className="flex w-max min-w-full gap-2 overflow-x-auto overscroll-x-contain pb-1 pr-2 touch-pan-x [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:min-w-0 md:flex-wrap md:overflow-visible md:pb-0 md:pr-0">
+          {children}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function FilterChip({ active, children, onClick }: FilterChipProps) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={cn(
+        'shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 sm:px-3.5 sm:py-2 sm:text-sm',
+        active
+          ? 'border-primary/50 bg-primary text-primary-foreground shadow-sm'
+          : 'border-border/70 bg-background/80 text-foreground hover:border-primary/30 hover:bg-primary/5',
+      )}
+    >
+      {children}
+    </button>
   )
 }
