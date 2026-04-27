@@ -24,12 +24,12 @@ const securityHeaders = [
   },
 ]
 
-const appRoot = path.resolve(__dirname)
+const repoRoot = path.resolve(__dirname, '..', '..')
 
 const nextConfig: NextConfig = {
-  outputFileTracingRoot: appRoot,
+  outputFileTracingRoot: repoRoot,
   turbopack: {
-    root: appRoot,
+    root: repoRoot,
   },
   async headers() {
     return [
