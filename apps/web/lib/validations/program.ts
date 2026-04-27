@@ -29,6 +29,7 @@ const EXERCISE_NAME_ERROR_MESSAGE = 'Enter a name for each exercise.'
 const SET_COUNT_ERROR_MESSAGE = `Enter between ${MIN_SET_COUNT} and ${MAX_SET_COUNT} sets.`
 const REPS_ERROR_MESSAGE = 'Use reps like 5, 5+, or 3-5.'
 const INTENSITY_ERROR_MESSAGE = 'Enter a valid intensity.'
+const PERCENTAGE_WORK_SET_BASE_ERROR_MESSAGE = 'Add a non-warm-up base set before using First work set %.'
 const DEFAULT_CUSTOM_PROGRAM_ERROR_MESSAGE = 'Check your program details and try again.'
 
 export const createProgramSchema = z.object({
@@ -61,6 +62,31 @@ const executionGroupSchema = z.object({
   type: z.enum(['superset', 'circuit']),
 })
 
+function isWeightBearingPercentageWorkSetBase(
+  set: z.infer<typeof setPrescriptionSchema>,
+) {
+  return set.purpose !== 'warmup'
+    && (set.intensity_type === 'percentage_tm'
+      || set.intensity_type === 'percentage_1rm'
+      || set.intensity_type === 'fixed_weight')
+}
+
+function usesPercentageWorkSetWithoutLocalBase(block: { sets: Array<z.infer<typeof setPrescriptionSchema>> }) {
+  let hasSupportedBase = false
+
+  for (const set of block.sets) {
+    if (isWeightBearingPercentageWorkSetBase(set)) {
+      hasSupportedBase = true
+    }
+
+    if (set.intensity_type === 'percentage_work_set' && !hasSupportedBase) {
+      return true
+    }
+  }
+
+  return false
+}
+
 const exerciseBlockSchema = z.object({
   block_id: z.string().min(1).optional(),
   role: z.enum(['primary', 'variation', 'accessory']),
@@ -69,6 +95,16 @@ const exerciseBlockSchema = z.object({
   execution_group: executionGroupSchema.optional(),
   sets: z.array(setPrescriptionSchema).min(1),
   notes: z.string().trim().max(MAX_NOTES_LENGTH).optional(),
+}).superRefine((block, ctx) => {
+  if (!usesPercentageWorkSetWithoutLocalBase(block)) {
+    return
+  }
+
+  ctx.addIssue({
+    code: z.ZodIssueCode.custom,
+    message: PERCENTAGE_WORK_SET_BASE_ERROR_MESSAGE,
+    path: ['sets', 0, 'intensity_type'],
+  })
 })
 
 const customDaySchema = z.object({
@@ -184,6 +220,10 @@ export function validateCustomProgramExerciseDay(day: CustomProgramDayLike, dayI
           return `Enter a valid intensity for set ${setIndex + 1} of exercise ${blockIndex + 1} on ${dayReference} before continuing.`
         }
       }
+
+      if (usesPercentageWorkSetWithoutLocalBase(block)) {
+        return `Add a non-warm-up base set to exercise ${blockIndex + 1} on ${dayReference} before using First work set %.`
+      }
     }
 
     return null
@@ -288,6 +328,10 @@ export function getCreateCustomProgramErrorMessage(error: z.ZodError<CreateCusto
 
   if (issue.message === INTENSITY_ERROR_MESSAGE) {
     return 'Enter a valid intensity before creating the program.'
+  }
+
+  if (issue.message === PERCENTAGE_WORK_SET_BASE_ERROR_MESSAGE) {
+    return PERCENTAGE_WORK_SET_BASE_ERROR_MESSAGE
   }
 
   return issue.message || DEFAULT_CUSTOM_PROGRAM_ERROR_MESSAGE

@@ -241,7 +241,7 @@ export function generateWorkoutPlan(
   const primaryBlock = adjustedDayBlocks.find((block) => block.role === 'primary') ?? adjustedDayBlocks[0]
   const primaryExerciseKey = primaryBlock?.exercise_key ?? 'unknown'
   const primaryExerciseId = primaryBlock?.exercise_id
-  const percentageWorkSetBase = resolvePercentageWorkSetBase(
+  const primaryPercentageWorkSetBase = resolvePercentageWorkSetBase(
     primaryBlock,
     trainingMaxes,
     primaryExerciseKey,
@@ -252,6 +252,15 @@ export function generateWorkoutPlan(
     const exerciseKey = block.exercise_key ?? primaryExerciseKey ?? 'unknown'
     const exerciseId = block.exercise_id ?? primaryExerciseId
     const blockId = buildGeneratedBlockId(block, dayIndex, index, 'base')
+    const blockPercentageWorkSetBase = resolvePercentageWorkSetBase(
+      block,
+      trainingMaxes,
+      exerciseKey,
+      preferredRounding,
+    )
+    const percentageWorkSetBase = blockPercentageWorkSetBase > 0
+      ? blockPercentageWorkSetBase
+      : primaryPercentageWorkSetBase
 
     const blockSets = expandBlock(
       block,
@@ -277,6 +286,15 @@ export function generateWorkoutPlan(
           const exerciseKey = block.exercise_key ?? primaryExerciseKey ?? 'unknown'
           const exerciseId = block.exercise_id ?? primaryExerciseId
           const blockId = buildGeneratedBlockId(block, dayIndex, index, `variation-${variation.key}`)
+          const blockPercentageWorkSetBase = resolvePercentageWorkSetBase(
+            block,
+            trainingMaxes,
+            exerciseKey,
+            preferredRounding,
+          )
+          const percentageWorkSetBase = blockPercentageWorkSetBase > 0
+            ? blockPercentageWorkSetBase
+            : primaryPercentageWorkSetBase
           const blockSets = expandBlock(
             block,
             blockId,

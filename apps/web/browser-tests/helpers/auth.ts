@@ -1,9 +1,17 @@
+import { open, stat, unlink } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { resolve } from 'node:path'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { expect, type Page } from '@playwright/test'
 import type { Database } from '@/types/database'
 import { getPlaywrightBaseUrl } from './runtime'
 
 let adminClient: SupabaseClient<Database> | null = null
+
+const VERIFICATION_LOGIN_LOCK_PATH = resolve(tmpdir(), 'plateiq-playwright-verification-login.lock')
+const VERIFICATION_LOGIN_LOCK_RETRY_MS = 100
+const VERIFICATION_LOGIN_LOCK_STALE_MS = 60_000
+const VERIFICATION_LOGIN_LOCK_TIMEOUT_MS = 60_000
 
 function getRequiredEnv(name: string) {
   const value = process.env[name]
@@ -33,6 +41,57 @@ function getAdminClient() {
   )
 
   return adminClient
+}
+
+function isLockExistsError(error: unknown): error is NodeJS.ErrnoException {
+  return typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === 'EEXIST'
+}
+
+function waitForDuration(durationMs: number) {
+  return new Promise((resolvePromise) => setTimeout(resolvePromise, durationMs))
+}
+
+async function clearStaleVerificationLoginLock() {
+  const lockStats = await stat(VERIFICATION_LOGIN_LOCK_PATH).catch(() => null)
+
+  if (!lockStats) {
+    return
+  }
+
+  if (Date.now() - lockStats.mtimeMs <= VERIFICATION_LOGIN_LOCK_STALE_MS) {
+    return
+  }
+
+  await unlink(VERIFICATION_LOGIN_LOCK_PATH).catch(() => {})
+}
+
+async function withVerificationLoginLock<T>(callback: () => Promise<T>) {
+  const startedAt = Date.now()
+
+  while (true) {
+    try {
+      const lockHandle = await open(VERIFICATION_LOGIN_LOCK_PATH, 'wx')
+
+      try {
+        return await callback()
+      } finally {
+        await lockHandle.close().catch(() => {})
+        await unlink(VERIFICATION_LOGIN_LOCK_PATH).catch(() => {})
+      }
+    } catch (error) {
+      if (!isLockExistsError(error)) {
+        throw error
+      }
+
+      await clearStaleVerificationLoginLock()
+
+      if (Date.now() - startedAt > VERIFICATION_LOGIN_LOCK_TIMEOUT_MS) {
+        throw new Error('Timed out waiting for the Playwright verification login lock.')
+      }
+
+      await waitForDuration(VERIFICATION_LOGIN_LOCK_RETRY_MS)
+    }
+  }
 }
 
 async function getVerificationUserId() {
@@ -95,32 +154,34 @@ export async function seedVerificationUserSettings({
 }
 
 export async function loginAsVerificationUser(page: Page) {
-  const supabase = getAdminClient()
-  const baseUrl = getPlaywrightBaseUrl()
-  const { data, error } = await supabase.auth.admin.generateLink({
-    type: 'magiclink',
-    email: getRequiredEnv('PLAYWRIGHT_VERIFICATION_EMAIL'),
-    options: {
-      redirectTo: `${baseUrl}/auth/callback?next=${encodeURIComponent('/dashboard')}`,
-    },
+  await withVerificationLoginLock(async () => {
+    const supabase = getAdminClient()
+    const baseUrl = getPlaywrightBaseUrl()
+    const { data, error } = await supabase.auth.admin.generateLink({
+      type: 'magiclink',
+      email: getRequiredEnv('PLAYWRIGHT_VERIFICATION_EMAIL'),
+      options: {
+        redirectTo: `${baseUrl}/auth/callback?next=${encodeURIComponent('/dashboard')}`,
+      },
+    })
+
+    const tokenHash = data.properties?.hashed_token
+    const verificationType = data.properties?.verification_type
+
+    if (error || !tokenHash || !verificationType) {
+      throw new Error(error?.message ?? 'Unable to create a verification login link for Playwright.')
+    }
+
+    const callbackUrl = new URL('/auth/callback', baseUrl)
+    callbackUrl.searchParams.set('token_hash', tokenHash)
+    callbackUrl.searchParams.set('type', verificationType)
+    callbackUrl.searchParams.set('next', '/dashboard')
+
+    await page.goto(callbackUrl.toString())
+
+    await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/)
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
   })
-
-  const tokenHash = data.properties?.hashed_token
-  const verificationType = data.properties?.verification_type
-
-  if (error || !tokenHash || !verificationType) {
-    throw new Error(error?.message ?? 'Unable to create a verification login link for Playwright.')
-  }
-
-  const callbackUrl = new URL('/auth/callback', baseUrl)
-  callbackUrl.searchParams.set('token_hash', tokenHash)
-  callbackUrl.searchParams.set('type', verificationType)
-  callbackUrl.searchParams.set('next', '/dashboard')
-
-  await page.goto(callbackUrl.toString())
-
-  await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/)
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
 }
 
 export async function continueAsGuest(page: Page) {

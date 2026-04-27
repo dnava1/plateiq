@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { getTemplate } from '@/lib/constants/templates'
@@ -32,6 +32,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, WandSparkles } from 'lucide-react'
 
 export default function BuilderPage() {
+  return (
+    <Suspense fallback={null}>
+      <BuilderPageContent />
+    </Suspense>
+  )
+}
+
+function BuilderPageContent() {
   const searchParams = useSearchParams()
   const templateKey = searchParams.get('template')
   const selectedVariationKey = searchParams.get('variation')

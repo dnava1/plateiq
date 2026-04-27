@@ -252,6 +252,53 @@ describe('generateWorkoutPlan', () => {
     expect(sets[5]?.display_type).toBe('drop')
   })
 
+  it('uses each block\'s first non-warmup work set before falling back to the primary block base', () => {
+    const template: ProgramTemplate = {
+      key: 'block-specific-percentage-work-set',
+      name: 'Block Specific Percentage Work Set',
+      level: 'intermediate',
+      description: 'Block-specific percentage_work_set support',
+      days_per_week: 1,
+      cycle_length_weeks: 1,
+      uses_training_max: true,
+      required_exercises: ['squat', 'bench'],
+      days: [
+        {
+          label: 'Upper Lower',
+          exercise_blocks: [
+            {
+              role: 'primary',
+              exercise_key: 'squat',
+              sets: [
+                { sets: 3, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' },
+              ],
+            },
+            {
+              role: 'variation',
+              exercise_key: 'bench',
+              sets: [
+                { sets: 2, reps: 6, intensity: 0.7, intensity_type: 'percentage_tm' },
+                { sets: 1, reps: 10, intensity: 0.8, intensity_type: 'percentage_work_set', display_type: 'drop' },
+              ],
+            },
+          ],
+        },
+      ],
+      progression: {
+        style: 'linear_per_cycle',
+        increment_lbs: { upper: 5, lower: 10 },
+      },
+    }
+
+    const sets = generateWorkoutPlan(template, 0, 1, trainingMaxes)
+    const squatSets = sets.filter((set) => set.exercise_key === 'squat')
+    const benchSets = sets.filter((set) => set.exercise_key === 'bench')
+
+    expect(squatSets.map((set) => set.weight_lbs)).toEqual([225, 225, 225])
+    expect(benchSets.map((set) => set.weight_lbs)).toEqual([140, 140, 110])
+    expect(benchSets[2]?.display_type).toBe('drop')
+  })
+
   it('preserves block metadata, rest timing, and execution groups through generation', () => {
     const template: ProgramTemplate = {
       key: 'execution-metadata',

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useEffectEvent, useRef, useState } from 'react'
+import { Suspense, useEffect, useEffectEvent, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Dumbbell } from 'lucide-react'
 import { sanitizeNextPath } from '@/lib/auth/auth-state'
@@ -48,6 +48,14 @@ function getInitialFeedback(errorParam: string | null, upgradeMode: string | nul
 }
 
 export default function UpgradePage() {
+  return (
+    <Suspense fallback={null}>
+      <UpgradePageContent />
+    </Suspense>
+  )
+}
+
+function UpgradePageContent() {
   const searchParams = useSearchParams()
   const { data: user, isLoading } = useUser()
   const errorParam = searchParams.get('error')

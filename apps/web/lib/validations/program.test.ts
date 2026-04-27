@@ -178,6 +178,12 @@ describe('custom program builder validation helpers', () => {
                     purpose: 'warmup',
                   },
                   {
+                    sets: 3,
+                    reps: 5,
+                    intensity: 0.75,
+                    intensity_type: 'percentage_tm',
+                  },
+                  {
                     sets: 1,
                     reps: 12,
                     intensity: 0.7,
@@ -193,6 +199,41 @@ describe('custom program builder validation helpers', () => {
     })
 
     expect(result.success).toBe(true)
+  })
+
+  it('rejects percentage_work_set blocks without a local non-warmup base set', () => {
+    const input = buildValidCustomProgramInput()
+    const result = createCustomProgramSchema.safeParse({
+      ...input,
+      definition: {
+        ...input.definition,
+        days: [
+          {
+            ...input.definition.days[0],
+            exercise_blocks: [
+              {
+                role: 'variation',
+                exercise_key: 'Bench Press',
+                sets: [
+                  {
+                    sets: 1,
+                    reps: 12,
+                    intensity: 0.7,
+                    intensity_type: 'percentage_work_set',
+                    display_type: 'drop',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(getCreateCustomProgramErrorMessage(result.error)).toBe('Add a non-warm-up base set before using First work set %.')
+    }
   })
 
   it('requires a readable program name before leaving basics', () => {
@@ -278,6 +319,84 @@ describe('custom program builder validation helpers', () => {
         ],
       }, 0),
     ).toBe('Use reps like 5, 5+, or 3-5 for set 1 of exercise 1 on Upper before continuing.')
+  })
+
+  it('requires a local non-warmup base set before using First work set %', () => {
+    expect(
+      validateCustomProgramExerciseDay({
+        label: 'Upper',
+        exercise_blocks: [
+          {
+            role: 'variation',
+            exercise_key: 'Bench Press',
+            sets: [
+              {
+                sets: 1,
+                reps: 12,
+                intensity: 0.7,
+                intensity_type: 'percentage_work_set',
+              },
+            ],
+          },
+        ],
+      }, 0),
+    ).toBe('Add a non-warm-up base set to exercise 1 on Upper before using First work set %.')
+  })
+
+  it('rejects bodyweight-only blocks as percentage_work_set bases', () => {
+    expect(
+      validateCustomProgramExerciseDay({
+        label: 'Upper',
+        exercise_blocks: [
+          {
+            role: 'variation',
+            exercise_key: 'Pull-Up',
+            sets: [
+              {
+                sets: 2,
+                reps: 8,
+                intensity: 0,
+                intensity_type: 'bodyweight',
+              },
+              {
+                sets: 1,
+                reps: 12,
+                intensity: 0.7,
+                intensity_type: 'percentage_work_set',
+              },
+            ],
+          },
+        ],
+      }, 0),
+    ).toBe('Add a non-warm-up base set to exercise 1 on Upper before using First work set %.')
+  })
+
+  it('requires the local base set to appear before percentage_work_set prescriptions', () => {
+    expect(
+      validateCustomProgramExerciseDay({
+        label: 'Upper',
+        exercise_blocks: [
+          {
+            role: 'variation',
+            exercise_key: 'Bench Press',
+            sets: [
+              {
+                sets: 1,
+                reps: 12,
+                intensity: 0.7,
+                intensity_type: 'percentage_work_set',
+              },
+              {
+                sets: 3,
+                reps: 5,
+                intensity: 0.75,
+                intensity_type: 'percentage_tm',
+              },
+            ],
+          },
+        ],
+      }, 0),
+    ).toBe('Add a non-warm-up base set to exercise 1 on Upper before using First work set %.')
   })
 })
 

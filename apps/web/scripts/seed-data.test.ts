@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   assertHostedSeedAuthorization,
   assertSeedInvariants,
+  buildCycleInsertRow,
   ensureVerificationUser,
   getAdditionalSeedEmails,
   requireExistingUser,
@@ -214,6 +215,31 @@ describe('resetUserData', () => {
       { column: 'user_id', table: 'training_maxes', value: 'user-123' },
       { column: 'created_by_user_id', table: 'exercises', value: 'user-123' },
     ])
+  })
+})
+
+describe('buildCycleInsertRow', () => {
+  it('includes the program snapshot fields required by seeded cycles', () => {
+    expect(buildCycleInsertRow({
+      autoProgressionApplied: true,
+      completedAt: '2026-03-01T18:40:00.000Z',
+      cycleNumber: 2,
+      startDate: '2026-02-02',
+    }, 'user-123', 99, {
+      program: {
+        config: { rounding: 5, tm_percentage: 0.9, variation_key: 'bbb' },
+        templateKey: 'wendler_531',
+      },
+    } as never)).toEqual({
+      auto_progression_applied: true,
+      completed_at: '2026-03-01T18:40:00.000Z',
+      config: { rounding: 5, tm_percentage: 0.9, variation_key: 'bbb' },
+      cycle_number: 2,
+      program_id: 99,
+      start_date: '2026-02-02',
+      template_key: 'wendler_531',
+      user_id: 'user-123',
+    })
   })
 })
 

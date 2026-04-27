@@ -18,6 +18,7 @@ import {
   describeAnalyticsCoverageReasons,
   deriveRecentPrs,
 } from '@/lib/analytics'
+import { resolveProgramDay } from '@/lib/programs/week'
 import { calculateCycleProgress, findSuggestedWorkoutSelection } from '@/lib/workout-progress'
 import { buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -139,7 +140,7 @@ export function DashboardOverview() {
   const cycleIsComplete = cycleProgress.totalPlannedWorkouts > 0 && cycleProgress.remainingWorkouts === 0
   const nextWorkoutLabel = cycleIsComplete
     ? 'Cycle ready to wrap'
-    : template?.days[suggestedWorkout.dayIndex]?.label ?? 'Next workout'
+    : (template ? resolveProgramDay(template, suggestedWorkout.dayIndex, suggestedWorkout.weekNumber)?.label : null) ?? 'Next workout'
   const recentPrs = useMemo(() => deriveRecentPrs(analyticsSnapshot?.prHistory ?? [], 4), [analyticsSnapshot?.prHistory])
   const bodyweightSummaries = analyticsSnapshot?.bodyweightLane.exerciseSummaries ?? []
   const consistencyTrend = analyticsSnapshot?.consistencyTrend && analyticsSnapshot.consistencyTrend.length > 0

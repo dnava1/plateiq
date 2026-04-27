@@ -469,18 +469,24 @@ async function insertProgram(admin, userId, plan) {
   return data.id
 }
 
+export function buildCycleInsertRow(cycle, userId, programId, plan) {
+  return {
+    auto_progression_applied: cycle.autoProgressionApplied,
+    completed_at: cycle.completedAt,
+    cycle_number: cycle.cycleNumber,
+    config: plan.program.config,
+    program_id: programId,
+    start_date: cycle.startDate,
+    template_key: plan.program.templateKey,
+    user_id: userId,
+  }
+}
+
 async function insertCyclesAndWorkouts(admin, userId, programId, exerciseIdMap, plan) {
   for (const cycle of plan.cycles) {
     const { data: cycleRow, error: cycleError } = await admin
       .from('cycles')
-      .insert({
-        auto_progression_applied: cycle.autoProgressionApplied,
-        completed_at: cycle.completedAt,
-        cycle_number: cycle.cycleNumber,
-        program_id: programId,
-        start_date: cycle.startDate,
-        user_id: userId,
-      })
+      .insert(buildCycleInsertRow(cycle, userId, programId, plan))
       .select('id')
       .single()
 

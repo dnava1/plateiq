@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { ArrowRight, Dumbbell, UserRound } from 'lucide-react'
 import { AuthTurnstileGate } from '@/components/auth/AuthTurnstileGate'
@@ -43,6 +43,14 @@ function isLocalDevelopmentHost() {
 }
 
 export default function ContinuePage() {
+  return (
+    <Suspense fallback={null}>
+      <ContinuePageContent />
+    </Suspense>
+  )
+}
+
+function ContinuePageContent() {
   const searchParams = useSearchParams()
   const next = sanitizeNextPath(searchParams.get('next'), '/dashboard')
   const errorParam = searchParams.get('error')

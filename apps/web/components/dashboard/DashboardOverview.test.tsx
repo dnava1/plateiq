@@ -226,9 +226,61 @@ describe('DashboardOverview', () => {
     render(<DashboardOverview />)
 
     expect(screen.getAllByText('Week 2').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Week 2 Bench').length).toBeGreaterThan(0)
     expect(screen.getByText('33%')).toBeInTheDocument()
     expect(screen.getByText('1 of 3 sessions complete.')).toBeInTheDocument()
     expect(screen.getByText('2 sessions still open in this block.')).toBeInTheDocument()
+  })
+
+  it('keeps the dashboard summary anchored to the active cycle snapshot when the saved program has already moved on', () => {
+    mocks.useActiveProgram.mockReturnValue({
+      data: {
+        id: 12,
+        name: '5/3/1 Beefcake',
+        template_key: 'starting_strength',
+        config: { rounding: 10 },
+      },
+      isLoading: false,
+    })
+    mocks.useActiveCycle.mockReturnValue({
+      data: {
+        id: 7,
+        cycle_number: 3,
+        template_key: 'wendler_531',
+        config: { variation_key: 'bbb' },
+      },
+      isLoading: false,
+    })
+    mocks.resolveWorkoutProgram.mockImplementation((_program, _rounding, cycleSnapshot) => {
+      expect(cycleSnapshot).toMatchObject({
+        template_key: 'wendler_531',
+        config: { variation_key: 'bbb' },
+      })
+
+      return {
+        isCustom: false,
+        template: {
+          cycle_length_weeks: 2,
+          days_per_week: 2,
+          days: [{ label: 'Day A' }, { label: 'Day B' }],
+          variation_options: [{ key: 'bbb', name: 'Boring But Big' }],
+        },
+      }
+    })
+    mocks.useDashboard.mockReturnValue({
+      data: {
+        activeProgram: { id: 12, name: '5/3/1 Beefcake', templateKey: 'wendler_531' },
+        currentCycle: { id: 7, cycleNumber: 3 },
+        currentTms: [],
+        recentWorkouts: [],
+      },
+      isLoading: false,
+    })
+    mocks.useCycleWorkouts.mockReturnValue({ data: [] })
+
+    render(<DashboardOverview />)
+
+    expect(screen.getByText(/Boring But Big/)).toBeInTheDocument()
   })
 
   it('formats volume pace copy in kilograms when kg is selected', () => {
