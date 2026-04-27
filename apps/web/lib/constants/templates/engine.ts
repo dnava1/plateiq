@@ -85,6 +85,65 @@ function parseReps(reps: number | string): { prescribed: number; max?: number; i
   return { prescribed: isNaN(parsed) ? 0 : parsed, isAmrap: false }
 }
 
+function resolveGeneratedSetType(
+  block: ExerciseBlock,
+  prescription: SetPrescription,
+  isAmrap: boolean,
+): GeneratedSet['set_type'] {
+  if (prescription.purpose === 'warmup') {
+    return 'warmup'
+  }
+
+  if (isAmrap) {
+    return 'amrap'
+  }
+
+  return (block.role === 'primary' ? 'main' : block.role) as GeneratedSet['set_type']
+}
+
+function resolvePercentageWorkSetBase(
+  block: ExerciseBlock | undefined,
+  trainingMaxes: Map<string, number>,
+  exerciseKey: string,
+  preferredRounding: number,
+) {
+  if (!block) {
+    return 0
+  }
+
+  const basePrescription = block.sets.find(
+    (prescription) => prescription.purpose !== 'warmup' && prescription.intensity_type !== 'percentage_work_set',
+  ) ?? block.sets.find((prescription) => prescription.purpose !== 'warmup')
+
+  if (!basePrescription) {
+    return 0
+  }
+
+  return resolveWeight(
+    basePrescription,
+    trainingMaxes,
+    exerciseKey,
+    preferredRounding,
+  )
+}
+
+function resolvePrescriptionBaseWeight(
+  prescription: SetPrescription,
+  trainingMaxes: Map<string, number>,
+  exerciseKey: string,
+  percentageWorkSetBase: number,
+) {
+  switch (prescription.intensity_type) {
+    case 'percentage_tm':
+    case 'percentage_1rm':
+      return trainingMaxes.get(exerciseKey) ?? 0
+    case 'percentage_work_set':
+      return percentageWorkSetBase
+    default:
+      return undefined
+  }
+}
+
 function expandBlock(
   block: ExerciseBlock,
   blockId: string,
@@ -101,6 +160,12 @@ function expandBlock(
 
   for (const prescription of block.sets) {
     const { prescribed, max, isAmrap } = parseReps(prescription.reps)
+    const prescriptionBaseWeight = resolvePrescriptionBaseWeight(
+      prescription,
+      trainingMaxes,
+      exerciseKey,
+      percentageWorkSetBase,
+    )
     const weight = resolveWeight(
       prescription,
       trainingMaxes,
@@ -108,7 +173,9 @@ function expandBlock(
       preferredRounding,
       percentageWorkSetBase,
     )
-    const actualIsAmrap = prescription.is_amrap ?? isAmrap
+    const actualIsAmrap = prescription.purpose === 'warmup'
+      ? false
+      : (prescription.is_amrap ?? isAmrap)
 
     for (let i = 0; i < prescription.sets; i++) {
       sets.push({
@@ -119,8 +186,10 @@ function expandBlock(
         exercise_id: exerciseId,
         execution_group: block.execution_group,
         display_type: prescription.display_type,
+        prescribed_intensity: prescription.intensity,
+        prescription_base_weight_lbs: prescriptionBaseWeight,
         set_order: order++,
-        set_type: actualIsAmrap ? 'amrap' : (block.role === 'primary' ? 'main' : block.role) as GeneratedSet['set_type'],
+        set_type: resolveGeneratedSetType(block, prescription, actualIsAmrap),
         weight_lbs: weight,
         reps_prescribed: prescribed,
         reps_prescribed_max: max,
@@ -153,6 +222,7 @@ export function generateWorkoutPlan(
 
   const weekScheme = template.week_schemes?.[weekNumber]
   const shouldApplyWeekModifier = Boolean(weekScheme?.intensity_modifier) && !weekScheme?.days
+  const weekIntensityModifier = weekScheme?.intensity_modifier ?? 1
   const adjustedDayBlocks = day.exercise_blocks.map((block) =>
     shouldApplyWeekModifier
       ? {
@@ -161,7 +231,7 @@ export function generateWorkoutPlan(
             ...set,
             intensity:
               set.intensity_type === 'percentage_tm'
-                ? set.intensity * (weekScheme.intensity_modifier ?? 1)
+                ? set.intensity * weekIntensityModifier
                 : set.intensity,
           })),
         }
@@ -171,14 +241,12 @@ export function generateWorkoutPlan(
   const primaryBlock = adjustedDayBlocks.find((block) => block.role === 'primary') ?? adjustedDayBlocks[0]
   const primaryExerciseKey = primaryBlock?.exercise_key ?? 'unknown'
   const primaryExerciseId = primaryBlock?.exercise_id
-  const percentageWorkSetBase = primaryBlock?.sets[0]
-    ? resolveWeight(
-        primaryBlock.sets[0],
-        trainingMaxes,
-        primaryExerciseKey,
-        preferredRounding,
-      )
-    : 0
+  const percentageWorkSetBase = resolvePercentageWorkSetBase(
+    primaryBlock,
+    trainingMaxes,
+    primaryExerciseKey,
+    preferredRounding,
+  )
 
   for (const [index, block] of adjustedDayBlocks.entries()) {
     const exerciseKey = block.exercise_key ?? primaryExerciseKey ?? 'unknown'

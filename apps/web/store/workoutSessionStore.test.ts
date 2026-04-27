@@ -208,7 +208,7 @@ describe('workoutSessionStore', () => {
 
     await useWorkoutSessionStore.persist.rehydrate()
 
-    const state = useWorkoutSessionStore.getState() as Record<string, unknown>
+    const state = useWorkoutSessionStore.getState()
 
     expect(state).toMatchObject({
       activeWorkoutId: 44,

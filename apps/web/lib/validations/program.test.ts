@@ -157,6 +157,44 @@ describe('custom program builder validation helpers', () => {
     expect(result.success).toBe(true)
   })
 
+  it('accepts warm-up and drop-set metadata in custom program definitions', () => {
+    const input = buildValidCustomProgramInput()
+    const result = createCustomProgramSchema.safeParse({
+      ...input,
+      definition: {
+        ...input.definition,
+        days: [
+          {
+            ...input.definition.days[0],
+            exercise_blocks: [
+              {
+                ...input.definition.days[0].exercise_blocks[0],
+                sets: [
+                  {
+                    sets: 1,
+                    reps: 5,
+                    intensity: 95,
+                    intensity_type: 'fixed_weight',
+                    purpose: 'warmup',
+                  },
+                  {
+                    sets: 1,
+                    reps: 12,
+                    intensity: 0.7,
+                    intensity_type: 'percentage_work_set',
+                    display_type: 'drop',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    })
+
+    expect(result.success).toBe(true)
+  })
+
   it('requires a readable program name before leaving basics', () => {
     expect(validateCustomProgramBasicsStep(' ')).toBe('Give your program a name with at least 2 characters.')
     expect(validateCustomProgramBasicsStep('Upper / Lower')).toBeNull()

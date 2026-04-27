@@ -77,7 +77,7 @@ export default function BuilderPage() {
       return
     }
 
-    patchSource(createProgramBuilderDraftSource(program, editability.saveStrategy))
+    patchSource(createProgramBuilderDraftSource(program, editability.saveStrategy, editability.hasWorkoutHistory))
   }, [editability, patchSource, program, programId])
 
   const isHydratedSourceReady = programId
@@ -106,7 +106,7 @@ export default function BuilderPage() {
 
       hydrateDraft(
         buildBuilderDraftFromProgramDefinition(program.name, definition),
-        createProgramBuilderDraftSource(program, editability.saveStrategy),
+        createProgramBuilderDraftSource(program, editability.saveStrategy, editability.hasWorkoutHistory),
       )
       hydratedSourceKeyRef.current = hydrationKey
       return

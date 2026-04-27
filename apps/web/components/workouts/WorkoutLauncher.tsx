@@ -29,11 +29,11 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
   const { data: exercises } = useExercises()
   const { data: trainingMaxes } = useCurrentTrainingMaxes()
   const preferredWeightRounding = usePreferredWeightRounding()
-  const { template, selectedVariationKeys, rounding } = useMemo(
-    () => resolveWorkoutProgram(program, preferredWeightRounding),
-    [preferredWeightRounding, program],
-  )
   const { data: activeCycle, isLoading: isCycleLoading } = useActiveCycle(program.id)
+  const { template, selectedVariationKeys, rounding } = useMemo(
+    () => resolveWorkoutProgram(program, preferredWeightRounding, activeCycle),
+    [activeCycle, preferredWeightRounding, program],
+  )
   const { data: cycleWorkouts } = useCycleWorkouts(activeCycle?.id)
   const ensureWorkout = useEnsureWorkout()
   const exerciseKeyMap = useExerciseKeyMap()
@@ -100,11 +100,14 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
           ? exerciseNameById.get(exerciseId) ?? formatExerciseKey(set.exercise_key)
           : formatExerciseKey(set.exercise_key),
         loggedAt: null,
+        prescribedIntensity: set.prescribed_intensity,
         prescribedWeightLbs: set.weight_lbs,
+        prescriptionBaseWeightLbs: set.prescription_base_weight_lbs ?? null,
         prescribedRpe: set.rpe ?? null,
         repsActual: null,
         rpe: null,
         workoutId: null,
+        workoutSetId: null,
       }
     })
   }, [currentDayIndex, currentWeekNumber, exerciseKeyMap, exerciseNameById, rounding, selectedDay, selectedVariationKeys, template, trainingMaxMap])

@@ -129,6 +129,37 @@ describe('ReviewStep', () => {
     expect(screen.queryByText('Deload strategy: Reduce volume by 50% for one week')).not.toBeInTheDocument()
   })
 
+  it('shows warm-up and drop-set descriptors in the review summary', () => {
+    const draft = useBuilderDraftStore.getState().draft
+
+    useBuilderDraftStore.setState({
+      draft: {
+        ...draft,
+        days: [
+          {
+            label: 'Day 1',
+            exercise_blocks: [
+              {
+                role: 'primary',
+                exercise_id: 1,
+                exercise_key: 'Squat',
+                sets: [
+                  { sets: 1, reps: 5, intensity: 95, intensity_type: 'fixed_weight', purpose: 'warmup' },
+                  { sets: 1, reps: 12, intensity: 0.7, intensity_type: 'percentage_work_set', display_type: 'drop' },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    })
+
+    render(<ReviewStep />)
+
+    expect(screen.getByText('1x5 at 95 lbs - warm-up')).toBeInTheDocument()
+    expect(screen.getByText('1x12 at 70% first work set - drop set')).toBeInTheDocument()
+  })
+
   it('renders week-specific sections when the draft includes explicit cycle layouts', () => {
     const draft = useBuilderDraftStore.getState().draft
 
@@ -317,5 +348,44 @@ describe('ReviewStep', () => {
     expect(screen.getByText('Required 1RM Inputs')).toBeInTheDocument()
     expect(screen.getByText('Set current estimated 1RMs for Bench Press before you save this program.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Create Program' })).toBeDisabled()
+  })
+
+  it('shows the history preservation note when editing a saved program with logged history', () => {
+    const draft = useBuilderDraftStore.getState().draft
+
+    useBuilderDraftStore.setState({
+      draft: {
+        ...draft,
+        name: '5/3/1 BBB',
+        days: [
+          {
+            label: 'Bench Day',
+            exercise_blocks: [
+              {
+                role: 'primary',
+                exercise_id: 2,
+                exercise_key: 'Bench Press',
+                sets: [{ sets: 3, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' }],
+              },
+            ],
+          },
+        ],
+      },
+      source: {
+        kind: 'program',
+        mode: 'edit',
+        template_key: 'wendler_531',
+        program_id: 12,
+        program_name: '5/3/1 BBB',
+        is_active: true,
+        save_strategy: 'update',
+        has_workout_history: true,
+      },
+    })
+
+    render(<ReviewStep />)
+
+    expect(screen.getByText(/Completed cycles keep their saved program snapshots/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeInTheDocument()
   })
 })

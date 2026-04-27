@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   fetchRecentExerciseHistory,
   resolveWorkoutProgram,
+  seedWorkoutSetsMutation,
+  updateWorkoutBlockPrescriptionMutation,
   useActiveCycle,
   useCompleteWorkout,
   useLogSet,
@@ -12,6 +14,7 @@ import {
 import { generateWorkoutPlan } from '@/lib/constants/templates/engine'
 import { getTemplate } from '@/lib/constants/templates'
 import { buildEditableConfigFromTemplate } from '@/lib/programs/editable'
+import type { Json } from '@/types/database'
 
 const useSupabaseMock = vi.fn()
 
@@ -128,6 +131,9 @@ describe('useWorkouts', () => {
         rpe: 8.5,
         intensity_type: 'percentage_tm',
         logged_at: '2026-04-10T12:34:56.000Z',
+        prescribed_intensity: 0.75,
+        prescribed_weight_lbs: 225,
+        prescription_base_weight_lbs: 300,
         updated_at: '2026-04-10T12:34:56.000Z',
       },
       error: null,
@@ -158,6 +164,9 @@ describe('useWorkouts', () => {
         isAmrap: false,
         actualRpe: 8.5,
         intensityType: 'percentage_tm',
+        prescribedIntensity: 0.75,
+        prescribedWeightLbs: 225,
+        prescriptionBaseWeightLbs: 300,
       })
     })
 
@@ -169,6 +178,9 @@ describe('useWorkouts', () => {
         set_order: 3,
         set_type: 'main',
         weight_lbs: 225,
+        prescribed_weight_lbs: 225,
+        prescribed_intensity: 0.75,
+        prescription_base_weight_lbs: 300,
         reps_prescribed: 5,
         reps_prescribed_max: null,
         reps_actual: 5,
@@ -179,6 +191,144 @@ describe('useWorkouts', () => {
       },
       { onConflict: 'workout_id,set_order' },
     )
+  })
+
+  it('seedWorkoutSetsMutation inserts workout-only prescription snapshots for missing sets', async () => {
+    const single = vi.fn().mockResolvedValue({
+      data: {
+        id: 201,
+        workout_id: 44,
+        exercise_id: 2,
+        user_id: 'user-1',
+        set_order: 4,
+        set_type: 'accessory',
+        weight_lbs: 135,
+        prescribed_weight_lbs: 135,
+        prescribed_intensity: 0.55,
+        prescription_base_weight_lbs: 245,
+        reps_prescribed: 10,
+        reps_prescribed_max: null,
+        reps_actual: null,
+        is_amrap: false,
+        rpe: null,
+        intensity_type: 'percentage_tm',
+        logged_at: null,
+        updated_at: '2026-04-10T12:34:56.000Z',
+        exercises: { name: 'Bench Press' },
+      },
+      error: null,
+    })
+    const select = vi.fn(() => ({ single }))
+    const insert = vi.fn(() => ({ select }))
+
+    await seedWorkoutSetsMutation(
+      {
+        from: vi.fn((table: string) => {
+          expect(table).toBe('workout_sets')
+          return { insert }
+        }),
+      } as unknown as ReturnType<typeof useSupabaseMock>,
+      {
+        cycleId: 9,
+        workoutId: 44,
+        userId: 'user-1',
+        sets: [{
+          exerciseId: 2,
+          intensityType: 'percentage_tm',
+          isAmrap: false,
+          prescribedIntensity: 0.55,
+          prescribedWeightLbs: 135,
+          prescriptionBaseWeightLbs: 245,
+          repsPrescribed: 10,
+          setOrder: 4,
+          setType: 'accessory',
+          weightLbs: 135,
+        }],
+      },
+    )
+
+    expect(insert).toHaveBeenCalledWith({
+      workout_id: 44,
+      exercise_id: 2,
+      user_id: 'user-1',
+      set_order: 4,
+      set_type: 'accessory',
+      weight_lbs: 135,
+      prescribed_weight_lbs: 135,
+      prescribed_intensity: 0.55,
+      prescription_base_weight_lbs: 245,
+      reps_prescribed: 10,
+      reps_prescribed_max: null,
+      reps_actual: null,
+      is_amrap: false,
+      rpe: null,
+      intensity_type: 'percentage_tm',
+      logged_at: null,
+    })
+  })
+
+  it('updateWorkoutBlockPrescriptionMutation only changes unlogged sets', async () => {
+    const maybeSingle = vi.fn().mockResolvedValue({
+      data: {
+        id: 202,
+        workout_id: 44,
+        exercise_id: 2,
+        user_id: 'user-1',
+        set_order: 5,
+        set_type: 'accessory',
+        weight_lbs: 140,
+        prescribed_weight_lbs: 140,
+        prescribed_intensity: 0.575,
+        prescription_base_weight_lbs: 245,
+        reps_prescribed: 10,
+        reps_prescribed_max: null,
+        reps_actual: null,
+        is_amrap: false,
+        rpe: null,
+        intensity_type: 'percentage_tm',
+        logged_at: null,
+        updated_at: '2026-04-10T12:34:56.000Z',
+        exercises: { name: 'Bench Press' },
+      },
+      error: null,
+    })
+    const select = vi.fn(() => ({ maybeSingle }))
+    const isMock = vi.fn(() => ({ select }))
+    const eqSetOrder = vi.fn(() => ({ is: isMock }))
+    const eqUserId = vi.fn(() => ({ eq: eqSetOrder }))
+    const eqWorkoutId = vi.fn(() => ({ eq: eqUserId }))
+    const update = vi.fn(() => ({ eq: eqWorkoutId }))
+
+    await updateWorkoutBlockPrescriptionMutation(
+      {
+        from: vi.fn((table: string) => {
+          expect(table).toBe('workout_sets')
+          return { update }
+        }),
+      } as unknown as ReturnType<typeof useSupabaseMock>,
+      {
+        cycleId: 9,
+        workoutId: 44,
+        userId: 'user-1',
+        updates: [{
+          prescribedIntensity: 0.575,
+          prescribedWeightLbs: 140,
+          prescriptionBaseWeightLbs: 245,
+          setOrder: 5,
+        }],
+      },
+    )
+
+    expect(update).toHaveBeenCalledWith({
+      prescribed_weight_lbs: 140,
+      prescribed_intensity: 0.575,
+      prescription_base_weight_lbs: 245,
+      weight_lbs: 140,
+    })
+    expect(eqWorkoutId).toHaveBeenCalledWith('workout_id', 44)
+    expect(eqUserId).toHaveBeenCalledWith('user_id', 'user-1')
+    expect(eqSetOrder).toHaveBeenCalledWith('set_order', 5)
+    expect(isMock).toHaveBeenCalledWith('reps_actual', null)
   })
 
   it('useLogSet rejects invalid effort before calling Supabase', async () => {
@@ -277,6 +427,28 @@ describe('useWorkouts', () => {
     expect(generatedSets[0]?.weight_lbs).toBe(90)
     expect(generatedSets[2]?.is_amrap).toBe(true)
     expect(generatedSets[3]?.exercise_key).toBe('ohp')
+  })
+
+  it('resolveWorkoutProgram prefers the active cycle snapshot when the saved program has moved on', () => {
+    const editableConfig = buildEditableConfigFromTemplate(getTemplate('wendler_531')!, { variationKey: 'bbb' })
+
+    const resolved = resolveWorkoutProgram(
+      {
+        id: 1,
+        name: 'Wendler 5/3/1 BBB',
+        template_key: 'starting_strength',
+        config: { rounding: 10 },
+      } as never,
+      5,
+      {
+        template_key: 'wendler_531',
+        config: editableConfig as unknown as Json,
+      },
+    )
+
+    expect(resolved.isCustom).toBe(true)
+    expect(resolved.template?.days_per_week).toBe(4)
+    expect(resolved.template?.week_schemes?.['2']?.days?.[0]?.exercise_blocks).toHaveLength(2)
   })
 
   it('fetchRecentExerciseHistory excludes the current workout and limits to completed logged history', async () => {

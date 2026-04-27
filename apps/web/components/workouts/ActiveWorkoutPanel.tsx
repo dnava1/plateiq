@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { AlertCircle, ArrowLeft, CircleCheckBig } from 'lucide-react'
+import { toast } from 'sonner'
 import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { buildExerciseKeyMap, resolveExerciseIdFromMap, useExercises } from '@/hooks/useExercises'
@@ -12,17 +13,21 @@ import {
   resolveWorkoutProgram,
   useActiveCycle,
   useCycleWorkouts,
+  useSeedWorkoutSets,
+  useUpdateWorkoutBlockPrescription,
   useWorkoutExerciseContext,
   useWorkoutSets,
 } from '@/hooks/useWorkouts'
 import type { TrainingProgram } from '@/hooks/usePrograms'
 import { generateWorkoutPlan } from '@/lib/constants/templates/engine'
 import { resolveProgramDays } from '@/lib/programs/week'
-import { cn, formatDate, formatExerciseKey, formatWeight } from '@/lib/utils'
+import { cn, formatDate, formatExerciseKey, formatWeight, roundToIncrement } from '@/lib/utils'
 import { useWorkoutSessionStore } from '@/store/workoutSessionStore'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { CompleteWorkoutButton } from './CompleteWorkoutButton'
 import { OfflineSyncBanner } from './OfflineSyncBanner'
 import { PlateBreakdownInline } from './PlateBreakdownInline'
@@ -32,11 +37,14 @@ import {
   buildWorkoutExecutionSnapshot,
   formatBlockRoleLabel,
   formatDurationClock,
+  formatWorkoutPercentageBasisLabel,
   formatExecutionGroupTypeLabel,
   formatRepTarget,
   formatSetTypeLabel,
+  getEditablePercentageBlock,
   hasRemainingPendingWork,
   isBackoffDisplayType,
+  isDropDisplayType,
   shouldAutoStartRestTimer,
   type WorkoutDisplayBlock,
   type WorkoutDisplaySet,
@@ -47,6 +55,15 @@ interface ActiveWorkoutPanelProps {
 }
 
 const REST_TIMER_PRESET_SECONDS = [30, 60, 90, 120, 150, 180] as const
+
+function formatPercentageValue(value: number) {
+  const normalizedValue = Number.isInteger(value) ? String(value) : value.toFixed(1)
+  return normalizedValue.replace(/\.0$/, '')
+}
+
+function resolveEditedWorkoutWeight(baseWeightLbs: number, intensity: number, rounding: number) {
+  return roundToIncrement(baseWeightLbs * intensity, rounding, 'down')
+}
 
 function getBlockCardClasses(role: WorkoutDisplayBlock['role']) {
   switch (role) {
@@ -69,13 +86,15 @@ function getExecutionGroupDescription(kind: 'superset' | 'circuit') {
 
 export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
   const { data: user } = useUser()
+  const userId = user?.id ?? null
   const { data: exercises } = useExercises()
   const { data: trainingMaxes } = useCurrentTrainingMaxes()
   const preferredUnit = usePreferredUnit()
   const preferredWeightRounding = usePreferredWeightRounding()
+  const { data: fallbackCycle } = useActiveCycle(program.id)
   const { template, selectedVariationKeys, rounding } = useMemo(
-    () => resolveWorkoutProgram(program, preferredWeightRounding),
-    [preferredWeightRounding, program],
+    () => resolveWorkoutProgram(program, preferredWeightRounding, fallbackCycle),
+    [fallbackCycle, preferredWeightRounding, program],
   )
   const activeWorkoutId = useWorkoutSessionStore((state) => state.activeWorkoutId)
   const activeCycleId = useWorkoutSessionStore((state) => state.activeCycleId)
@@ -87,11 +106,14 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
   const startRestTimer = useWorkoutSessionStore((state) => state.startRestTimer)
   const syncStates = useWorkoutSessionStore((state) => state.syncStates)
   const setSyncState = useWorkoutSessionStore((state) => state.setSyncState)
-  const { data: fallbackCycle } = useActiveCycle(program.id)
   const cycleId = activeCycleId ?? fallbackCycle?.id
   const { data: cycleWorkouts } = useCycleWorkouts(cycleId)
   const { data: workoutSets } = useWorkoutSets(activeWorkoutId ?? undefined)
+  const seedWorkoutSets = useSeedWorkoutSets()
+  const updateWorkoutBlockPrescription = useUpdateWorkoutBlockPrescription()
   const [timerNowMs, setTimerNowMs] = useState(() => Date.now())
+  const [editingBlockId, setEditingBlockId] = useState<string | null>(null)
+  const [editingPercentageValue, setEditingPercentageValue] = useState('')
 
   const trainingMaxMap = useMemo(() => buildTrainingMaxMap(trainingMaxes), [trainingMaxes])
   const exerciseKeyMap = useMemo(() => buildExerciseKeyMap(exercises), [exercises])
@@ -150,29 +172,66 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
   }, [effectiveDayIndex, effectiveWeekNumber, rounding, selectedVariationKeys, template, trainingMaxMap])
 
   const displaySets = useMemo<WorkoutDisplaySet[]>(() => {
-    const loggedSetsByOrder = new Map((workoutSets ?? []).map((set) => [set.set_order, set]))
+    const storedSetsByOrder = new Map((workoutSets ?? []).map((set) => [set.set_order, set]))
 
     return generatedSets.map((set) => {
-      const loggedSet = loggedSetsByOrder.get(set.set_order)
-      const exerciseId = loggedSet?.exercise_id ?? set.exercise_id ?? resolveExerciseIdFromMap(exerciseKeyMap, set.exercise_key) ?? null
-      const exerciseName = loggedSet?.exercises?.name
+      const storedSet = storedSetsByOrder.get(set.set_order)
+      const exerciseId = storedSet?.exercise_id ?? set.exercise_id ?? resolveExerciseIdFromMap(exerciseKeyMap, set.exercise_key) ?? null
+      const exerciseName = storedSet?.exercises?.name
         ?? (exerciseId ? exerciseNameById.get(exerciseId) : undefined)
         ?? formatExerciseKey(set.exercise_key)
 
       return {
         ...set,
-        weight_lbs: loggedSet?.weight_lbs ?? set.weight_lbs,
+        weight_lbs: storedSet?.weight_lbs ?? set.weight_lbs,
         exerciseId,
         exerciseName,
-        loggedAt: loggedSet?.logged_at ?? null,
-        prescribedWeightLbs: set.weight_lbs,
+        loggedAt: storedSet?.logged_at ?? null,
+        prescribedIntensity: storedSet?.prescribed_intensity ?? set.prescribed_intensity,
+        prescribedWeightLbs: storedSet?.prescribed_weight_lbs ?? set.weight_lbs,
+        prescriptionBaseWeightLbs: storedSet?.prescription_base_weight_lbs ?? set.prescription_base_weight_lbs ?? null,
         prescribedRpe: set.rpe ?? null,
-        repsActual: loggedSet?.reps_actual ?? null,
-        rpe: loggedSet?.rpe ?? null,
+        repsActual: storedSet?.reps_actual ?? null,
+        rpe: storedSet?.rpe ?? null,
         workoutId: activeWorkoutId,
+        workoutSetId: storedSet?.id ?? null,
       }
     })
   }, [activeWorkoutId, exerciseKeyMap, exerciseNameById, generatedSets, workoutSets])
+
+  useEffect(() => {
+    if (!activeWorkoutId || !cycleId || !userId || seedWorkoutSets.isPending) {
+      return
+    }
+
+    const setsToSeed = displaySets
+      .filter((set) => set.workoutSetId === null && set.exerciseId !== null)
+      .map((set) => ({
+        exerciseId: set.exerciseId as number,
+        intensityType: set.intensity_type,
+        isAmrap: set.is_amrap,
+        prescribedIntensity: set.prescribedIntensity,
+        prescribedRpe: set.prescribedRpe,
+        prescribedWeightLbs: set.prescribedWeightLbs,
+        prescriptionBaseWeightLbs: set.prescriptionBaseWeightLbs,
+        repsPrescribed: set.reps_prescribed,
+        repsPrescribedMax: set.reps_prescribed_max ?? null,
+        setOrder: set.set_order,
+        setType: set.set_type,
+        weightLbs: set.prescribedWeightLbs,
+      }))
+
+    if (!setsToSeed.length) {
+      return
+    }
+
+    seedWorkoutSets.mutate({
+      cycleId,
+      workoutId: activeWorkoutId,
+      userId,
+      sets: setsToSeed,
+    })
+  }, [activeWorkoutId, cycleId, displaySets, seedWorkoutSets, userId])
   const exerciseContextIds = useMemo(
     () => Array.from(
       new Set(
@@ -213,6 +272,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
   const executionCue = useMemo(() => buildWorkoutExecutionCue(execution), [execution])
   const nextSetTypeLabel = nextSet ? formatSetTypeLabel(nextSet.set_type, nextSet.display_type) : null
   const nextSetIsBackoff = nextSet ? isBackoffDisplayType(nextSet.display_type) : false
+  const nextSetIsDrop = nextSet ? isDropDisplayType(nextSet.display_type) : false
   const nextBlockRoleLabel = nextBlock ? formatBlockRoleLabel(nextBlock.role) : null
   const currentExerciseContext = currentExerciseId !== null
     ? exerciseContext.data[currentExerciseId] ?? null
@@ -224,6 +284,21 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
     : null
   const isRestComplete = remainingRestSeconds === 0 && isRestTimerForCurrentWorkout
   const completedCount = execution.completedSets
+
+  const openWorkoutPercentageEditor = (block: WorkoutDisplayBlock) => {
+    const editableBlock = getEditablePercentageBlock(block)
+    if (!editableBlock) {
+      return
+    }
+
+    setEditingBlockId(block.blockId)
+    setEditingPercentageValue(formatPercentageValue(editableBlock.intensityPercent))
+  }
+
+  const closeWorkoutPercentageEditor = () => {
+    setEditingBlockId(null)
+    setEditingPercentageValue('')
+  }
 
   if (!activeWorkoutId || !template || !selectedDay) {
     return (
@@ -256,6 +331,44 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
     })
   }
 
+  const applyWorkoutPercentageOverride = async (block: WorkoutDisplayBlock) => {
+    const editableBlock = getEditablePercentageBlock(block)
+    const parsedPercentage = Number(editingPercentageValue)
+
+    if (!editableBlock || !cycleId || !userId) {
+      return
+    }
+
+    if (!Number.isFinite(parsedPercentage) || parsedPercentage <= 0) {
+      toast.error('Enter a valid percentage greater than 0.')
+      return
+    }
+
+    const nextIntensity = parsedPercentage / 100
+    const nextWeightLbs = resolveEditedWorkoutWeight(editableBlock.prescriptionBaseWeightLbs, nextIntensity, rounding)
+
+    try {
+      await updateWorkoutBlockPrescription.mutateAsync({
+        cycleId,
+        workoutId: activeWorkoutId,
+        userId,
+        updates: editableBlock.setOrders.map((setOrder) => ({
+          prescribedIntensity: nextIntensity,
+          prescribedWeightLbs: nextWeightLbs,
+          prescriptionBaseWeightLbs: editableBlock.prescriptionBaseWeightLbs,
+          setOrder,
+        })),
+      })
+
+      toast.success(
+        `${block.exerciseName} updated to ${formatPercentageValue(parsedPercentage)}% ${formatWorkoutPercentageBasisLabel(editableBlock.intensityType)} for the remaining workout sets.`,
+      )
+      closeWorkoutPercentageEditor()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'The workout percentage could not be updated.')
+    }
+  }
+
   const recentSessionDate = currentRecentSession?.completedAt ?? currentRecentSession?.scheduledDate ?? null
   const recentSessionLabel = currentRecentSession
     ? [
@@ -276,20 +389,87 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
 
   const renderBlock = (block: WorkoutDisplayBlock, nested = false) => {
     const distinctWeightsLbs = [...new Set(block.sets.map((set) => set.weight_lbs).filter((weight) => weight > 0))]
+    const editablePercentageBlock = getEditablePercentageBlock(block)
+    const isEditingWorkoutPercentage = editingBlockId === block.blockId
 
     return (
       <Card key={block.blockId} className={cn('surface-panel', getBlockCardClasses(block.role), nested ? 'bg-background/70' : null)}>
         <CardHeader className="gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <CardTitle className="text-lg">{block.exerciseName}</CardTitle>
-            <Badge variant={block.role === 'primary' ? 'secondary' : 'outline'}>{formatBlockRoleLabel(block.role)}</Badge>
-            <Badge variant="outline">
-              {block.completedCount}/{block.totalCount} sets
-            </Badge>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <CardTitle className="text-lg">{block.exerciseName}</CardTitle>
+                <Badge variant={block.role === 'primary' ? 'secondary' : 'outline'}>{formatBlockRoleLabel(block.role)}</Badge>
+                <Badge variant="outline">
+                  {block.completedCount}/{block.totalCount} sets
+                </Badge>
+                {editablePercentageBlock ? (
+                  <Badge variant="outline">
+                    {formatPercentageValue(editablePercentageBlock.intensityPercent)}% {formatWorkoutPercentageBasisLabel(editablePercentageBlock.intensityType)}
+                  </Badge>
+                ) : null}
+              </div>
+              {block.notes ? <CardDescription>{block.notes}</CardDescription> : null}
+            </div>
+            {editablePercentageBlock ? (
+              <Button
+                type="button"
+                size="sm"
+                variant={isEditingWorkoutPercentage ? 'secondary' : 'outline'}
+                onClick={() => (isEditingWorkoutPercentage ? closeWorkoutPercentageEditor() : openWorkoutPercentageEditor(block))}
+              >
+                {isEditingWorkoutPercentage ? 'Close % edit' : 'Edit remaining %'}
+              </Button>
+            ) : null}
           </div>
-          {block.notes ? <CardDescription>{block.notes}</CardDescription> : null}
         </CardHeader>
         <CardContent className="flex flex-col gap-3 pt-0">
+          {editablePercentageBlock && isEditingWorkoutPercentage ? (
+            <div className="rounded-[20px] border border-border/70 bg-background/70 p-4">
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1">
+                  <p className="text-sm font-medium text-foreground">Update remaining sets for this workout</p>
+                  <p className="text-sm text-muted-foreground">
+                    Applies to {editablePercentageBlock.remainingSetCount} unlogged {editablePercentageBlock.remainingSetCount === 1 ? 'set' : 'sets'} only. Logged work stays as recorded.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 sm:max-w-[12rem]">
+                  <Label htmlFor={`workout-block-percentage-${block.blockId}`}>
+                    % {formatWorkoutPercentageBasisLabel(editablePercentageBlock.intensityType)}
+                  </Label>
+                  <Input
+                    id={`workout-block-percentage-${block.blockId}`}
+                    type="number"
+                    min={0.5}
+                    step={0.5}
+                    inputMode="decimal"
+                    value={editingPercentageValue}
+                    onChange={(event) => setEditingPercentageValue(event.target.value)}
+                    disabled={updateWorkoutBlockPrescription.isPending}
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => void applyWorkoutPercentageOverride(block)}
+                    disabled={updateWorkoutBlockPrescription.isPending}
+                  >
+                    {updateWorkoutBlockPrescription.isPending ? 'Saving...' : 'Apply to workout'}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={closeWorkoutPercentageEditor}
+                    disabled={updateWorkoutBlockPrescription.isPending}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : null}
           {block.sets.map((set) => (
             <SetRow
               autoStartRestTimer={shouldAutoStartRestTimer(execution, set.set_order)}
@@ -301,7 +481,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
               set={set}
               syncState={syncStates[set.set_order]?.status}
               onSyncStateChange={(state) => setSyncState(set.set_order, state)}
-              userId={user?.id ?? ''}
+              userId={userId ?? ''}
             />
           ))}
           <PlateBreakdownInline weightsLbs={distinctWeightsLbs} />
@@ -347,7 +527,10 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
               {nextSetTypeLabel ? (
                 <Badge
                   variant={nextSet.set_type === 'main' ? 'secondary' : nextSet.is_amrap ? 'default' : 'outline'}
-                  className={cn(nextSetIsBackoff ? 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200' : null)}
+                  className={cn(
+                    nextSetIsBackoff ? 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200' : null,
+                    nextSetIsDrop ? 'border-rose-500/40 bg-rose-500/10 text-rose-900 dark:text-rose-200' : null,
+                  )}
                 >
                   {nextSetTypeLabel}
                 </Badge>
@@ -455,7 +638,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
                 set={nextSet}
                 syncState={syncStates[nextSet.set_order]?.status}
                 onSyncStateChange={(state) => setSyncState(nextSet.set_order, state)}
-                userId={user?.id ?? ''}
+                userId={userId ?? ''}
               />
             </div>
           </CardContent>

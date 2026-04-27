@@ -20,6 +20,7 @@ import {
   formatSetTypeLabel,
   getRecommendedRestSeconds,
   isBackoffDisplayType,
+  isDropDisplayType,
   isEstimatedOneRepMaxPr,
   isQuickLoggableSet,
   type WorkoutDisplaySet,
@@ -102,6 +103,7 @@ export function SetRow({
     ? estimateOneRepMax(set.weight_lbs, set.repsActual)
     : null
   const isBackoffSet = isBackoffDisplayType(set.display_type)
+  const isDropSet = isDropDisplayType(set.display_type)
   const syncLabel = getSyncLabel(syncState)
   const recommendedRestSeconds = getRecommendedRestSeconds(set)
   const supportsQuickLogging = isQuickLoggableSet(set)
@@ -194,6 +196,9 @@ export function SetRow({
         isAmrap: set.is_amrap,
         actualRpe,
         intensityType: set.intensity_type,
+        prescribedWeightLbs: set.prescribedWeightLbs,
+        prescribedIntensity: set.prescribedIntensity,
+        prescriptionBaseWeightLbs: set.prescriptionBaseWeightLbs,
       },
       {
         onSuccess: async () => {
@@ -230,7 +235,10 @@ export function SetRow({
             <Badge variant="outline">{formatBlockRoleLabel(set.block_role)}</Badge>
             <Badge
               variant={set.set_type === 'main' ? 'secondary' : set.is_amrap ? 'default' : 'outline'}
-              className={cn(isBackoffSet ? 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200' : null)}
+              className={cn(
+                isBackoffSet ? 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200' : null,
+                isDropSet ? 'border-rose-500/40 bg-rose-500/10 text-rose-900 dark:text-rose-200' : null,
+              )}
             >
               {setTypeLabel}
             </Badge>

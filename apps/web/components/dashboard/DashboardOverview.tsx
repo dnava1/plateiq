@@ -98,11 +98,11 @@ export function DashboardOverview() {
   const weightRoundingLbs = usePreferredWeightRounding()
   const { data: program, isLoading: isProgramLoading } = useActiveProgram()
   const { data: dashboard, isLoading: isDashboardLoading } = useDashboard()
-  const { template, isCustom } = useMemo(
-    () => resolveWorkoutProgram(program, weightRoundingLbs),
-    [program, weightRoundingLbs],
-  )
   const { data: activeCycle, isLoading: isCycleLoading } = useActiveCycle(program?.id)
+  const { template, isCustom } = useMemo(
+    () => resolveWorkoutProgram(program, weightRoundingLbs, activeCycle),
+    [activeCycle, program, weightRoundingLbs],
+  )
   const { data: cycleWorkouts } = useCycleWorkouts(activeCycle?.id)
   const analyticsRange = useMemo<AnalyticsDateRange>(() => {
     const to = new Date()
@@ -119,7 +119,7 @@ export function DashboardOverview() {
       }
     : null
 
-  const config = parseProgramConfig(program?.config ?? null)
+  const config = parseProgramConfig(activeCycle?.config ?? program?.config ?? null)
   const variationName = config.variation_key && template?.variation_options
     ? template.variation_options.find((variation) => variation.key === config.variation_key)?.name
     : null

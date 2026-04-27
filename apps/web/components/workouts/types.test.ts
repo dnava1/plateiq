@@ -5,6 +5,8 @@ import {
   estimateOneRepMax,
   formatSetTypeLabel,
   formatDurationClock,
+  formatWorkoutPercentageBasisLabel,
+  getEditablePercentageBlock,
   getRecommendedRestSeconds,
   hasRemainingPendingWork,
   isEstimatedOneRepMaxPr,
@@ -25,7 +27,10 @@ const baseWorkoutDisplaySet: WorkoutDisplaySet = {
   is_amrap: false,
   loggedAt: null,
   notes: undefined,
+  prescribed_intensity: 0.75,
+  prescribedIntensity: 0.75,
   prescribedWeightLbs: 185,
+  prescriptionBaseWeightLbs: 245,
   reps_prescribed: 5,
   reps_prescribed_max: undefined,
   repsActual: null,
@@ -36,6 +41,7 @@ const baseWorkoutDisplaySet: WorkoutDisplaySet = {
   set_type: 'main',
   weight_lbs: 185,
   workoutId: 7,
+  workoutSetId: 71,
 }
 
 function createWorkoutDisplaySet(overrides: Partial<WorkoutDisplaySet>): WorkoutDisplaySet {
@@ -157,9 +163,32 @@ describe('workout type helpers', () => {
     expect(formatSetTypeLabel('variation', 'backoff')).toBe('Backoff')
   })
 
+  it('formats drop-set display work distinctly from generic variations', () => {
+    expect(formatSetTypeLabel('variation', 'drop')).toBe('Drop')
+  })
+
   it('only returns rest timing when the program explicitly defines it', () => {
     expect(getRecommendedRestSeconds({ block_role: 'primary', rest_seconds: undefined })).toBeNull()
     expect(getRecommendedRestSeconds({ block_role: 'accessory', rest_seconds: 45 })).toBe(45)
+  })
+
+  it('identifies blocks whose remaining sets can be edited by workout percentage', () => {
+    const snapshot = buildWorkoutExecutionSnapshot(buildGroupedSupersetSets([1]))
+    const editableBlock = getEditablePercentageBlock(snapshot.blocks[0]!)
+
+    expect(editableBlock).toMatchObject({
+      intensityPercent: 75,
+      intensityType: 'percentage_tm',
+      remainingSetCount: 1,
+      setOrders: [2],
+    })
+    expect(formatWorkoutPercentageBasisLabel(editableBlock!.intensityType)).toBe('TM')
+  })
+
+  it('does not expose workout-percentage editing for non-percentage blocks', () => {
+    const snapshot = buildWorkoutExecutionSnapshot(buildGroupedSupersetSets())
+
+    expect(getEditablePercentageBlock(snapshot.blocks[1]!)).toBeNull()
   })
 
   it('builds block and execution-group progress from workout sets', () => {
@@ -177,7 +206,10 @@ describe('workout type helpers', () => {
         is_amrap: false,
         loggedAt: '2026-04-17T10:00:00.000Z',
         notes: 'Pause every rep.',
+        prescribed_intensity: 0.75,
+        prescribedIntensity: 0.75,
         prescribedWeightLbs: 185,
+        prescriptionBaseWeightLbs: 245,
         reps_prescribed: 5,
         reps_prescribed_max: undefined,
         repsActual: 5,
@@ -188,6 +220,7 @@ describe('workout type helpers', () => {
         set_type: 'main',
         weight_lbs: 185,
         workoutId: 7,
+        workoutSetId: 71,
       },
       {
         block_id: 'bench-main',
@@ -202,7 +235,10 @@ describe('workout type helpers', () => {
         is_amrap: false,
         loggedAt: null,
         notes: 'Pause every rep.',
+        prescribed_intensity: 0.75,
+        prescribedIntensity: 0.75,
         prescribedWeightLbs: 185,
+        prescriptionBaseWeightLbs: 245,
         reps_prescribed: 5,
         reps_prescribed_max: undefined,
         repsActual: null,
@@ -213,6 +249,7 @@ describe('workout type helpers', () => {
         set_type: 'main',
         weight_lbs: 185,
         workoutId: 7,
+        workoutSetId: 72,
       },
       {
         block_id: 'chin-a',
@@ -231,7 +268,10 @@ describe('workout type helpers', () => {
         is_amrap: false,
         loggedAt: null,
         notes: 'Move right into these.',
+        prescribed_intensity: 1,
+        prescribedIntensity: 1,
         prescribedWeightLbs: 0,
+        prescriptionBaseWeightLbs: null,
         reps_prescribed: 8,
         reps_prescribed_max: undefined,
         repsActual: null,
@@ -242,6 +282,7 @@ describe('workout type helpers', () => {
         set_type: 'accessory',
         weight_lbs: 0,
         workoutId: 7,
+        workoutSetId: 73,
       },
       {
         block_id: 'press-a',
@@ -260,7 +301,10 @@ describe('workout type helpers', () => {
         is_amrap: false,
         loggedAt: null,
         notes: 'Stay crisp.',
+        prescribed_intensity: 0.75,
+        prescribedIntensity: 0.75,
         prescribedWeightLbs: 95,
+        prescriptionBaseWeightLbs: 125,
         reps_prescribed: 8,
         reps_prescribed_max: undefined,
         repsActual: null,
@@ -271,6 +315,7 @@ describe('workout type helpers', () => {
         set_type: 'variation',
         weight_lbs: 95,
         workoutId: 7,
+        workoutSetId: 74,
       },
     ])
 

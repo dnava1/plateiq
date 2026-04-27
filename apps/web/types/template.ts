@@ -1,12 +1,16 @@
 import type { IntensityType, ProgressionStyle, ProgramLevel } from './domain'
 
+export type SetDisplayType = 'backoff' | 'drop'
+export type SetPrescriptionPurpose = 'warmup' | 'working'
+
 export interface SetPrescription {
   sets: number
   reps: number | string // 5 or "5+" (AMRAP) or "3-5" (range)
   reps_max?: number
   intensity: number // 0.85 = 85% TM, 8.0 = RPE 8, 135 = fixed lbs
   intensity_type: IntensityType
-  display_type?: 'backoff'
+  display_type?: SetDisplayType
+  purpose?: SetPrescriptionPurpose
   is_amrap?: boolean
   rest_seconds?: number
 }
@@ -83,7 +87,9 @@ export interface GeneratedSet {
   exercise_key: string
   exercise_id?: number
   execution_group?: ExecutionGroupMetadata
-  display_type?: 'backoff'
+  display_type?: SetDisplayType
+  prescribed_intensity: number
+  prescription_base_weight_lbs?: number
   set_order: number
   set_type: 'warmup' | 'main' | 'amrap' | 'variation' | 'accessory'
   weight_lbs: number

@@ -100,14 +100,16 @@ describe('builderDraftStore', () => {
           template_key: 'custom',
           is_active: true,
         },
-        'revision',
+        'update',
+        true,
       ),
     )
 
     const state = useBuilderDraftStore.getState()
 
     expect(state.draft.name).toBe('Edited Draft')
-    expect(state.source?.save_strategy).toBe('revision')
+    expect(state.source?.save_strategy).toBe('update')
+    expect(state.source?.has_workout_history).toBe(true)
     expect(state.source?.program_id).toBe(42)
   })
 

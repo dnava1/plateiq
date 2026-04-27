@@ -52,7 +52,9 @@ export const workoutQueryKeys = {
 
 export const workoutMutationKeys = {
   ensureWorkout: () => ['workouts', 'ensure'] as const,
+  seedWorkoutSets: () => ['workout-sets', 'seed'] as const,
   logSet: () => ['workout-set-upsert'] as const,
+  updateWorkoutBlockPrescription: () => ['workout-set-prescription', 'update'] as const,
   completeWorkout: () => ['workout-complete'] as const,
 }
 
@@ -84,6 +86,41 @@ export interface LogSetInput {
   isAmrap: boolean
   actualRpe?: number | null
   intensityType: string
+  prescribedWeightLbs?: number | null
+  prescribedIntensity?: number | null
+  prescriptionBaseWeightLbs?: number | null
+}
+
+export interface SeedWorkoutSetsInput {
+  cycleId: number
+  workoutId: number
+  userId: string
+  sets: Array<{
+    exerciseId: number
+    intensityType: string
+    isAmrap: boolean
+    prescribedRpe?: number | null
+    prescribedIntensity?: number | null
+    prescribedWeightLbs: number
+    prescriptionBaseWeightLbs?: number | null
+    repsPrescribed: number
+    repsPrescribedMax?: number | null
+    setOrder: number
+    setType: string
+    weightLbs: number
+  }>
+}
+
+export interface UpdateWorkoutBlockPrescriptionInput {
+  cycleId: number
+  workoutId: number
+  userId: string
+  updates: Array<{
+    prescribedIntensity: number
+    prescribedWeightLbs: number
+    prescriptionBaseWeightLbs?: number | null
+    setOrder: number
+  }>
 }
 
 export interface CompleteWorkoutInput {
@@ -97,6 +134,8 @@ export interface ResolvedWorkoutProgram {
   selectedVariationKeys: string[]
   template: ProgramTemplate | null
 }
+
+type WorkoutProgramSnapshot = Pick<Tables<'cycles'>, 'config' | 'template_key'>
 
 function parseProgramConfig(config: Json | null): ProgramConfig {
   if (!config || typeof config !== 'object' || Array.isArray(config)) return {}
@@ -115,7 +154,11 @@ function getUniqueSortedExerciseIds(exerciseIds: Array<number | null | undefined
   ).sort((left, right) => left - right)
 }
 
-export function resolveWorkoutProgram(program: TrainingProgram | null | undefined, preferredRounding?: number | null): ResolvedWorkoutProgram {
+export function resolveWorkoutProgram(
+  program: TrainingProgram | null | undefined,
+  preferredRounding?: number | null,
+  cycleSnapshot?: WorkoutProgramSnapshot | null,
+): ResolvedWorkoutProgram {
   if (!program) {
     return {
       isCustom: false,
@@ -125,13 +168,14 @@ export function resolveWorkoutProgram(program: TrainingProgram | null | undefine
     }
   }
 
-  const rawConfig = program.config ?? null
+  const templateKey = cycleSnapshot?.template_key ?? program.template_key
+  const rawConfig = cycleSnapshot?.config ?? program.config ?? null
   const resolvedPreferenceRounding = isWeightRoundingLbs(preferredRounding)
     ? preferredRounding
     : undefined
 
   if (rawConfig && isCustomProgramConfig(rawConfig)) {
-    const normalizedConfig = normalizeEditableProgramConfig(rawConfig, program.template_key)
+    const normalizedConfig = normalizeEditableProgramConfig(rawConfig, templateKey)
     const rounding = resolvedPreferenceRounding ?? DEFAULT_ROUNDING_LBS
 
     return {
@@ -139,7 +183,7 @@ export function resolveWorkoutProgram(program: TrainingProgram | null | undefine
       rounding,
       selectedVariationKeys: [],
       template: {
-        key: program.template_key,
+        key: templateKey,
         name: program.name,
         level: normalizedConfig.level ?? 'intermediate',
         description: program.name,
@@ -156,7 +200,7 @@ export function resolveWorkoutProgram(program: TrainingProgram | null | undefine
   }
 
   const config = parseProgramConfig(rawConfig)
-  const template = getTemplate(program.template_key) ?? null
+  const template = getTemplate(templateKey) ?? null
   const rounding = resolvedPreferenceRounding ?? resolveWeightRoundingLbs(config.rounding)
 
   return {
@@ -298,6 +342,51 @@ export async function ensureWorkoutMutation(supabase: AppSupabaseClient, input: 
   return data as Workout
 }
 
+export async function seedWorkoutSetsMutation(supabase: AppSupabaseClient, input: SeedWorkoutSetsInput) {
+  if (!input.sets.length) {
+    return [] as WorkoutSetWithExercise[]
+  }
+
+  const insertedSets: WorkoutSetWithExercise[] = []
+
+  for (const set of input.sets) {
+    const { data, error } = await supabase
+      .from('workout_sets')
+      .insert({
+        workout_id: input.workoutId,
+        exercise_id: set.exerciseId,
+        user_id: input.userId,
+        set_order: set.setOrder,
+        set_type: set.setType,
+        weight_lbs: set.weightLbs,
+        prescribed_weight_lbs: set.prescribedWeightLbs,
+        prescribed_intensity: set.prescribedIntensity ?? null,
+        prescription_base_weight_lbs: set.prescriptionBaseWeightLbs ?? null,
+        reps_prescribed: set.repsPrescribed,
+        reps_prescribed_max: set.repsPrescribedMax ?? null,
+        reps_actual: null,
+        is_amrap: set.isAmrap,
+        rpe: set.prescribedRpe ?? null,
+        intensity_type: set.intensityType,
+        logged_at: null,
+      })
+      .select('*, exercises(name)')
+      .single()
+
+    if (error) {
+      if (error.code === '23505') {
+        continue
+      }
+
+      throw error
+    }
+
+    insertedSets.push(data as WorkoutSetWithExercise)
+  }
+
+  return insertedSets
+}
+
 export async function logSetMutation(supabase: AppSupabaseClient, input: LogSetInput) {
   if (!Number.isInteger(input.repsPrescribed) || input.repsPrescribed <= 0) {
     throw new Error('Prescribed reps must be a whole number.')
@@ -327,6 +416,9 @@ export async function logSetMutation(supabase: AppSupabaseClient, input: LogSetI
         set_order: input.setOrder,
         set_type: input.setType,
         weight_lbs: input.weightLbs,
+        prescribed_weight_lbs: input.prescribedWeightLbs ?? null,
+        prescribed_intensity: input.prescribedIntensity ?? null,
+        prescription_base_weight_lbs: input.prescriptionBaseWeightLbs ?? null,
         reps_prescribed: input.repsPrescribed,
         reps_prescribed_max: input.repsPrescribedMax ?? null,
         reps_actual: input.repsActual,
@@ -342,6 +434,46 @@ export async function logSetMutation(supabase: AppSupabaseClient, input: LogSetI
 
   if (error) throw error
   return data as WorkoutSet
+}
+
+export async function updateWorkoutBlockPrescriptionMutation(
+  supabase: AppSupabaseClient,
+  input: UpdateWorkoutBlockPrescriptionInput,
+) {
+  if (!input.updates.length) {
+    return [] as WorkoutSetWithExercise[]
+  }
+
+  const updatedSets = await Promise.all(
+    input.updates.map(async (update) => {
+      const { data, error } = await supabase
+        .from('workout_sets')
+        .update({
+          prescribed_weight_lbs: update.prescribedWeightLbs,
+          prescribed_intensity: update.prescribedIntensity,
+          prescription_base_weight_lbs: update.prescriptionBaseWeightLbs ?? null,
+          weight_lbs: update.prescribedWeightLbs,
+        })
+        .eq('workout_id', input.workoutId)
+        .eq('user_id', input.userId)
+        .eq('set_order', update.setOrder)
+        .is('reps_actual', null)
+        .select('*, exercises(name)')
+        .maybeSingle()
+
+      if (error) {
+        throw error
+      }
+
+      if (!data) {
+        throw new Error('One or more sets were already logged before this workout update finished.')
+      }
+
+      return data as WorkoutSetWithExercise
+    }),
+  )
+
+  return updatedSets
 }
 
 export async function completeWorkoutMutation(supabase: AppSupabaseClient, input: CompleteWorkoutInput) {
@@ -468,6 +600,21 @@ export function useEnsureWorkout() {
   })
 }
 
+export function useSeedWorkoutSets() {
+  const supabase = useSupabase()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationKey: workoutMutationKeys.seedWorkoutSets(),
+    mutationFn: async (input: SeedWorkoutSetsInput) => seedWorkoutSetsMutation(supabase, input),
+    onSettled: (_data, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: workoutQueryKeys.sets(variables.workoutId) })
+      queryClient.invalidateQueries({ queryKey: workoutQueryKeys.cycle(variables.cycleId) })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() })
+    },
+  })
+}
+
 export function useLogSet() {
   const supabase = useSupabase()
   const queryClient = useQueryClient()
@@ -493,6 +640,9 @@ export function useLogSet() {
           set_order: input.setOrder,
           set_type: input.setType,
           weight_lbs: input.weightLbs,
+          prescribed_weight_lbs: input.prescribedWeightLbs ?? existingSet?.prescribed_weight_lbs ?? null,
+          prescribed_intensity: input.prescribedIntensity ?? existingSet?.prescribed_intensity ?? null,
+          prescription_base_weight_lbs: input.prescriptionBaseWeightLbs ?? existingSet?.prescription_base_weight_lbs ?? null,
           reps_prescribed: input.repsPrescribed,
           reps_prescribed_max: input.repsPrescribedMax ?? null,
           reps_actual: input.repsActual,
@@ -520,6 +670,52 @@ export function useLogSet() {
         queryClient.invalidateQueries({ queryKey: workoutQueryKeys.amrapHistory(variables.exerciseId) })
       }
       queryClient.invalidateQueries({ queryKey: analyticsQueryKeys.all() })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() })
+    },
+  })
+}
+
+export function useUpdateWorkoutBlockPrescription() {
+  const supabase = useSupabase()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationKey: workoutMutationKeys.updateWorkoutBlockPrescription(),
+    mutationFn: async (input: UpdateWorkoutBlockPrescriptionInput) => updateWorkoutBlockPrescriptionMutation(supabase, input),
+    onMutate: async (input) => {
+      const queryKey = workoutQueryKeys.sets(input.workoutId)
+
+      await queryClient.cancelQueries({ queryKey })
+
+      const previousSets = queryClient.getQueryData<WorkoutSetWithExercise[]>(queryKey)
+
+      queryClient.setQueryData<WorkoutSetWithExercise[]>(queryKey, (current) =>
+        (current ?? []).map((set) => {
+          const update = input.updates.find((entry) => entry.setOrder === set.set_order)
+          if (!update || set.reps_actual !== null) {
+            return set
+          }
+
+          return {
+            ...set,
+            prescribed_weight_lbs: update.prescribedWeightLbs,
+            prescribed_intensity: update.prescribedIntensity,
+            prescription_base_weight_lbs: update.prescriptionBaseWeightLbs ?? null,
+            weight_lbs: update.prescribedWeightLbs,
+          }
+        }),
+      )
+
+      return { previousSets }
+    },
+    onError: (_error, input, context) => {
+      if (context?.previousSets) {
+        queryClient.setQueryData(workoutQueryKeys.sets(input.workoutId), context.previousSets)
+      }
+    },
+    onSettled: (_data, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: workoutQueryKeys.sets(variables.workoutId) })
+      queryClient.invalidateQueries({ queryKey: workoutQueryKeys.cycle(variables.cycleId) })
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() })
     },
   })

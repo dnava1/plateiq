@@ -16,7 +16,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Trash2 } from 'lucide-react'
-import type { SetPrescription, ExerciseBlock } from '@/types/template'
+import type {
+  ExerciseBlock,
+  SetDisplayType,
+  SetPrescription,
+  SetPrescriptionPurpose,
+} from '@/types/template'
 import type { IntensityType } from '@/types/domain'
 
 const MIN_SET_COUNT = 1
@@ -37,7 +42,18 @@ const LOAD_BASIS_LABELS: Record<IntensityType, string> = {
   rpe: 'RPE',
   fixed_weight: 'Fixed load',
   bodyweight: 'Bodyweight',
-  percentage_work_set: 'Work set %',
+  percentage_work_set: 'First work set %',
+}
+
+const SET_PURPOSE_LABELS: Record<SetPrescriptionPurpose, string> = {
+  warmup: 'Warm-up',
+  working: 'Work set',
+}
+
+const SET_DISPLAY_LABELS: Record<'standard' | SetDisplayType, string> = {
+  standard: 'Standard',
+  backoff: 'Backoff',
+  drop: 'Drop set',
 }
 
 interface ExerciseBlockEditorProps {
@@ -59,6 +75,21 @@ function getDefaultIntensity(type: IntensityType): number {
 function getSafeNumber(value: string, fallback: number) {
   const nextValue = Number(value)
   return Number.isFinite(nextValue) ? nextValue : fallback
+}
+
+function normalizeRepsInput(
+  value: string,
+  purpose: SetPrescriptionPurpose | undefined,
+): Pick<SetPrescription, 'reps' | 'is_amrap'> {
+  const normalizedValue = purpose === 'warmup' && value.endsWith('+') ? value.slice(0, -1) : value
+  const numericValue = Number(normalizedValue)
+
+  return {
+    reps: Number.isNaN(numericValue) || normalizedValue !== String(numericValue)
+      ? normalizedValue
+      : numericValue,
+    is_amrap: purpose !== 'warmup' && normalizedValue.endsWith('+'),
+  }
 }
 
 function formatRestOptionLabel(seconds: number) {
@@ -99,6 +130,8 @@ export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, o
     value,
     label: value === 'fixed_weight' ? `${label} (${formatUnit(preferredUnit)})` : label,
   }))
+  const purposeItems = Object.entries(SET_PURPOSE_LABELS).map(([value, label]) => ({ value, label }))
+  const displayTypeItems = Object.entries(SET_DISPLAY_LABELS).map(([value, label]) => ({ value, label }))
 
   const updateSet = (setIdx: number, patch: Partial<SetPrescription>) => {
     const sets = [...block.sets]
@@ -193,11 +226,13 @@ export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, o
           </Button>
         </div>
 
-        <div className="hidden grid-cols-[minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,0.9fr)_auto] gap-2 px-1 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground md:grid">
+        <div className="hidden grid-cols-[minmax(0,0.7fr)_minmax(0,0.7fr)_minmax(0,1fr)_minmax(0,1.05fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(0,0.9fr)_auto] gap-2 px-1 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground xl:grid">
           <span>Sets</span>
           <span>Reps</span>
           <span>Load</span>
           <span>Load Basis</span>
+          <span>Purpose</span>
+          <span>Label</span>
           <span>Rest</span>
           <span className="sr-only">Remove</span>
         </div>
@@ -205,10 +240,10 @@ export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, o
           {block.sets.map((set, si) => (
             <div
               key={si}
-              className="grid gap-3 rounded-[18px] border border-border/70 bg-card p-3 md:grid-cols-[minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,0.9fr)_auto] md:items-end"
+              className="grid gap-3 rounded-[18px] border border-border/70 bg-card p-3 md:grid-cols-2 xl:grid-cols-[minmax(0,0.7fr)_minmax(0,0.7fr)_minmax(0,1fr)_minmax(0,1.05fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(0,0.9fr)_auto] xl:items-end"
             >
               <div className="flex flex-col gap-2">
-                <Label htmlFor={`${fieldId}-sets-${si}`} className="text-xs md:sr-only">Sets</Label>
+                <Label htmlFor={`${fieldId}-sets-${si}`} className="text-xs xl:sr-only">Sets</Label>
                 <Input
                   id={`${fieldId}-sets-${si}`}
                   type="number"
@@ -226,18 +261,12 @@ export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, o
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor={`${fieldId}-reps-${si}`} className="text-xs md:sr-only">Reps</Label>
+                <Label htmlFor={`${fieldId}-reps-${si}`} className="text-xs xl:sr-only">Reps</Label>
                 <Input
                   id={`${fieldId}-reps-${si}`}
                   value={String(set.reps)}
                   onChange={(event) => {
-                    const value = event.target.value
-                    const numericValue = Number(value)
-
-                    updateSet(si, {
-                      reps: Number.isNaN(numericValue) || value !== String(numericValue) ? value : numericValue,
-                      is_amrap: value.endsWith('+'),
-                    })
+                    updateSet(si, normalizeRepsInput(event.target.value, set.purpose))
                   }}
                   placeholder="5 or 5+"
                   className="h-9 text-sm"
@@ -245,7 +274,7 @@ export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, o
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor={`${fieldId}-load-${si}`} className="text-xs md:sr-only">Load</Label>
+                <Label htmlFor={`${fieldId}-load-${si}`} className="text-xs xl:sr-only">Load</Label>
                 <Input
                   id={`${fieldId}-load-${si}`}
                   type="number"
@@ -282,7 +311,7 @@ export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, o
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor={`${fieldId}-basis-${si}`} className="text-xs md:sr-only">Load Basis</Label>
+                <Label htmlFor={`${fieldId}-basis-${si}`} className="text-xs xl:sr-only">Load Basis</Label>
                 <Select
                   value={set.intensity_type}
                   onValueChange={(value) => {
@@ -309,7 +338,62 @@ export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, o
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor={`${fieldId}-rest-${si}`} className="text-xs md:sr-only">Rest</Label>
+                <Label htmlFor={`${fieldId}-purpose-${si}`} className="text-xs xl:sr-only">Purpose</Label>
+                <Select
+                  value={set.purpose ?? 'working'}
+                  onValueChange={(value) => {
+                    const nextPurpose = value as SetPrescriptionPurpose
+                    const shouldTrimAmrapSuffix = nextPurpose === 'warmup' && typeof set.reps === 'string' && set.reps.endsWith('+')
+                    const trimmedWarmupReps = shouldTrimAmrapSuffix && typeof set.reps === 'string'
+                      ? set.reps.slice(0, -1)
+                      : null
+
+                    updateSet(si, {
+                      purpose: nextPurpose === 'working' ? undefined : nextPurpose,
+                      ...(trimmedWarmupReps !== null
+                        ? { reps: trimmedWarmupReps, is_amrap: false }
+                        : {}),
+                    })
+                  }}
+                  items={purposeItems}
+                >
+                  <SelectTrigger id={`${fieldId}-purpose-${si}`} className="w-full h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {purposeItems.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor={`${fieldId}-display-${si}`} className="text-xs xl:sr-only">Label</Label>
+                <Select
+                  value={set.display_type ?? 'standard'}
+                  onValueChange={(value) => updateSet(si, {
+                    display_type: value === 'standard' ? undefined : value as SetDisplayType,
+                  })}
+                  items={displayTypeItems}
+                >
+                  <SelectTrigger id={`${fieldId}-display-${si}`} className="w-full h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {displayTypeItems.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor={`${fieldId}-rest-${si}`} className="text-xs xl:sr-only">Rest</Label>
                 <Select
                   value={typeof set.rest_seconds === 'number' && set.rest_seconds > 0 ? String(set.rest_seconds) : 'off'}
                   onValueChange={(value) => updateSet(si, {

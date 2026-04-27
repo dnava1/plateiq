@@ -142,7 +142,7 @@ export function useProgramEditability(programId: number | undefined) {
 
       return {
         hasWorkoutHistory,
-        saveStrategy: hasWorkoutHistory ? 'revision' : 'update',
+        saveStrategy: 'update',
       } satisfies ProgramEditability
     },
     enabled: typeof programId === 'number',
@@ -296,6 +296,8 @@ export function useUpdateProgramDefinition() {
       queryClient.invalidateQueries({ queryKey: ['programs'] })
       queryClient.invalidateQueries({ queryKey: ['programs', variables.programId] })
       queryClient.invalidateQueries({ queryKey: ['programs', variables.programId, 'editability'] })
+      queryClient.invalidateQueries({ queryKey: ['cycles'] })
+      queryClient.invalidateQueries({ queryKey: ['workouts'] })
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() })
     },
   })

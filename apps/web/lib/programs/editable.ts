@@ -252,6 +252,7 @@ export function createTemplateBuilderDraftSource(templateKey: string): BuilderDr
 export function createProgramBuilderDraftSource(
   program: Pick<ProgramRecordForEditing, 'id' | 'name' | 'template_key' | 'is_active'>,
   saveStrategy: ProgramSaveStrategy,
+  hasWorkoutHistory: boolean = false,
 ): BuilderDraftSource {
   return {
     kind: 'program',
@@ -261,6 +262,6 @@ export function createProgramBuilderDraftSource(
     program_name: program.name,
     is_active: program.is_active,
     save_strategy: saveStrategy,
-    has_workout_history: saveStrategy === 'revision',
+    has_workout_history: hasWorkoutHistory,
   }
 }

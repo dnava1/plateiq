@@ -167,6 +167,22 @@ describe('generateWorkoutPlan', () => {
     })
   })
 
+  it('uses the exact first working set weight for Wendler FSL across wave weeks', () => {
+    const template = TEMPLATE_REGISTRY['wendler_531']
+    const weekTwoSets = generateWorkoutPlan(template, 3, 2, trainingMaxes, ['fsl'])
+    const weekThreeSets = generateWorkoutPlan(template, 3, 3, trainingMaxes, ['fsl'])
+    const weekTwoBackoffSets = weekTwoSets.filter((set) => set.set_type === 'variation')
+    const weekThreeBackoffSets = weekThreeSets.filter((set) => set.set_type === 'variation')
+
+    expect(weekTwoSets[0]?.weight_lbs).toBe(210)
+    expect(weekTwoBackoffSets).toHaveLength(5)
+    expect(weekTwoBackoffSets.every((set) => set.weight_lbs === 210)).toBe(true)
+
+    expect(weekThreeSets[0]?.weight_lbs).toBe(225)
+    expect(weekThreeBackoffSets).toHaveLength(5)
+    expect(weekThreeBackoffSets.every((set) => set.weight_lbs === 225)).toBe(true)
+  })
+
   it('uses the first working set weight for percentage_work_set variations', () => {
     const template = TEMPLATE_REGISTRY['wendler_531']
     const customVariation = {
@@ -194,6 +210,46 @@ describe('generateWorkoutPlan', () => {
     expect(backoffSets[0].weight_lbs).toBe(175)
     expect(backoffSets[0].exercise_key).toBe('squat')
     expect(backoffSets[0].display_type).toBe('backoff')
+  })
+
+  it('uses the first non-warmup work set as the percentage_work_set base', () => {
+    const template: ProgramTemplate = {
+      key: 'warmup-support',
+      name: 'Warmup Support',
+      level: 'beginner',
+      description: 'Warmup and drop set coverage',
+      days_per_week: 1,
+      cycle_length_weeks: 1,
+      uses_training_max: true,
+      required_exercises: ['squat'],
+      days: [
+        {
+          label: 'Squat Day',
+          exercise_blocks: [
+            {
+              role: 'primary',
+              exercise_key: 'squat',
+              sets: [
+                { sets: 1, reps: 5, intensity: 0.4, intensity_type: 'percentage_work_set', purpose: 'warmup' },
+                { sets: 1, reps: 3, intensity: 0.6, intensity_type: 'percentage_work_set', purpose: 'warmup' },
+                { sets: 3, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' },
+                { sets: 1, reps: 12, intensity: 0.7, intensity_type: 'percentage_work_set', display_type: 'drop' },
+              ],
+            },
+          ],
+        },
+      ],
+      progression: {
+        style: 'linear_per_cycle',
+        increment_lbs: { upper: 5, lower: 10 },
+      },
+    }
+
+    const sets = generateWorkoutPlan(template, 0, 1, trainingMaxes)
+
+    expect(sets.map((set) => set.set_type)).toEqual(['warmup', 'warmup', 'main', 'main', 'main', 'main'])
+    expect(sets.map((set) => set.weight_lbs)).toEqual([90, 135, 225, 225, 225, 155])
+    expect(sets[5]?.display_type).toBe('drop')
   })
 
   it('preserves block metadata, rest timing, and execution groups through generation', () => {

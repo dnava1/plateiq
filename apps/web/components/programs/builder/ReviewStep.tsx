@@ -22,7 +22,7 @@ import {
 } from '@/lib/validations/program'
 import { formatDaysPerWeek, formatWeight, formatWeekCycle } from '@/lib/utils'
 import { DEFAULT_LINEAR_INCREMENT_LBS, useBuilderDraftStore, usesLinearProgression } from '@/store/builderDraftStore'
-import type { DayTemplate } from '@/types/template'
+import type { DayTemplate, SetDisplayType, SetPrescription } from '@/types/template'
 import type { IntensityType } from '@/types/domain'
 
 const BLOCK_ROLE_LABELS: Record<'primary' | 'variation' | 'accessory', string> = {
@@ -51,6 +51,17 @@ function formatRestDurationLabel(seconds: number) {
   const remainingSeconds = seconds % 60
 
   return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`
+}
+
+function formatSetDisplayLabel(displayType: SetDisplayType | undefined) {
+  switch (displayType) {
+    case 'backoff':
+      return 'backoff'
+    case 'drop':
+      return 'drop set'
+    default:
+      return null
+  }
 }
 
 function formatTrainingMaxTargetLabel(value: string) {
@@ -173,6 +184,7 @@ export function ReviewStep() {
     ? true
     : requiresMaxInputs && !isTrainingMaxStateLoading && missingMaxInputNames.length === 0
   const isSaveDisabled = isPending || isTrainingMaxStateLoading || (requiresMaxInputs && !isTrainingMaxRequirementMet)
+  const showHistoryPreservationNote = saveStrategy !== 'revision' && Boolean(source?.has_workout_history)
 
   const handleSubmit = () => {
     if (isTrainingMaxStateLoading) {
@@ -253,10 +265,19 @@ export function ReviewStep() {
   const formatIntensity = (value: number, type: IntensityType) => {
     if (type === 'percentage_tm') return `${Math.round(value * 100)}% TM`
     if (type === 'percentage_1rm') return `${Math.round(value * 100)}% 1RM`
-    if (type === 'percentage_work_set') return `${Math.round(value * 100)}% work set`
+    if (type === 'percentage_work_set') return `${Math.round(value * 100)}% first work set`
     if (type === 'rpe') return `RPE ${value}`
     if (type === 'bodyweight') return 'Bodyweight'
     return formatWeight(value, preferredUnit)
+  }
+
+  const formatSetSummarySuffix = (set: SetPrescription) => {
+    const descriptors = [
+      set.purpose === 'warmup' ? 'warm-up' : null,
+      formatSetDisplayLabel(set.display_type),
+    ].filter((value): value is string => Boolean(value))
+
+    return descriptors.length > 0 ? ` - ${descriptors.join(', ')}` : ''
   }
 
   const renderDayCard = (day: DayTemplate, dayIndex: number, key: string) => (
@@ -283,6 +304,7 @@ export function ReviewStep() {
               {block.sets.map((set, setIndex) => (
                 <span key={setIndex} className="rounded-full bg-muted px-2.5 py-1 text-foreground">
                   {set.sets}x{set.reps} at {formatIntensity(set.intensity, set.intensity_type)}
+                  {formatSetSummarySuffix(set)}
                   {typeof set.rest_seconds === 'number' && set.rest_seconds > 0
                     ? ` - rest ${formatRestDurationLabel(set.rest_seconds)}`
                     : ''}
@@ -364,6 +386,10 @@ export function ReviewStep() {
       {saveStrategy === 'revision' ? (
         <div className="rounded-[24px] border border-amber-500/30 bg-amber-500/8 p-4 text-sm text-amber-950 shadow-sm dark:text-amber-100">
           This program already has workout history, so saving here will create a new editable revision instead of rewriting past training data.
+        </div>
+      ) : showHistoryPreservationNote ? (
+        <div className="rounded-[24px] border border-amber-500/30 bg-amber-500/8 p-4 text-sm text-amber-950 shadow-sm dark:text-amber-100">
+          Completed cycles keep their saved program snapshots. If the current cycle already has logged workouts, these edits roll forward on the next cycle instead of rewriting that logged work.
         </div>
       ) : null}
 

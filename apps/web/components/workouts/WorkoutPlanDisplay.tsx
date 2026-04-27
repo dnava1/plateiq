@@ -16,6 +16,7 @@ import {
   formatSetTypeLabel,
   getRecommendedRestSeconds,
   isBackoffDisplayType,
+  isDropDisplayType,
   type WorkoutDisplayBlock,
   type WorkoutDisplaySet,
 } from './types'
@@ -67,6 +68,7 @@ export function WorkoutPlanDisplay({ sets }: WorkoutPlanDisplayProps) {
       <CardContent className="flex flex-col gap-3 pt-0">
         {block.sets.map((set, index) => {
           const isBackoffSet = isBackoffDisplayType(set.display_type)
+          const isDropSet = isDropDisplayType(set.display_type)
           const recommendedRestSeconds = getRecommendedRestSeconds(set)
           const setTypeLabel = formatSetTypeLabel(set.set_type, set.display_type)
 
@@ -77,7 +79,10 @@ export function WorkoutPlanDisplay({ sets }: WorkoutPlanDisplayProps) {
                   <span className="text-sm font-medium text-foreground">Set {index + 1}</span>
                   <Badge
                     variant={set.set_type === 'main' ? 'secondary' : set.is_amrap ? 'default' : 'outline'}
-                    className={cn(isBackoffSet ? 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200' : null)}
+                    className={cn(
+                      isBackoffSet ? 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200' : null,
+                      isDropSet ? 'border-rose-500/40 bg-rose-500/10 text-rose-900 dark:text-rose-200' : null,
+                    )}
                   >
                     {setTypeLabel}
                   </Badge>

@@ -7,12 +7,34 @@ export interface WorkoutDisplaySet extends Omit<GeneratedSet, 'rpe'> {
   exerciseId: number | null
   exerciseName: string
   loggedAt: string | null
+  prescribedIntensity: number | null
   prescribedWeightLbs: number
+  prescriptionBaseWeightLbs: number | null
   prescribedRpe: number | null
   repsActual: number | null
   rpe: number | null
   workoutId: number | null
+  workoutSetId: number | null
 }
+
+type EditablePercentageIntensityType = Extract<
+  WorkoutDisplaySet['intensity_type'],
+  'percentage_tm' | 'percentage_1rm' | 'percentage_work_set'
+>
+
+export interface WorkoutEditablePercentageBlock {
+  intensityPercent: number
+  intensityType: EditablePercentageIntensityType
+  prescriptionBaseWeightLbs: number
+  remainingSetCount: number
+  setOrders: number[]
+}
+
+const EDITABLE_PERCENTAGE_INTENSITY_TYPES = new Set<EditablePercentageIntensityType>([
+  'percentage_tm',
+  'percentage_1rm',
+  'percentage_work_set',
+])
 
 export interface WorkoutDisplayBlock {
   blockId: string
@@ -61,6 +83,66 @@ export function isSetLogged(set: Pick<WorkoutDisplaySet, 'repsActual'>) {
   return set.repsActual !== null
 }
 
+export function formatWorkoutPercentageBasisLabel(intensityType: EditablePercentageIntensityType) {
+  switch (intensityType) {
+    case 'percentage_tm':
+      return 'TM'
+    case 'percentage_1rm':
+      return '1RM'
+    case 'percentage_work_set':
+      return 'first work set'
+    default:
+      return 'base'
+  }
+}
+
+export function getEditablePercentageBlock(block: WorkoutDisplayBlock): WorkoutEditablePercentageBlock | null {
+  const pendingSets = block.sets.filter((set) => !isSetLogged(set))
+  const firstPendingSet = pendingSets[0]
+
+  if (!firstPendingSet) {
+    return null
+  }
+
+  if (!EDITABLE_PERCENTAGE_INTENSITY_TYPES.has(firstPendingSet.intensity_type as EditablePercentageIntensityType)) {
+    return null
+  }
+
+  if (
+    firstPendingSet.workoutSetId === null
+    || typeof firstPendingSet.prescribedIntensity !== 'number'
+    || typeof firstPendingSet.prescriptionBaseWeightLbs !== 'number'
+    || firstPendingSet.prescriptionBaseWeightLbs <= 0
+  ) {
+    return null
+  }
+
+  const intensityType = firstPendingSet.intensity_type as EditablePercentageIntensityType
+  const prescribedIntensity = firstPendingSet.prescribedIntensity
+  const prescriptionBaseWeightLbs = firstPendingSet.prescriptionBaseWeightLbs
+
+  const isConsistent = pendingSets.every((set) =>
+    set.workoutSetId !== null
+    && set.intensity_type === intensityType
+    && typeof set.prescribedIntensity === 'number'
+    && Math.abs(set.prescribedIntensity - prescribedIntensity) <= 0.0001
+    && typeof set.prescriptionBaseWeightLbs === 'number'
+    && Math.abs(set.prescriptionBaseWeightLbs - prescriptionBaseWeightLbs) <= 0.0001,
+  )
+
+  if (!isConsistent) {
+    return null
+  }
+
+  return {
+    intensityPercent: prescribedIntensity * 100,
+    intensityType,
+    prescriptionBaseWeightLbs,
+    remainingSetCount: pendingSets.length,
+    setOrders: pendingSets.map((set) => set.set_order),
+  }
+}
+
 export function formatRepTarget(
   repsPrescribed: number,
   repsPrescribedMax?: number,
@@ -81,12 +163,20 @@ export function isBackoffDisplayType(displayType: WorkoutDisplaySet['display_typ
   return displayType === 'backoff'
 }
 
+export function isDropDisplayType(displayType: WorkoutDisplaySet['display_type'] | undefined) {
+  return displayType === 'drop'
+}
+
 export function formatSetTypeLabel(
   setType: WorkoutDisplaySet['set_type'],
   displayType?: WorkoutDisplaySet['display_type'],
 ) {
   if (isBackoffDisplayType(displayType)) {
     return 'Backoff'
+  }
+
+  if (isDropDisplayType(displayType)) {
+    return 'Drop'
   }
 
   switch (setType) {

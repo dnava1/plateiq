@@ -426,10 +426,8 @@ interface FilterChipProps {
 function FilterChipRow({ children }: { children: ReactNode }) {
   return (
     <div className="max-w-full min-w-0">
-      <div className="-mx-1 overflow-hidden px-1">
-        <div className="flex w-max min-w-full gap-2 overflow-x-auto overscroll-x-contain pb-1 pr-2 touch-pan-x [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:min-w-0 md:flex-wrap md:overflow-visible md:pb-0 md:pr-0">
-          {children}
-        </div>
+      <div className="flex flex-wrap gap-2">
+        {children}
       </div>
     </div>
   )
@@ -442,7 +440,7 @@ function FilterChip({ active, children, onClick }: FilterChipProps) {
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        'shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 sm:px-3.5 sm:py-2 sm:text-sm',
+        'min-h-9 shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-[13px] font-medium leading-tight transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 sm:px-3.5 sm:py-2 sm:text-sm',
         active
           ? 'border-primary/50 bg-primary text-primary-foreground shadow-sm'
           : 'border-border/70 bg-background/80 text-foreground hover:border-primary/30 hover:bg-primary/5',

@@ -18,31 +18,37 @@ export type Database = {
         Row: {
           auto_progression_applied: boolean
           completed_at: string | null
+          config: Json | null
           created_at: string | null
           cycle_number: number
           id: number
           program_id: number
           start_date: string
+          template_key: string
           user_id: string
         }
         Insert: {
           auto_progression_applied?: boolean
           completed_at?: string | null
+          config?: Json | null
           created_at?: string | null
           cycle_number?: number
           id?: never
           program_id: number
           start_date?: string
+          template_key: string
           user_id: string
         }
         Update: {
           auto_progression_applied?: boolean
           completed_at?: string | null
+          config?: Json | null
           created_at?: string | null
           cycle_number?: number
           id?: never
           program_id?: number
           start_date?: string
+          template_key?: string
           user_id?: string
         }
         Relationships: [
@@ -282,6 +288,9 @@ export type Database = {
           intensity_type: string
           is_amrap: boolean
           logged_at: string | null
+          prescribed_intensity: number | null
+          prescribed_weight_lbs: number | null
+          prescription_base_weight_lbs: number | null
           reps_actual: number | null
           reps_prescribed: number
           reps_prescribed_max: number | null
@@ -299,6 +308,9 @@ export type Database = {
           intensity_type: string
           is_amrap?: boolean
           logged_at?: string | null
+          prescribed_intensity?: number | null
+          prescribed_weight_lbs?: number | null
+          prescription_base_weight_lbs?: number | null
           reps_actual?: number | null
           reps_prescribed: number
           reps_prescribed_max?: number | null
@@ -316,6 +328,9 @@ export type Database = {
           intensity_type?: string
           is_amrap?: boolean
           logged_at?: string | null
+          prescribed_intensity?: number | null
+          prescribed_weight_lbs?: number | null
+          prescription_base_weight_lbs?: number | null
           reps_actual?: number | null
           reps_prescribed?: number
           reps_prescribed_max?: number | null

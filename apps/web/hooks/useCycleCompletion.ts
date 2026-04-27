@@ -13,7 +13,7 @@ import { analyticsQueryKeys } from './useAnalytics'
 import { dashboardQueryKeys } from './useDashboard'
 import type { TrainingProgram } from './usePrograms'
 import { useSupabase } from './useSupabase'
-import { resolveWorkoutProgram, useActiveCycle, useCycleWorkouts, type CycleWorkout } from './useWorkouts'
+import { resolveWorkoutProgram, useActiveCycle, useCycleWorkouts, type ActiveCycle, type CycleWorkout } from './useWorkouts'
 
 type CurrentTrainingMaxSnapshot = {
   exercise_id: number
@@ -44,6 +44,7 @@ interface ResolvedProgressionLift {
 }
 
 interface BuildCycleCompletionPreviewArgs {
+  activeCycle: ActiveCycle | null | undefined
   cycleWorkouts: CycleWorkout[] | undefined
   exercises: Exercise[] | undefined
   program: TrainingProgram | null | undefined
@@ -494,6 +495,7 @@ function isCompleteCycleResult(value: unknown): value is CompleteCycleResult {
 }
 
 export function buildCycleCompletionPreview({
+  activeCycle,
   cycleWorkouts,
   exercises,
   program,
@@ -503,13 +505,13 @@ export function buildCycleCompletionPreview({
     return []
   }
 
-  const resolvedProgram = resolveWorkoutProgram(program)
+  const resolvedProgram = resolveWorkoutProgram(program, undefined, activeCycle)
   const template = resolvedProgram.template
   if (!template) {
     return []
   }
 
-  const rawConfig = program.config ?? null
+  const rawConfig = activeCycle?.config ?? program.config ?? null
   const customConfig = rawConfig && isCustomProgramConfig(rawConfig) ? rawConfig : null
   const usesTrainingMax = customConfig ? customConfig.uses_training_max : template.uses_training_max
 
@@ -559,12 +561,13 @@ export function useCycleCompletionPreview(program: TrainingProgram | null | unde
 
   const previewRows = useMemo(
     () => buildCycleCompletionPreview({
+      activeCycle,
       cycleWorkouts,
       exercises,
       program,
       trainingMaxes: trainingMaxes as CurrentTrainingMaxSnapshot[] | undefined,
     }),
-    [cycleWorkouts, exercises, program, trainingMaxes],
+    [activeCycle, cycleWorkouts, exercises, program, trainingMaxes],
   )
 
   return {

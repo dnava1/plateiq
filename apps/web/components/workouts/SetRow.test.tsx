@@ -80,7 +80,10 @@ const baseSet = {
   block_id: 'squat-main',
   block_order: 1,
   block_role: 'primary' as const,
+  prescribed_intensity: 0.75,
+  prescribedIntensity: 0.75,
   prescribedWeightLbs: 225,
+  prescriptionBaseWeightLbs: 300,
   weight_lbs: 225,
   reps_prescribed: 5,
   reps_prescribed_max: undefined,
@@ -96,6 +99,7 @@ const baseSet = {
   loggedAt: null,
   repsActual: null,
   workoutId: 44,
+  workoutSetId: 4401,
 }
 
 describe('SetRow', () => {
@@ -133,6 +137,23 @@ describe('SetRow', () => {
     )
 
     expect(screen.getByText('Backoff')).toBeInTheDocument()
+    expect(screen.queryByText('Variation')).not.toBeInTheDocument()
+  })
+
+  it('renders drop-set work distinctly from generic variation work', () => {
+    render(
+      <SetRow
+        set={{
+          ...baseSet,
+          block_role: 'primary',
+          display_type: 'drop',
+          set_type: 'variation',
+        }}
+        userId="user-1"
+      />,
+    )
+
+    expect(screen.getByText('Drop')).toBeInTheDocument()
     expect(screen.queryByText('Variation')).not.toBeInTheDocument()
   })
 

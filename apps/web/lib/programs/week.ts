@@ -1,6 +1,7 @@
 import type { DayTemplate, ProgramTemplate } from '@/types/template'
 
 type WeekAwareProgram = Pick<ProgramTemplate, 'cycle_length_weeks' | 'days' | 'week_schemes'>
+type ProgramWeekSchemesMap = NonNullable<WeekAwareProgram['week_schemes']>
 
 export interface EditableProgramDaySlot {
   cycleDayIndex: number
@@ -134,7 +135,7 @@ export function normalizeProgramStructure<
     createNormalizedDayTemplate(program.days[dayIndex], dayIndex),
   )
 
-  const normalizedWeekSchemes = program.week_schemes
+  const normalizedWeekSchemes: ProgramWeekSchemesMap | undefined = program.week_schemes
     ? Object.fromEntries(
         Object.entries(program.week_schemes)
           .filter(([weekNumber]) => {
@@ -154,7 +155,7 @@ export function normalizeProgramStructure<
                 : undefined,
             },
           ]),
-      )
+      ) as ProgramWeekSchemesMap
     : undefined
 
   if (program.cycle_length_weeks <= 1) {
@@ -189,16 +190,17 @@ export function updateProgramDay(
 
   const targetScheme = program.week_schemes?.[slot.weekNumber]
   const targetDays = targetScheme?.days ?? []
-  const nextWeekSchemes = {
+  const nextWeekScheme = {
+    ...targetScheme,
+    label: targetScheme?.label ?? `Week ${slot.weekNumber}`,
+    days: [...targetDays],
+  }
+  const nextWeekSchemes: ProgramWeekSchemesMap = {
     ...(program.week_schemes ?? {}),
-    [slot.weekNumber]: {
-      ...targetScheme,
-      label: targetScheme?.label ?? `Week ${slot.weekNumber}`,
-      days: [...targetDays],
-    },
+    [slot.weekNumber]: nextWeekScheme,
   }
 
-  nextWeekSchemes[slot.weekNumber].days[slot.dayIndex] = day
+  nextWeekScheme.days[slot.dayIndex] = day
 
   return {
     days: program.days,
@@ -224,7 +226,7 @@ export function materializeProgramWeekSpecificDays<
         },
       ]
     }),
-  )
+  ) as ProgramWeekSchemesMap
 
   return {
     days: normalizedProgram.days as T['days'],
@@ -259,7 +261,7 @@ export function updateProgramWeekLabel(
         label,
         days: targetScheme?.days,
       },
-    },
+    } as ProgramWeekSchemesMap,
   }
 }
 

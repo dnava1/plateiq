@@ -18,11 +18,15 @@ import {
   completeWorkoutMutation,
   ensureWorkoutMutation,
   logSetMutation,
+  seedWorkoutSetsMutation,
+  updateWorkoutBlockPrescriptionMutation,
   workoutMutationKeys,
   workoutQueryKeys,
   type CompleteWorkoutInput,
   type EnsureWorkoutInput,
   type LogSetInput,
+  type SeedWorkoutSetsInput,
+  type UpdateWorkoutBlockPrescriptionInput,
 } from '@/hooks/useWorkouts'
 
 function makeQueryClient(scope: string) {
@@ -51,6 +55,16 @@ function makeQueryClient(scope: string) {
     },
   })
 
+  queryClient.setMutationDefaults(workoutMutationKeys.seedWorkoutSets(), {
+    mutationFn: (variables) => seedWorkoutSetsMutation(supabase, variables as unknown as SeedWorkoutSetsInput),
+    onSuccess: (_data, variables) => {
+      const input = variables as unknown as SeedWorkoutSetsInput
+      queryClient.invalidateQueries({ queryKey: workoutQueryKeys.sets(input.workoutId) })
+      queryClient.invalidateQueries({ queryKey: workoutQueryKeys.cycle(input.cycleId) })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() })
+    },
+  })
+
   queryClient.setMutationDefaults(workoutMutationKeys.logSet(), {
     mutationFn: (variables) => logSetMutation(supabase, variables as unknown as LogSetInput),
     onSuccess: (_data, variables) => {
@@ -60,6 +74,16 @@ function makeQueryClient(scope: string) {
         queryClient.invalidateQueries({ queryKey: workoutQueryKeys.amrapHistory(input.exerciseId) })
       }
       queryClient.invalidateQueries({ queryKey: analyticsQueryKeys.all() })
+      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() })
+    },
+  })
+
+  queryClient.setMutationDefaults(workoutMutationKeys.updateWorkoutBlockPrescription(), {
+    mutationFn: (variables) => updateWorkoutBlockPrescriptionMutation(supabase, variables as unknown as UpdateWorkoutBlockPrescriptionInput),
+    onSuccess: (_data, variables) => {
+      const input = variables as unknown as UpdateWorkoutBlockPrescriptionInput
+      queryClient.invalidateQueries({ queryKey: workoutQueryKeys.sets(input.workoutId) })
+      queryClient.invalidateQueries({ queryKey: workoutQueryKeys.cycle(input.cycleId) })
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() })
     },
   })

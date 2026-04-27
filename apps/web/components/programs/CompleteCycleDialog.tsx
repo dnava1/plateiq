@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { CloudOff, Flag } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCycleCompletionPreview, useCompleteCycle, buildCycleProgressionPayload } from '@/hooks/useCycleCompletion'
 import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
+import { resolveWorkoutProgram } from '@/hooks/useWorkouts'
 import type { TrainingProgram } from '@/hooks/usePrograms'
-import { resolveProgramUsesTrainingMax } from '@/lib/programs/method'
 import { formatWeight } from '@/lib/utils'
 import { useWorkoutSessionStore } from '@/store/workoutSessionStore'
 import { Badge } from '@/components/ui/badge'
@@ -40,10 +40,14 @@ function getIncrementBadge(rowIncrementLbs: number, preferredUnit: ReturnType<ty
 export function CompleteCycleDialog({ program }: CompleteCycleDialogProps) {
   const preferredUnit = usePreferredUnit()
   const weightRoundingLbs = usePreferredWeightRounding()
-  const usesTrainingMax = resolveProgramUsesTrainingMax(program)
   const clearSession = useWorkoutSessionStore((state) => state.clearSession)
   const completeCycle = useCompleteCycle()
   const { activeCycle, previewRows, isLoading } = useCycleCompletionPreview(program)
+  const { template } = useMemo(
+    () => resolveWorkoutProgram(program, weightRoundingLbs, activeCycle),
+    [activeCycle, program, weightRoundingLbs],
+  )
+  const usesTrainingMax = template?.uses_training_max ?? false
   const [isOnline, setIsOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine)
   const [open, setOpen] = useState(false)
 

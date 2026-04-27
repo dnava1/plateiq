@@ -8,12 +8,13 @@ const mocks = vi.hoisted(() => ({
   clearSession: vi.fn(),
   exitActiveWorkout: vi.fn(),
   resolveWorkoutProgram: vi.fn(),
+  seedWorkoutSetsMutate: vi.fn(),
   setSyncState: vi.fn(),
   sessionState: {
-    activeCycleId: 9,
-    activeDayIndex: 0,
-    activeWeekNumber: 1,
-    activeWorkoutId: 44,
+    activeCycleId: 9 as number | null,
+    activeDayIndex: 0 as number | null,
+    activeWeekNumber: 1 as number | null,
+    activeWorkoutId: 44 as number | null,
     clearRestTimer: vi.fn(),
     clearSession: vi.fn(),
     exitActiveWorkout: vi.fn(),
@@ -29,22 +30,33 @@ const mocks = vi.hoisted(() => ({
     syncStates: {},
   },
   startRestTimer: vi.fn(),
+  updateWorkoutBlockPrescriptionMutateAsync: vi.fn(),
   useCycleWorkouts: vi.fn(),
+  useSeedWorkoutSets: vi.fn(),
+  useUpdateWorkoutBlockPrescription: vi.fn(),
   useWorkoutExerciseContext: vi.fn(),
   useWorkoutSets: vi.fn(),
   workoutSets: [
     {
+      id: 1001,
       exercise_id: 3,
       exercises: { name: 'Overhead Press' },
       logged_at: '2026-04-17T10:00:00.000Z',
+      prescribed_intensity: 0.65,
+      prescribed_weight_lbs: 95,
+      prescription_base_weight_lbs: 145,
       reps_actual: 8,
       set_order: 1,
       weight_lbs: 95,
     },
   ] as Array<{
+    id?: number
     exercise_id: number
     exercises: { name: string }
     logged_at: string | null
+    prescribed_intensity?: number | null
+    prescribed_weight_lbs?: number | null
+    prescription_base_weight_lbs?: number | null
     reps_actual: number | null
     set_order: number
     weight_lbs: number
@@ -66,6 +78,8 @@ const mockGeneratedSets = [
     intensity_type: 'percentage_tm' as const,
     is_amrap: false,
     notes: undefined,
+    prescribed_intensity: 0.65,
+    prescription_base_weight_lbs: 145,
     reps_prescribed: 8,
     reps_prescribed_max: undefined,
     rest_seconds: 90,
@@ -88,6 +102,8 @@ const mockGeneratedSets = [
     intensity_type: 'percentage_tm' as const,
     is_amrap: false,
     notes: undefined,
+    prescribed_intensity: 0.65,
+    prescription_base_weight_lbs: 145,
     reps_prescribed: 8,
     reps_prescribed_max: undefined,
     rest_seconds: 90,
@@ -110,6 +126,7 @@ const mockGeneratedSets = [
     intensity_type: 'bodyweight' as const,
     is_amrap: false,
     notes: undefined,
+    prescribed_intensity: 0,
     reps_prescribed: 10,
     reps_prescribed_max: undefined,
     rest_seconds: 60,
@@ -132,6 +149,7 @@ const mockGeneratedSets = [
     intensity_type: 'bodyweight' as const,
     is_amrap: false,
     notes: undefined,
+    prescribed_intensity: 0,
     reps_prescribed: 10,
     reps_prescribed_max: undefined,
     rest_seconds: 60,
@@ -174,6 +192,8 @@ vi.mock('@/hooks/useWorkouts', () => ({
   resolveWorkoutProgram: (...args: unknown[]) => mocks.resolveWorkoutProgram(...args),
   useActiveCycle: () => ({ data: { cycle_number: 2, id: 9 } }),
   useCycleWorkouts: (...args: unknown[]) => mocks.useCycleWorkouts(...args),
+  useSeedWorkoutSets: (...args: unknown[]) => mocks.useSeedWorkoutSets(...args),
+  useUpdateWorkoutBlockPrescription: (...args: unknown[]) => mocks.useUpdateWorkoutBlockPrescription(...args),
   useWorkoutExerciseContext: (...args: unknown[]) => mocks.useWorkoutExerciseContext(...args),
   useWorkoutSets: (...args: unknown[]) => mocks.useWorkoutSets(...args),
 }))
@@ -219,16 +239,24 @@ describe('ActiveWorkoutPanel', () => {
     mocks.clearSession.mockReset()
     mocks.exitActiveWorkout.mockReset()
     mocks.resolveWorkoutProgram.mockReset()
+    mocks.seedWorkoutSetsMutate.mockReset()
     mocks.setSyncState.mockReset()
     mocks.startRestTimer.mockReset()
+    mocks.updateWorkoutBlockPrescriptionMutateAsync.mockReset()
     mocks.useCycleWorkouts.mockReset()
+    mocks.useSeedWorkoutSets.mockReset()
+    mocks.useUpdateWorkoutBlockPrescription.mockReset()
     mocks.useWorkoutExerciseContext.mockReset()
     mocks.useWorkoutSets.mockReset()
     mocks.workoutSets = [
       {
+        id: 1001,
         exercise_id: 3,
         exercises: { name: 'Overhead Press' },
         logged_at: '2026-04-17T10:00:00.000Z',
+        prescribed_intensity: 0.65,
+        prescribed_weight_lbs: 95,
+        prescription_base_weight_lbs: 145,
         reps_actual: 8,
         set_order: 1,
         weight_lbs: 95,
@@ -289,6 +317,15 @@ describe('ActiveWorkoutPanel', () => {
       isError: false,
       isLoading: false,
     })
+    mocks.useSeedWorkoutSets.mockReturnValue({
+      isPending: false,
+      mutate: mocks.seedWorkoutSetsMutate,
+    })
+    mocks.useUpdateWorkoutBlockPrescription.mockReturnValue({
+      isPending: false,
+      mutateAsync: mocks.updateWorkoutBlockPrescriptionMutateAsync,
+    })
+    mocks.updateWorkoutBlockPrescriptionMutateAsync.mockResolvedValue([])
     mocks.useWorkoutSets.mockReturnValue({ data: mocks.workoutSets })
   })
 
@@ -399,6 +436,91 @@ describe('ActiveWorkoutPanel', () => {
       label: 'Chin-Up',
       sourceSetOrder: null,
       workoutId: 44,
+    })
+  })
+
+  it('updates the remaining workout-only percentage for an in-progress block', async () => {
+    const user = userEvent.setup()
+
+    mocks.workoutSets = [
+      {
+        id: 1001,
+        exercise_id: 3,
+        exercises: { name: 'Overhead Press' },
+        logged_at: '2026-04-17T10:00:00.000Z',
+        prescribed_intensity: 0.65,
+        prescribed_weight_lbs: 95,
+        prescription_base_weight_lbs: 145,
+        reps_actual: 8,
+        set_order: 1,
+        weight_lbs: 95,
+      },
+      {
+        id: 1002,
+        exercise_id: 3,
+        exercises: { name: 'Overhead Press' },
+        logged_at: null,
+        prescribed_intensity: 0.65,
+        prescribed_weight_lbs: 95,
+        prescription_base_weight_lbs: 145,
+        reps_actual: null,
+        set_order: 2,
+        weight_lbs: 95,
+      },
+      {
+        id: 1003,
+        exercise_id: 2,
+        exercises: { name: 'Chin-Up' },
+        logged_at: null,
+        prescribed_intensity: null,
+        prescribed_weight_lbs: 0,
+        prescription_base_weight_lbs: null,
+        reps_actual: null,
+        set_order: 3,
+        weight_lbs: 0,
+      },
+      {
+        id: 1004,
+        exercise_id: 2,
+        exercises: { name: 'Chin-Up' },
+        logged_at: null,
+        prescribed_intensity: null,
+        prescribed_weight_lbs: 0,
+        prescription_base_weight_lbs: null,
+        reps_actual: null,
+        set_order: 4,
+        weight_lbs: 0,
+      },
+    ]
+    mocks.useWorkoutSets.mockReturnValue({ data: mocks.workoutSets })
+
+    render(
+      <ActiveWorkoutPanel
+        program={{
+          config: null,
+          id: 1,
+          name: 'Test Program',
+          template_key: 'test-program',
+        } as never}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /edit remaining %/i }))
+    const percentageInput = screen.getByLabelText(/% tm/i)
+    await user.clear(percentageInput)
+    await user.type(percentageInput, '70')
+    await user.click(screen.getByRole('button', { name: /apply to workout/i }))
+
+    expect(mocks.updateWorkoutBlockPrescriptionMutateAsync).toHaveBeenCalledWith({
+      cycleId: 9,
+      workoutId: 44,
+      userId: 'user-1',
+      updates: [{
+        prescribedIntensity: 0.7,
+        prescribedWeightLbs: 100,
+        prescriptionBaseWeightLbs: 145,
+        setOrder: 2,
+      }],
     })
   })
 

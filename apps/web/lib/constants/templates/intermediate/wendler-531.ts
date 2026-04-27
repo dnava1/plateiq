@@ -109,13 +109,13 @@ export const wendler531: ProgramTemplate = {
     {
       key: 'fsl',
       name: 'First Set Last (FSL)',
-      description: '5 sets × 5 reps at the first working set weight',
+      description: '5 sets × 5 reps at 100% of the first working set weight',
       blocks: [
         {
           role: 'variation',
           exercise_key: undefined,
           sets: [{ sets: 5, reps: 5, intensity: 1.0, intensity_type: 'percentage_work_set', display_type: 'backoff' }],
-          notes: 'FSL — 5×5 at first working set weight',
+          notes: 'FSL — 5×5 at the exact first working set weight',
         },
       ],
     },

@@ -154,13 +154,16 @@ describe('updateProgramWeekLabel', () => {
     const template = getTemplate('starting_strength')!
 
     const result = updateProgramWeekLabel(template, 2, '')
+    const weekTwoScheme = result.week_schemes?.['2'] ?? template.week_schemes?.['2']
+
+    expect(weekTwoScheme).toBeDefined()
 
     expect(result.week_schemes?.['2']?.label).toBe('')
     expect(resolveProgramWeekLabel({
       ...template,
       week_schemes: {
         ...template.week_schemes,
-        2: result.week_schemes?.['2'] ?? template.week_schemes?.['2'],
+        2: weekTwoScheme!,
       },
     }, 2)).toBe('Week 2')
   })

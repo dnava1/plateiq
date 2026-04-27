@@ -58,6 +58,7 @@ describe('buildCycleCompletionPreview', () => {
     const program = createCustomProgram('linear_per_session')
 
     const rows = buildCycleCompletionPreview({
+      activeCycle: null,
       program,
       exercises: [{ id: 1, name: 'Squat' }] as never,
       trainingMaxes: [
@@ -98,6 +99,7 @@ describe('buildCycleCompletionPreview', () => {
     } as unknown as TrainingProgram
 
     const rows = buildCycleCompletionPreview({
+      activeCycle: null,
       program,
       exercises: [{ id: 1, name: 'Squat' }] as never,
       trainingMaxes: [
@@ -124,6 +126,7 @@ describe('buildCycleCompletionPreview', () => {
     const program = createCustomProgram('autoregulated')
 
     const rows = buildCycleCompletionPreview({
+      activeCycle: null,
       program,
       exercises: [{ id: 1, name: 'Squat' }] as never,
       trainingMaxes: [
@@ -172,6 +175,7 @@ describe('buildCycleCompletionPreview', () => {
     'custom',
   ] as const)('holds %s progression when logged effort is maximal', (style) => {
     const rows = buildCycleCompletionPreview({
+      activeCycle: null,
       program: createCustomProgram(style),
       exercises: [{ id: 1, name: 'Squat' }] as never,
       trainingMaxes: [
@@ -213,6 +217,7 @@ describe('buildCycleCompletionPreview', () => {
 
   it('holds autoregulated progression when AMRAP target is met but effort is maximal', () => {
     const rows = buildCycleCompletionPreview({
+      activeCycle: null,
       program: createCustomProgram('autoregulated'),
       exercises: [{ id: 1, name: 'Squat' }] as never,
       trainingMaxes: [
