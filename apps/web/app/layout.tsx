@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist_Mono, Manrope } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
 import { Providers } from './providers'
 import { Toaster } from '@/components/ui/sonner'
@@ -41,6 +43,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const isVercelProduction = process.env.VERCEL_ENV === 'production'
+
   return (
     <html lang="en" className={`${manrope.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <head>
@@ -54,6 +58,12 @@ export default function RootLayout({
       <body className="min-h-dvh bg-background font-sans antialiased">
         <Providers>{children}</Providers>
         <Toaster />
+        {isVercelProduction ? (
+          <>
+            <Analytics />
+            <SpeedInsights />
+          </>
+        ) : null}
       </body>
     </html>
   )
