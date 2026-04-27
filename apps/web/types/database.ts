@@ -439,6 +439,10 @@ export type Database = {
         Args: { p_cycle_id: number; p_progression?: Json }
         Returns: Json
       }
+      consume_ai_insight_daily_quota: {
+        Args: { p_daily_limit?: number }
+        Returns: Json
+      }
       create_program_with_cycle: {
         Args: {
           p_activate_on_save?: boolean

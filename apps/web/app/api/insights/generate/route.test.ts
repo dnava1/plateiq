@@ -23,6 +23,7 @@ function createRequest(body: unknown) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      origin: 'http://localhost',
     },
     body: JSON.stringify(body),
   })
@@ -30,13 +31,35 @@ function createRequest(body: unknown) {
 
 function createSupabaseClient({
   user = { id: 'user-1' },
-  rpcData,
-  rpcError = null,
+  analyticsRpcData,
+  analyticsRpcError = null,
+  quotaRpcData = {
+    allowed: true,
+    limit: 3,
+    used: 1,
+    remaining: 2,
+    reset_at: '2026-04-02T00:00:00.000Z',
+  },
+  quotaRpcError = null,
 }: {
   user?: { id: string } | null
-  rpcData?: unknown
-  rpcError?: { message: string } | null
+  analyticsRpcData?: unknown
+  analyticsRpcError?: { message: string } | null
+  quotaRpcData?: unknown
+  quotaRpcError?: { message: string } | null
 }) {
+  const rpc = vi.fn().mockImplementation((fn: string) => {
+    if (fn === 'get_analytics_data') {
+      return Promise.resolve({ data: analyticsRpcData ?? null, error: analyticsRpcError })
+    }
+
+    if (fn === 'consume_ai_insight_daily_quota') {
+      return Promise.resolve({ data: quotaRpcData, error: quotaRpcError })
+    }
+
+    return Promise.resolve({ data: null, error: { message: `Unexpected rpc call: ${fn}` } })
+  })
+
   return {
     auth: {
       getUser: vi.fn().mockResolvedValue({
@@ -44,7 +67,7 @@ function createSupabaseClient({
         error: null,
       }),
     },
-    rpc: vi.fn().mockResolvedValue({ data: rpcData ?? null, error: rpcError }),
+    rpc,
   }
 }
 
@@ -52,6 +75,25 @@ describe('POST /api/insights/generate', () => {
   beforeEach(() => {
     mocks.createClient.mockReset()
     mocks.generateTrainingInsight.mockReset()
+  })
+
+  it('rejects non-same-origin submissions', async () => {
+    const response = await POST(new Request('http://localhost/api/insights/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        origin: 'https://malicious.example',
+      },
+      body: JSON.stringify({
+        dateFrom: '2026-02-01',
+        dateTo: '2026-04-01',
+        exerciseId: null,
+      }),
+    }))
+
+    expect(response.status).toBe(403)
+    await expect(response.json()).resolves.toEqual({ error: 'Forbidden' })
+    expect(mocks.createClient).not.toHaveBeenCalled()
   })
 
   it('rejects unauthenticated requests', async () => {
@@ -95,9 +137,45 @@ describe('POST /api/insights/generate', () => {
     expect(mocks.createClient).not.toHaveBeenCalled()
   })
 
+  it('does not consume quota when the analytics snapshot is not eligible for insights', async () => {
+    const supabase = createSupabaseClient({
+      analyticsRpcData: {
+        e1rm_trend: [],
+        volume_trend: [],
+        pr_history: [],
+        consistency: {
+          total_sessions: 0,
+          weeks_active: 0,
+          first_session: null,
+          last_session: null,
+        },
+        muscle_balance: [],
+        stall_detection: [],
+        tm_progression: [],
+      },
+    })
+    mocks.createClient.mockResolvedValue(supabase)
+
+    const response = await POST(createRequest({
+      dateFrom: '2026-02-01',
+      dateTo: '2026-04-01',
+      exerciseId: null,
+    }))
+
+    expect(response.status).toBe(400)
+    await expect(response.json()).resolves.toEqual({
+      error: 'There is not enough comparable analytics history to generate an insight yet.',
+    })
+    expect(supabase.rpc).toHaveBeenCalledTimes(1)
+    expect(supabase.rpc).toHaveBeenCalledWith('get_analytics_data', {
+      p_date_from: '2026-02-01',
+      p_date_to: '2026-04-01',
+    })
+  })
+
   it('returns a structured insight for a valid authenticated request', async () => {
     const supabase = createSupabaseClient({
-      rpcData: {
+      analyticsRpcData: {
         e1rm_trend: [
           { date: '2026-03-20', exercise_id: 1, exercise_name: 'Bench Press', weight: 215, reps: 5, e1rm: 241.9 },
         ],
@@ -138,11 +216,16 @@ describe('POST /api/insights/generate', () => {
     }))
 
     expect(response.status).toBe(200)
-    expect(supabase.rpc).toHaveBeenCalledWith('get_analytics_data', {
+    expect(supabase.rpc).toHaveBeenNthCalledWith(1, 'get_analytics_data', {
       p_exercise_id: 1,
       p_date_from: '2026-02-01',
       p_date_to: '2026-04-01',
     })
+    expect(supabase.rpc).toHaveBeenNthCalledWith(2, 'consume_ai_insight_daily_quota', {
+      p_daily_limit: 3,
+    })
+    expect(response.headers.get('x-ratelimit-limit')).toBe('3')
+    expect(response.headers.get('x-ratelimit-remaining')).toBe('2')
     await expect(response.json()).resolves.toEqual({
       summary: 'Bench press is trending up.',
       strengths: ['Bench press estimated 1RM improved.'],
@@ -160,7 +243,7 @@ describe('POST /api/insights/generate', () => {
 
   it('ignores spoofed exercise names and derives the scope from server analytics data', async () => {
     const supabase = createSupabaseClient({
-      rpcData: {
+      analyticsRpcData: {
         e1rm_trend: [
           { date: '2026-03-20', exercise_id: 1, exercise_name: 'Bench Press', weight: 215, reps: 5, e1rm: 241.9 },
         ],
@@ -209,9 +292,52 @@ describe('POST /api/insights/generate', () => {
     )
   })
 
+  it('rejects insight generation after the daily quota is exhausted', async () => {
+    const supabase = createSupabaseClient({
+      analyticsRpcData: {
+        e1rm_trend: [
+          { date: '2026-03-20', exercise_id: 1, exercise_name: 'Bench Press', weight: 215, reps: 5, e1rm: 241.9 },
+        ],
+        volume_trend: [],
+        pr_history: [],
+        consistency: {
+          total_sessions: 4,
+          weeks_active: 4,
+          first_session: '2026-02-01',
+          last_session: '2026-03-20',
+        },
+        muscle_balance: [],
+        stall_detection: [],
+        tm_progression: [],
+      },
+      quotaRpcData: {
+        allowed: false,
+        limit: 3,
+        used: 3,
+        remaining: 0,
+        reset_at: '2026-04-02T00:00:00.000Z',
+      },
+    })
+    mocks.createClient.mockResolvedValue(supabase)
+
+    const response = await POST(createRequest({
+      dateFrom: '2026-02-01',
+      dateTo: '2026-04-01',
+      exerciseId: null,
+    }))
+
+    expect(response.status).toBe(429)
+    await expect(response.json()).resolves.toEqual({
+      error: 'Daily AI insight limit reached. You can generate up to 3 insights per UTC day.',
+    })
+    expect(response.headers.get('x-ratelimit-limit')).toBe('3')
+    expect(response.headers.get('x-ratelimit-remaining')).toBe('0')
+    expect(mocks.generateTrainingInsight).not.toHaveBeenCalled()
+  })
+
   it('maps provider failures to a clean public response', async () => {
     mocks.createClient.mockResolvedValue(createSupabaseClient({
-      rpcData: {
+      analyticsRpcData: {
         e1rm_trend: [],
         volume_trend: [],
         pr_history: [],
@@ -241,5 +367,6 @@ describe('POST /api/insights/generate', () => {
     await expect(response.json()).resolves.toEqual({
       error: 'AI insights are temporarily unavailable because the provider quota was exceeded. Try again later.',
     })
+    expect(response.headers.get('x-ratelimit-limit')).toBe('3')
   })
 })
