@@ -2,7 +2,7 @@
 
 PlateIQ is a strength training web app for lifters who want structured programming, fast workout logging, and a clearer picture of progress over time. It combines a broad template library, a custom program builder, analytics, AI-generated coaching notes, and an installable PWA experience built for repeat use between sessions.
 
-## Product Highlights
+## Highlights
 
 - Built-in training templates spanning beginner linear progression, classic intermediate programming, and advanced periodization
 - Custom program builder for lifters who want to define their own training days, exercise blocks, set schemes, and progression rules
@@ -12,7 +12,7 @@ PlateIQ is a strength training web app for lifters who want structured programmi
 - Guest mode and Google sign-in, with upgrade flows for users who start anonymously and later attach a full account
 - Installable PWA behavior with an offline-friendly app shell and workout continuation when connectivity is unreliable
 
-## Core Product Areas
+## Core Areas
 
 - Dashboard with active-program progress, training max visibility, recent PRs, and recent workout activity
 - Programs area for built-in templates, saved programs, training max configuration, and custom program editing
