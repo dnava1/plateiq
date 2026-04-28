@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>PlateIQ | Offline</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #09090b;
+        --panel: rgba(24, 24, 27, 0.92);
+        --panel-border: rgba(255, 255, 255, 0.08);
+        --text: #fafafa;
+        --muted: #a1a1aa;
+        --accent: #ff7a00;
+        --accent-soft: rgba(255, 122, 0, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        font-family: Manrope, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top, rgba(255, 122, 0, 0.18), transparent 28%),
+          linear-gradient(180deg, #111318 0%, var(--bg) 68%);
+      }
+
+      main {
+        width: min(100%, 420px);
+        border: 1px solid var(--panel-border);
+        border-radius: 28px;
+        background: var(--panel);
+        backdrop-filter: blur(24px);
+        box-shadow: 0 32px 100px -40px rgba(0, 0, 0, 0.9);
+        padding: 28px;
+      }
+
+      .icon {
+        width: 72px;
+        height: 72px;
+        display: grid;
+        place-items: center;
+        border-radius: 22px;
+        background: linear-gradient(180deg, #1d1e23 0%, #0c0d10 100%);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+      }
+
+      h1 {
+        margin: 18px 0 0;
+        font-size: 1.5rem;
+        line-height: 1.2;
+      }
+
+      p {
+        margin: 14px 0 0;
+        line-height: 1.65;
+        color: var(--muted);
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 24px;
+      }
+
+      button,
+      a {
+        appearance: none;
+        border: 0;
+        border-radius: 14px;
+        padding: 12px 16px;
+        font: inherit;
+        cursor: pointer;
+        text-decoration: none;
+      }
+
+      button {
+        background: linear-gradient(135deg, #ff9f22 0%, var(--accent) 100%);
+        color: #111318;
+        font-weight: 700;
+      }
+
+      a {
+        color: var(--text);
+        background: var(--accent-soft);
+        box-shadow: inset 0 0 0 1px rgba(255, 122, 0, 0.2);
+      }
+
+      .status {
+        margin-top: 20px;
+        font-size: 0.94rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="icon" aria-hidden="true">
+        <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22 4.75 35.78 12.75v18.5L22 39.25 8.22 31.25v-18.5L22 4.75Z" stroke="#FF7A00" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" />
+          <rect x="16.5" y="20.25" width="11" height="2.2" rx="1.1" fill="#F8FAFC" fill-opacity=".8" />
+          <rect x="13.4" y="17.8" width="2.4" height="7.1" rx="0.8" fill="#F8FAFC" fill-opacity=".88" />
+          <rect x="10.5" y="16.1" width="2.6" height="10.5" rx="0.85" fill="#D4D4D8" />
+          <rect x="30.2" y="17.8" width="2.4" height="7.1" rx="0.8" fill="#F8FAFC" fill-opacity=".88" />
+          <rect x="32.9" y="16.1" width="2.6" height="10.5" rx="0.85" fill="#D4D4D8" />
+        </svg>
+      </div>
+      <h1>You&apos;re offline.</h1>
+      <p>PlateIQ can still open from your home screen and keep some cached data available, but this view needs a connection before it can refresh account-aware content.</p>
+      <div class="actions">
+        <button id="retry" type="button">Try again</button>
+        <a href="/continue">Open sign-in</a>
+      </div>
+      <p class="status" id="status">Waiting for a network connection.</p>
+    </main>
+
+    <script>
+      const status = document.getElementById('status');
+      const retry = document.getElementById('retry');
+
+      async function tryReload() {
+        status.textContent = 'Checking connection…';
+
+        try {
+          const response = await fetch('/manifest.json', { cache: 'no-store' });
+          if (response.ok) {
+            window.location.reload();
+            return;
+          }
+        } catch (error) {
+          // Ignore and keep retrying.
+        }
+
+        status.textContent = 'Still offline. We will retry automatically.';
+      }
+
+      retry.addEventListener('click', () => {
+        void tryReload();
+      });
+
+      window.addEventListener('online', () => {
+        status.textContent = 'Connection restored. Reloading…';
+        window.location.reload();
+      });
+
+      window.setInterval(() => {
+        void tryReload();
+      }, 3500);
+    </script>
+  </body>
+</html>

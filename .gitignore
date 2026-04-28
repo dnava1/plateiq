@@ -68,6 +68,5 @@ supabase/.temp/
 __pycache__/
 *.pyc
 *.orig
-README.md
 docs/
 apps/web/scripts/seed-data.mjs

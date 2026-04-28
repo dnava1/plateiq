@@ -26,7 +26,7 @@ export default async function AppLayout({
       <div className="pointer-events-none absolute -right-32 top-[22%] size-96 rounded-full bg-secondary blur-3xl" />
       <PreferenceSync />
       <Header />
-      <main className="relative mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pb-28 pt-6 md:px-6 md:pb-10 md:pt-8">
+      <main className="pb-safe-content relative mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pt-6 md:px-6 md:pb-10 md:pt-8">
         {children}
       </main>
       <MobileNav />

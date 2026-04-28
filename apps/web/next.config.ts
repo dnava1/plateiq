@@ -24,15 +24,37 @@ const securityHeaders = [
   },
 ]
 
-const repoRoot = path.resolve(__dirname, '..', '..')
+const appRoot = path.resolve(__dirname)
 
 const nextConfig: NextConfig = {
-  outputFileTracingRoot: repoRoot,
+  outputFileTracingRoot: appRoot,
   turbopack: {
-    root: repoRoot,
+    root: appRoot,
   },
   async headers() {
     return [
+      {
+        source: '/sw.js',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
+          {
+            key: 'Service-Worker-Allowed',
+            value: '/',
+          },
+        ],
+      },
+      {
+        source: '/manifest.json',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
+        ],
+      },
       {
         source: '/:path*',
         headers: process.env.NODE_ENV === 'production'

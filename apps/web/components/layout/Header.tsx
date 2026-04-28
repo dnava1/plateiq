@@ -36,7 +36,7 @@ export function Header() {
   const isSettingsActive = isActiveNavPath(pathname, '/settings')
 
   return (
-    <header className="sticky top-0 z-50 px-4 pt-4 md:px-6">
+    <header className="pt-safe-header sticky top-0 z-50 px-4 md:px-6 md:pt-4">
       <div className="mx-auto flex w-full max-w-6xl items-center gap-2 rounded-[28px] border border-border/70 bg-background/72 px-3 py-3 shadow-[0_20px_60px_-38px_rgba(0,0,0,0.8)] backdrop-blur-xl sm:gap-3 sm:px-4">
         <Link href="/dashboard" aria-label="Open dashboard" className="flex min-w-0 items-center gap-2 sm:gap-3">
           <span className="flex size-9 items-center justify-center rounded-2xl bg-primary/12 ring-1 ring-primary/25 sm:size-10">

@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
 import { Providers } from './providers'
+import { PwaSupport } from '@/components/pwa/PwaSupport'
 import { Toaster } from '@/components/ui/sonner'
 
 const manrope = Manrope({
@@ -19,13 +20,69 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
+  applicationName: 'PlateIQ',
   title: 'Strength Tracker | PlateIQ',
   description:
     'Track any strength program with analytics and AI insights. Supports 15+ programs including 5/3/1, Starting Strength, nSuns, and more.',
+  formatDetection: {
+    telephone: false,
+  },
   manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'PlateIQ',
+  },
   icons: {
-    icon: '/favicon.ico',
-    apple: '/icon-192.png',
+    icon: [
+      {
+        url: '/favicon-light-32x32.png',
+        media: '(prefers-color-scheme: light)',
+        sizes: '32x32',
+        type: 'image/png',
+      },
+      {
+        url: '/favicon-light-16x16.png',
+        media: '(prefers-color-scheme: light)',
+        sizes: '16x16',
+        type: 'image/png',
+      },
+      {
+        url: '/favicon-32x32.png',
+        media: '(prefers-color-scheme: dark)',
+        sizes: '32x32',
+        type: 'image/png',
+      },
+      {
+        url: '/favicon-16x16.png',
+        media: '(prefers-color-scheme: dark)',
+        sizes: '16x16',
+        type: 'image/png',
+      },
+    ],
+    shortcut: '/favicon.ico',
+    apple: [
+      {
+        url: '/apple-touch-icon-light.png',
+        media: '(prefers-color-scheme: light)',
+        sizes: '180x180',
+        type: 'image/png',
+      },
+      {
+        url: '/apple-touch-icon-dark.png',
+        media: '(prefers-color-scheme: dark)',
+        sizes: '180x180',
+        type: 'image/png',
+      },
+      {
+        url: '/apple-touch-icon.png',
+        sizes: '180x180',
+        type: 'image/png',
+      },
+    ],
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
   },
 }
 
@@ -34,8 +91,10 @@ export const viewport: Viewport = {
     { media: '(prefers-color-scheme: light)', color: '#f7f4ef' },
     { media: '(prefers-color-scheme: dark)', color: '#111318' },
   ],
+  colorScheme: 'dark light',
   width: 'device-width',
   initialScale: 1,
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({
@@ -55,8 +114,9 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-dvh bg-background font-sans antialiased">
+      <body className="min-h-dvh bg-transparent font-sans antialiased">
         <Providers>{children}</Providers>
+        <PwaSupport />
         <Toaster />
         {isVercelProduction ? (
           <>
