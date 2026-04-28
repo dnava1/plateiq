@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@10.28.0",
   "scripts": {
-    "dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next dev",
+    "dev": "cross-env NODE_OPTIONS=--max-old-space-size=2048 next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
