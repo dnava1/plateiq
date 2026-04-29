@@ -52,6 +52,14 @@
   --app-background-image:
     radial-gradient(circle at top, oklch(0.720 0.180 43 / 0.16), transparent 34%),
     radial-gradient(circle at bottom right, oklch(0.420 0.030 255 / 0.24), transparent 28%);
+  --app-overscroll-background:
+    linear-gradient(
+      180deg,
+      oklch(0.940 0.030 55) 0%,
+      var(--background) 24%,
+      var(--background) 70%,
+      oklch(0.930 0.004 285) 100%
+    );
   --pwa-theme-color: #fafafc;
   --background: oklch(0.985 0.003 285);
   --foreground: oklch(0.190 0.008 285);
@@ -88,6 +96,14 @@
 }
 
 .dark {
+  --app-overscroll-background:
+    linear-gradient(
+      180deg,
+      oklch(0.260 0.048 43) 0%,
+      var(--background) 24%,
+      var(--background) 70%,
+      oklch(0.170 0.007 270) 100%
+    );
   --pwa-theme-color: #06070a;
   --background: oklch(0.130 0.006 270);
   --foreground: oklch(0.965 0.002 285);
@@ -139,19 +155,39 @@
   }
   body {
     @apply bg-background text-foreground;
+    isolation: isolate;
     min-height: 100dvh;
     background-color: var(--background);
-    background-image: var(--app-background-image);
+    background-image: var(--app-background-image), var(--app-overscroll-background);
     background-repeat: no-repeat;
     background-size: cover;
+    overscroll-behavior-y: none;
+    position: relative;
+  }
+  body::before {
+    content: "";
+    pointer-events: none;
+    position: fixed;
+    inset: -45dvh 0;
+    z-index: 0;
+    background-color: var(--background);
+    background-image: var(--app-background-image), var(--app-overscroll-background);
+    background-repeat: no-repeat;
+    background-size: cover;
+    transform: translateZ(0);
+  }
+  body > * {
+    position: relative;
+    z-index: 1;
   }
   html {
     @apply bg-background font-sans antialiased;
     min-height: 100%;
     background-color: var(--background);
-    background-image: var(--app-background-image);
+    background-image: var(--app-background-image), var(--app-overscroll-background);
     background-repeat: no-repeat;
     background-size: cover;
+    overscroll-behavior-y: none;
     scrollbar-gutter: stable;
     transition: background-color 0.15s ease, color 0.15s ease;
   }
