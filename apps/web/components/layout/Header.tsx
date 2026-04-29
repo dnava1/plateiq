@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { isAnonymousUser } from '@/lib/auth/auth-state'
+import { resolveUserDisplayProfile } from '@/lib/auth/user-display'
 import { useUser } from '@/hooks/useUser'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { buttonVariants } from '@/components/ui/button'
@@ -10,29 +11,13 @@ import { cn } from '@/lib/utils'
 import { Dumbbell } from 'lucide-react'
 import { APP_NAV_ITEMS, isActiveNavPath } from '@/components/layout/navigation'
 
-function getDisplayName(user: ReturnType<typeof useUser>['data']) {
-  if (isAnonymousUser(user)) {
-    return 'Guest'
-  }
-
-  return user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? user?.email ?? 'Athlete'
-}
-
-function getInitials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('') || 'PI'
-}
-
 export function Header() {
   const pathname = usePathname()
   const { data: user } = useUser()
   const isGuest = isAnonymousUser(user)
-  const displayName = getDisplayName(user)
-  const initials = getInitials(displayName)
+  const { avatarUrl, displayName, initials } = resolveUserDisplayProfile(user, {
+    anonymousDisplayName: 'Guest',
+  })
   const isSettingsActive = isActiveNavPath(pathname, '/settings')
 
   return (
@@ -103,9 +88,7 @@ export function Header() {
             </div>
 
             <Avatar size="lg" className="ring-2 ring-primary/15 transition-all group-hover:ring-primary/35">
-              {typeof user?.user_metadata?.avatar_url === 'string' && (
-                <AvatarImage src={user.user_metadata.avatar_url} alt={displayName} />
-              )}
+              {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} /> : null}
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
           </Link>

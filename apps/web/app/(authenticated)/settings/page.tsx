@@ -7,6 +7,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { LogOut, Ruler } from 'lucide-react'
 import { toast } from 'sonner'
 import { isAnonymousUser } from '@/lib/auth/auth-state'
+import { resolveUserDisplayProfile } from '@/lib/auth/user-display'
 import { profilePreferenceMutationKeys, useProfile } from '@/hooks/useProfile'
 import { useUser } from '@/hooks/useUser'
 import { useSupabase } from '@/hooks/useSupabase'
@@ -541,15 +542,9 @@ export default function SettingsPage() {
     router.replace('/continue')
   }
 
-  const displayName = isGuest
-    ? 'Guest account'
-    : user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? 'Athlete'
-  const initials = displayName
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part: string) => part[0]?.toUpperCase())
-    .join('') || 'PI'
+  const { avatarUrl, displayName, initials } = resolveUserDisplayProfile(user, {
+    anonymousDisplayName: 'Guest account',
+  })
 
   return (
     <div className="page-shell max-w-5xl">
@@ -571,9 +566,7 @@ export default function SettingsPage() {
             <div className="flex items-center gap-4">
               {!isGuest && (
                 <Avatar size="lg">
-                  {user?.user_metadata?.avatar_url && (
-                    <AvatarImage src={user.user_metadata.avatar_url as string} alt={displayName} />
-                  )}
+                  {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} /> : null}
                   <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
               )}

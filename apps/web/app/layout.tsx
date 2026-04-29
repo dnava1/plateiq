@@ -88,8 +88,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f7f4ef' },
-    { media: '(prefers-color-scheme: dark)', color: '#111318' },
+    { media: '(prefers-color-scheme: light)', color: '#fafafc' },
+    { media: '(prefers-color-scheme: dark)', color: '#06070a' },
   ],
   colorScheme: 'dark light',
   width: 'device-width',
@@ -114,7 +114,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-dvh bg-transparent font-sans antialiased">
+      <body className="min-h-dvh font-sans antialiased">
         <Providers>{children}</Providers>
         <PwaSupport />
         <Toaster />

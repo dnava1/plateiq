@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { ArrowRight, Dumbbell, UserRound } from 'lucide-react'
 import { AuthTurnstileGate } from '@/components/auth/AuthTurnstileGate'
 import { isCaptchaRejectionError, isInvalidCaptchaResponseError, turnstileSiteKey } from '@/lib/auth/captcha'
+import { GOOGLE_OAUTH_SCOPES } from '@/lib/auth/google'
 import { sanitizeNextPath } from '@/lib/auth/auth-state'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -131,6 +132,7 @@ function ContinuePageContent() {
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+          scopes: GOOGLE_OAUTH_SCOPES,
         },
       })
 

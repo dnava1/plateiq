@@ -49,6 +49,10 @@
 }
 
 :root {
+  --app-background-image:
+    radial-gradient(circle at top, oklch(0.720 0.180 43 / 0.16), transparent 34%),
+    radial-gradient(circle at bottom right, oklch(0.420 0.030 255 / 0.24), transparent 28%);
+  --pwa-theme-color: #fafafc;
   --background: oklch(0.985 0.003 285);
   --foreground: oklch(0.190 0.008 285);
   --card: oklch(1 0 0);
@@ -84,6 +88,7 @@
 }
 
 .dark {
+  --pwa-theme-color: #06070a;
   --background: oklch(0.130 0.006 270);
   --foreground: oklch(0.965 0.002 285);
   --card: oklch(0.170 0.007 270);
@@ -133,16 +138,18 @@
     cursor: not-allowed;
   }
   body {
-    @apply text-foreground;
+    @apply bg-background text-foreground;
     min-height: 100dvh;
-    background: transparent;
+    background-color: var(--background);
+    background-image: var(--app-background-image);
+    background-repeat: no-repeat;
+    background-size: cover;
   }
   html {
     @apply bg-background font-sans antialiased;
     min-height: 100%;
-    background-image:
-      radial-gradient(circle at top, oklch(0.720 0.180 43 / 0.16), transparent 34%),
-      radial-gradient(circle at bottom right, oklch(0.420 0.030 255 / 0.24), transparent 28%);
+    background-color: var(--background);
+    background-image: var(--app-background-image);
     background-repeat: no-repeat;
     background-size: cover;
     scrollbar-gutter: stable;

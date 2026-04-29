@@ -5,6 +5,7 @@ import { Suspense, useEffect, useEffectEvent, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Dumbbell } from 'lucide-react'
 import { sanitizeNextPath } from '@/lib/auth/auth-state'
+import { GOOGLE_OAUTH_SCOPES } from '@/lib/auth/google'
 import {
   EXISTING_GOOGLE_IDENTITY_ERROR_CODE,
   EXISTING_GOOGLE_UPGRADE_MODE,
@@ -136,6 +137,7 @@ function UpgradePageContent() {
         provider: 'google',
         options: {
           redirectTo: getExistingGoogleUpgradeRedirect(window.location.origin, nextAfterUpgrade),
+          scopes: GOOGLE_OAUTH_SCOPES,
         },
       })
 
@@ -173,6 +175,7 @@ function UpgradePageContent() {
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextAfterUpgrade)}`,
+          scopes: GOOGLE_OAUTH_SCOPES,
         },
       })
 

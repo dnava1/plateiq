@@ -157,6 +157,7 @@ describe('UpgradePage', () => {
         provider: 'google',
         options: {
           redirectTo: `${origin}/auth/callback?next=%2Fsettings&upgrade_mode=existing_google`,
+          scopes: 'openid email profile',
         },
       })
     })
@@ -213,6 +214,7 @@ describe('UpgradePage', () => {
         provider: 'google',
         options: {
           redirectTo: `${origin}/auth/callback?next=%2Fsettings`,
+          scopes: 'openid email profile',
         },
       })
     })
