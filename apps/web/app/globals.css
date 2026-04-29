@@ -60,6 +60,8 @@
       var(--background) 70%,
       oklch(0.930 0.004 285) 100%
     );
+  --app-bottom-edge-background:
+    linear-gradient(180deg, transparent 0%, oklch(0.930 0.004 285) 72%);
   --pwa-theme-color: #fafafc;
   --background: oklch(0.985 0.003 285);
   --foreground: oklch(0.190 0.008 285);
@@ -104,6 +106,8 @@
       var(--background) 70%,
       oklch(0.170 0.007 270) 100%
     );
+  --app-bottom-edge-background:
+    linear-gradient(180deg, transparent 0%, oklch(0.170 0.007 270) 72%);
   --pwa-theme-color: #06070a;
   --background: oklch(0.130 0.006 270);
   --foreground: oklch(0.965 0.002 285);
@@ -176,6 +180,17 @@
     background-size: cover;
     transform: translateZ(0);
   }
+  body::after {
+    content: "";
+    pointer-events: none;
+    position: fixed;
+    inset-inline: 0;
+    bottom: -1px;
+    z-index: 0;
+    height: calc(env(safe-area-inset-bottom) + 4rem);
+    background: var(--app-bottom-edge-background);
+    transform: translateZ(0);
+  }
   body > * {
     position: relative;
     z-index: 1;
@@ -212,6 +227,14 @@
   .pb-safe-content {
     padding-bottom: 7rem;
     padding-bottom: calc(env(safe-area-inset-bottom) + 7rem);
+  }
+  .auth-shell {
+    @apply relative flex items-center justify-center overflow-x-clip px-4;
+    min-height: 100vh;
+    min-height: 100svh;
+    min-height: 100dvh;
+    padding-top: calc(env(safe-area-inset-top) + 2.5rem);
+    padding-bottom: calc(env(safe-area-inset-bottom) + 2.5rem);
   }
   .page-shell {
     @apply mx-auto flex w-full flex-col gap-6 md:gap-8;
@@ -268,6 +291,12 @@
 @keyframes scale-in {
   from { opacity: 0; transform: scale(0.96); }
   to   { opacity: 1; transform: scale(1); }
+}
+
+@media (display-mode: standalone) {
+  .auth-shell {
+    min-height: 100lvh;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
