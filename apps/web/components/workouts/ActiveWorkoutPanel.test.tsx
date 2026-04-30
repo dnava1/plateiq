@@ -196,6 +196,19 @@ vi.mock('@/hooks/useScreenWakeLock', () => ({
   useScreenWakeLock: () => 'unsupported',
 }))
 
+vi.mock('@/hooks/useOfflineWorkoutSync', () => ({
+  useOfflineWorkoutSync: () => ({
+    entries: [],
+    failedEntries: [],
+    isOnline: true,
+    isRetrying: false,
+    pendingCount: 0,
+    pendingMutationCount: 0,
+    refresh: vi.fn(),
+    retrySync: vi.fn(),
+  }),
+}))
+
 vi.mock('@/hooks/useUser', () => ({
   useUser: () => ({ data: { id: 'user-1' } }),
 }))

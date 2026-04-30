@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { ChevronLeft, ChevronRight, Play, RotateCcw } from 'lucide-react'
 import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
@@ -10,6 +10,7 @@ import { useUser } from '@/hooks/useUser'
 import { useCycleWorkouts, useActiveCycle, useEnsureWorkout, resolveWorkoutProgram, buildTrainingMaxMap } from '@/hooks/useWorkouts'
 import type { TrainingProgram } from '@/hooks/usePrograms'
 import { generateWorkoutPlan } from '@/lib/constants/templates/engine'
+import { saveOfflineWorkoutPack, type OfflineWorkoutPackWorkout } from '@/lib/offline-workout-store'
 import { resolveProgramDays } from '@/lib/programs/week'
 import { findSuggestedWorkoutSelection } from '@/lib/workout-progress'
 import { formatExerciseKey, formatWeekCycle } from '@/lib/utils'
@@ -112,6 +113,73 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
     })
   }, [currentDayIndex, currentWeekNumber, exerciseKeyMap, exerciseNameById, rounding, selectedDay, selectedVariationKeys, template, trainingMaxMap])
 
+  const offlinePackWorkouts = useMemo<OfflineWorkoutPackWorkout[]>(() => {
+    if (!template || !activeCycle) {
+      return []
+    }
+
+    const workouts: OfflineWorkoutPackWorkout[] = []
+
+    for (let weekNumber = 1; weekNumber <= template.cycle_length_weeks; weekNumber += 1) {
+      const days = resolveProgramDays(template, weekNumber)
+
+      days.forEach((day, dayIndex) => {
+        const workout = cycleWorkouts?.find(
+          (item) => item.week_number === weekNumber && item.day_label === day.label,
+        ) ?? null
+        const storedSetsByOrder = new Map((workout?.workout_sets ?? []).map((set) => [set.set_order, set]))
+        const sets = generateWorkoutPlan(
+          template,
+          dayIndex,
+          weekNumber,
+          trainingMaxMap,
+          selectedVariationKeys,
+          rounding,
+        ).map((set) => {
+          const storedSet = storedSetsByOrder.get(set.set_order)
+          const exerciseId = storedSet?.exercise_id ?? set.exercise_id ?? resolveExerciseIdFromMap(exerciseKeyMap, set.exercise_key) ?? null
+
+          return {
+            ...set,
+            exerciseId,
+            exerciseName: exerciseId
+              ? exerciseNameById.get(exerciseId) ?? formatExerciseKey(set.exercise_key)
+              : formatExerciseKey(set.exercise_key),
+            loggedAt: storedSet?.logged_at ?? null,
+            prescribedIntensity: storedSet?.prescribed_intensity ?? set.prescribed_intensity,
+            prescribedWeightLbs: storedSet?.prescribed_weight_lbs ?? set.weight_lbs,
+            prescriptionBaseWeightLbs: storedSet?.prescription_base_weight_lbs ?? set.prescription_base_weight_lbs ?? null,
+            prescribedRpe: set.rpe ?? null,
+            repsActual: storedSet?.reps_actual ?? null,
+            rpe: storedSet?.rpe ?? null,
+            workoutId: workout?.id ?? null,
+            workoutSetId: storedSet?.id ?? null,
+          } satisfies WorkoutDisplaySet
+        })
+
+        workouts.push({
+          completedAt: workout?.completed_at ?? null,
+          dayIndex,
+          dayLabel: day.label,
+          sets,
+          weekNumber,
+          workoutId: workout?.id ?? null,
+        })
+      })
+    }
+
+    return workouts
+  }, [
+    activeCycle,
+    cycleWorkouts,
+    exerciseKeyMap,
+    exerciseNameById,
+    rounding,
+    selectedVariationKeys,
+    template,
+    trainingMaxMap,
+  ])
+
   const daySetCounts = useMemo(
     () => (template
       ? daysForCurrentWeek.map((_, index) =>
@@ -133,6 +201,30 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
   )
 
   const cycleLabel = activeCycle ? `Cycle ${activeCycle.cycle_number}` : 'Cycle'
+
+  useEffect(() => {
+    if (!user?.id || !activeCycle || !template || offlinePackWorkouts.length === 0) {
+      return
+    }
+
+    void saveOfflineWorkoutPack({
+      activeCycle: {
+        cycleNumber: activeCycle.cycle_number ?? null,
+        id: activeCycle.id,
+      },
+      program: {
+        config: program.config,
+        id: program.id,
+        name: program.name,
+        template_key: program.template_key,
+      },
+      savedAt: new Date().toISOString(),
+      suggested: suggestedSelection,
+      userId: user.id,
+      version: 1,
+      workouts: offlinePackWorkouts,
+    }).catch(() => undefined)
+  }, [activeCycle, offlinePackWorkouts, program.config, program.id, program.name, program.template_key, suggestedSelection, template, user?.id])
 
   if (!template) {
     return (

@@ -10,12 +10,24 @@ import { Button } from '@/components/ui/button'
 
 interface CompleteWorkoutButtonProps {
   cycleId: number
+  onCompleted?: () => void
+  onQueued?: () => void
+  redirectTo?: string | null
+  userIdOverride?: string | null
   workoutId: number
 }
 
-export function CompleteWorkoutButton({ cycleId, workoutId }: CompleteWorkoutButtonProps) {
+export function CompleteWorkoutButton({
+  cycleId,
+  onCompleted,
+  onQueued,
+  redirectTo = '/workouts',
+  userIdOverride,
+  workoutId,
+}: CompleteWorkoutButtonProps) {
   const router = useRouter()
   const { data: user } = useUser()
+  const userId = userIdOverride ?? user?.id
   const completeWorkout = useCompleteWorkout()
   const clearPendingCompletion = useWorkoutSessionStore((state) => state.clearPendingCompletion)
   const completeWorkoutSession = useWorkoutSessionStore((state) => state.completeWorkoutSession)
@@ -26,29 +38,38 @@ export function CompleteWorkoutButton({ cycleId, workoutId }: CompleteWorkoutBut
   const handleComplete = () => {
     const isOnline = typeof navigator === 'undefined' ? true : navigator.onLine
 
+    if (!isOnline) {
+      queueWorkoutCompletion(workoutId)
+      onQueued?.()
+      toast('Workout completion queued. Keep this workout available until it syncs.')
+    }
+
     completeWorkout.mutate(
       {
         cycleId,
-        userId: user?.id,
+        userId,
         workoutId,
       },
       {
         onSuccess: () => {
           toast.success('Workout completed')
           completeWorkoutSession(workoutId)
-          router.replace('/workouts')
+          onCompleted?.()
+
+          if (redirectTo) {
+            router.replace(redirectTo)
+          }
         },
         onError: (error) => {
+          if (!isOnline) {
+            return
+          }
+
           clearPendingCompletion()
           toast.error(error.message)
         },
       },
     )
-
-    if (!isOnline) {
-      queueWorkoutCompletion(workoutId)
-      toast('Workout completion queued. Keep this workout available until it syncs.')
-    }
   }
 
   return (
@@ -64,4 +85,3 @@ export function CompleteWorkoutButton({ cycleId, workoutId }: CompleteWorkoutBut
     </Button>
   )
 }
-

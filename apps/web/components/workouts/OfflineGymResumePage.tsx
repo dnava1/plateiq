@@ -2,20 +2,26 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
-import { Activity, CloudOff, Dumbbell, RefreshCw } from 'lucide-react'
+import { Activity, CloudOff, Dumbbell, Play, RefreshCw } from 'lucide-react'
+import { useOfflineWorkoutSync } from '@/hooks/useOfflineWorkoutSync'
 import { createClient } from '@/lib/supabase/client'
 import {
+  createOfflineWorkoutSnapshotFromPackWorkout,
   getActiveWorkoutSnapshot,
-  getOfflineWorkoutOutboxEntries,
+  getLastSnapshotUserId,
+  getOfflineWorkoutPack,
   saveActiveWorkoutSnapshot,
   type OfflineWorkoutOutboxEntry,
+  type OfflineWorkoutPack,
+  type OfflineWorkoutPackWorkout,
   type OfflineWorkoutSnapshot,
 } from '@/lib/offline-workout-store'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
-import { buttonVariants } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { CompleteWorkoutButton } from './CompleteWorkoutButton'
 import { SetRow } from './SetRow'
 import {
   buildWorkoutExecutionSnapshot,
@@ -25,6 +31,36 @@ import {
   shouldAutoStartRestTimer,
   type WorkoutDisplaySet,
 } from './types'
+
+const SESSION_LOOKUP_TIMEOUT_MS = 1200
+
+async function getSessionUserIdWithTimeout() {
+  return new Promise<string | null>((resolve) => {
+    let isSettled = false
+
+    const resolveOnce = (userId: string | null) => {
+      if (isSettled) {
+        return
+      }
+
+      isSettled = true
+      window.clearTimeout(timeoutId)
+      resolve(userId)
+    }
+
+    const timeoutId = window.setTimeout(() => resolveOnce(null), SESSION_LOOKUP_TIMEOUT_MS)
+
+    try {
+      const supabase = createClient()
+
+      void supabase.auth.getSession()
+        .then(({ data }) => resolveOnce(data.session?.user.id ?? null))
+        .catch(() => resolveOnce(null))
+    } catch {
+      resolveOnce(null)
+    }
+  })
+}
 
 function formatSnapshotTime(value: string | null | undefined) {
   if (!value) {
@@ -64,33 +100,34 @@ function updateSnapshotSet(
 export function OfflineGymResumePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isOnline, setIsOnline] = useState(true)
-  const [outboxEntries, setOutboxEntries] = useState<OfflineWorkoutOutboxEntry[]>([])
+  const [pack, setPack] = useState<OfflineWorkoutPack | null>(null)
   const [snapshot, setSnapshot] = useState<OfflineWorkoutSnapshot | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
   const [timerNowMs, setTimerNowMs] = useState(() => Date.now())
+  const offlineSync = useOfflineWorkoutSync(userId)
 
   useEffect(() => {
     let isActive = true
 
     const loadSnapshot = async () => {
-      const supabase = createClient()
-      const { data } = await supabase.auth.getSession()
-      const sessionUserId = data.session?.user.id ?? null
+      const offlineUserId = navigator.onLine ? null : getLastSnapshotUserId()
+      const sessionUserId = offlineUserId ? null : await getSessionUserIdWithTimeout()
+      const resolvedUserId = sessionUserId ?? offlineUserId
 
       if (!isActive) {
         return
       }
 
-      setUserId(sessionUserId)
+      setUserId(resolvedUserId)
 
-      if (!sessionUserId) {
+      if (!resolvedUserId) {
         setIsLoading(false)
         return
       }
 
-      const [storedSnapshot, storedOutboxEntries] = await Promise.all([
-        getActiveWorkoutSnapshot(sessionUserId),
-        getOfflineWorkoutOutboxEntries(sessionUserId),
+      const [storedSnapshot, storedPack] = await Promise.all([
+        getActiveWorkoutSnapshot(resolvedUserId),
+        getOfflineWorkoutPack(resolvedUserId),
       ])
 
       if (!isActive) {
@@ -98,7 +135,7 @@ export function OfflineGymResumePage() {
       }
 
       setSnapshot(storedSnapshot)
-      setOutboxEntries(storedOutboxEntries)
+      setPack(storedPack)
       setIsLoading(false)
     }
 
@@ -143,7 +180,7 @@ export function OfflineGymResumePage() {
     () => buildWorkoutExecutionSnapshot(snapshot?.sets ?? []),
     [snapshot?.sets],
   )
-  const pendingCount = outboxEntries.length + (snapshot?.pendingMutationCount ?? 0)
+  const pendingCount = Math.max(offlineSync.entries.length, snapshot?.pendingMutationCount ?? 0)
   const nextSet = execution.nextSet
   const restTimer = snapshot?.restTimer ?? null
   const isRestTimerForSnapshot = Boolean(
@@ -152,6 +189,7 @@ export function OfflineGymResumePage() {
   const remainingRestSeconds = isRestTimerForSnapshot && restTimer?.endsAt
     ? Math.max(0, Math.ceil((restTimer.endsAt - timerNowMs) / 1000))
     : null
+  const isWorkoutFullyLogged = Boolean(snapshot && snapshot.sets.length > 0 && execution.completedSets === execution.totalSets)
 
   const persistSnapshot = (nextSnapshot: OfflineWorkoutSnapshot) => {
     setSnapshot(nextSnapshot)
@@ -159,13 +197,63 @@ export function OfflineGymResumePage() {
   }
 
   const refreshOutbox = () => {
-    if (!userId) {
+    offlineSync.refresh()
+  }
+
+  const resumePackedWorkout = (workout: OfflineWorkoutPackWorkout) => {
+    if (!pack) {
       return
     }
 
-    void getOfflineWorkoutOutboxEntries(userId)
-      .then(setOutboxEntries)
-      .catch(() => undefined)
+    const nextSnapshot = createOfflineWorkoutSnapshotFromPackWorkout(pack, workout)
+
+    if (!nextSnapshot) {
+      return
+    }
+
+    persistSnapshot(nextSnapshot)
+  }
+
+  const markSnapshotCompletionQueued = () => {
+    if (!snapshot) {
+      return
+    }
+
+    persistSnapshot({
+      ...snapshot,
+      pendingCompletionWorkoutId: snapshot.workoutId,
+      savedAt: new Date().toISOString(),
+    })
+  }
+
+  const outboxEntryBySetOrder = useMemo(() => {
+    const entries = new Map<number, OfflineWorkoutOutboxEntry>()
+
+    for (const entry of offlineSync.entries) {
+      if (entry.kind === 'set-log' && entry.workoutId === snapshot?.workoutId && entry.setOrder !== null) {
+        entries.set(entry.setOrder, entry)
+      }
+    }
+
+    return entries
+  }, [offlineSync.entries, snapshot?.workoutId])
+
+  const getEffectiveSetSyncState = (setOrder: number) => {
+    const outboxEntry = outboxEntryBySetOrder.get(setOrder)
+
+    if (outboxEntry?.status === 'failed') {
+      return 'error' as const
+    }
+
+    if (outboxEntry?.status === 'queued') {
+      return 'queued' as const
+    }
+
+    if (outboxEntry?.status === 'syncing') {
+      return 'dirty' as const
+    }
+
+    return snapshot?.syncStates[setOrder]?.status
   }
 
   const updateSetSyncState = (setOrder: number, status: 'dirty' | 'queued' | 'synced' | 'error') => {
@@ -261,6 +349,48 @@ export function OfflineGymResumePage() {
             </Link>
           </CardContent>
         </Card>
+      ) : !snapshot && pack ? (
+        <Card className="surface-panel">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Activity className="size-5" />
+              Saved workout pack
+            </CardTitle>
+            <CardDescription>
+              {pack.program.name} - saved {formatSnapshotTime(pack.savedAt)}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 pt-0">
+            {pack.workouts.map((workout) => {
+              const loggedSetCount = workout.sets.filter((set) => set.repsActual !== null).length
+              const canResume = Boolean(workout.workoutId && !workout.completedAt)
+
+              return (
+                <div
+                  key={`${workout.weekNumber}:${workout.dayIndex}:${workout.dayLabel}`}
+                  className="flex flex-col gap-3 rounded-[20px] border border-border/70 bg-background/55 p-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="flex flex-col gap-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium text-foreground">{workout.dayLabel}</p>
+                      <Badge variant="outline">Week {workout.weekNumber}</Badge>
+                      {workout.completedAt ? <Badge>Completed</Badge> : workout.workoutId ? <Badge variant="outline">Saved</Badge> : <Badge variant="secondary">Needs online start</Badge>}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {loggedSetCount}/{workout.sets.length} sets logged
+                    </p>
+                  </div>
+                  {canResume ? (
+                    <Button type="button" size="sm" onClick={() => resumePackedWorkout(workout)}>
+                      <Play data-icon="inline-start" />
+                      Resume
+                    </Button>
+                  ) : null}
+                </div>
+              )
+            })}
+          </CardContent>
+        </Card>
       ) : !snapshot ? (
         <Card className="surface-panel">
           <CardHeader>
@@ -308,12 +438,27 @@ export function OfflineGymResumePage() {
           >
             {isOnline ? <RefreshCw className={pendingCount ? 'animate-spin motion-reduce:animate-none' : ''} /> : <CloudOff />}
             <span>
-              {isOnline
-                ? pendingCount
-                  ? `Syncing ${pendingCount} pending ${pendingCount === 1 ? 'change' : 'changes'}...`
-                  : `Last sync ${formatSnapshotTime(snapshot.lastSuccessfulSyncAt ?? snapshot.savedAt)}`
-                : 'Offline mode - set logs will queue on this device'}
+              {offlineSync.failedEntries.length > 0
+                ? `${offlineSync.failedEntries.length} ${offlineSync.failedEntries.length === 1 ? 'change needs' : 'changes need'} attention`
+                : isOnline
+                  ? pendingCount
+                    ? `Syncing ${pendingCount} pending ${pendingCount === 1 ? 'change' : 'changes'}...`
+                    : `Last sync ${formatSnapshotTime(snapshot.lastSuccessfulSyncAt ?? snapshot.savedAt)}`
+                  : 'Offline mode - set logs will queue on this device'}
             </span>
+            {isOnline && (pendingCount > 0 || offlineSync.failedEntries.length > 0) ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="ml-auto"
+                onClick={() => void offlineSync.retrySync()}
+                disabled={offlineSync.isRetrying}
+              >
+                <RefreshCw className={offlineSync.isRetrying ? 'animate-spin motion-reduce:animate-none' : undefined} />
+                Retry
+              </Button>
+            ) : null}
           </div>
 
           {snapshot.lastFailureReason ? (
@@ -344,16 +489,21 @@ export function OfflineGymResumePage() {
               isNextUp
               layout="focus"
               set={nextSet}
-              syncState={snapshot.syncStates[nextSet.set_order]?.status}
+              syncError={outboxEntryBySetOrder.get(nextSet.set_order)?.lastError}
+              syncRetryCount={outboxEntryBySetOrder.get(nextSet.set_order)?.retryCount}
+              syncState={getEffectiveSetSyncState(nextSet.set_order)}
+              onRetrySync={outboxEntryBySetOrder.has(nextSet.set_order) ? offlineSync.retrySync : undefined}
               onLocalSetLogged={handleLocalSetLogged}
               onSyncStateChange={(state) => updateSetSyncState(nextSet.set_order, state.status)}
               userId={userId}
             />
           ) : (
             <Card className="surface-panel">
-              <CardContent className="flex items-center gap-2 pt-4 text-sm text-muted-foreground">
-                <Activity className="size-4" />
-                All saved sets are logged. Open the full workout to complete the session.
+              <CardContent className="flex flex-col gap-3 pt-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                <span className="flex items-center gap-2">
+                  <Activity className="size-4" />
+                  All saved sets are logged. Finish the session when you are ready.
+                </span>
               </CardContent>
             </Card>
           )}
@@ -364,21 +514,39 @@ export function OfflineGymResumePage() {
               <CardDescription>{execution.completedSets}/{execution.totalSets} logged from the local snapshot.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3 pt-0">
-              {snapshot.sets.map((set) => (
-                <SetRow
-                  key={`${snapshot.workoutId}:${set.set_order}:${set.repsActual ?? 'pending'}:list`}
-                  autoStartRestTimer={false}
-                  hasRemainingWorkAfterSet={false}
-                  layout="default"
-                  set={set}
-                  syncState={snapshot.syncStates[set.set_order]?.status}
-                  onLocalSetLogged={handleLocalSetLogged}
-                  onSyncStateChange={(state) => updateSetSyncState(set.set_order, state.status)}
-                  userId={userId}
-                />
-              ))}
+              {snapshot.sets.map((set) => {
+                const outboxEntry = outboxEntryBySetOrder.get(set.set_order)
+
+                return (
+                  <SetRow
+                    key={`${snapshot.workoutId}:${set.set_order}:${set.repsActual ?? 'pending'}:list`}
+                    autoStartRestTimer={false}
+                    hasRemainingWorkAfterSet={false}
+                    layout="default"
+                    set={set}
+                    syncError={outboxEntry?.lastError}
+                    syncRetryCount={outboxEntry?.retryCount}
+                    syncState={getEffectiveSetSyncState(set.set_order)}
+                    onRetrySync={outboxEntry ? offlineSync.retrySync : undefined}
+                    onLocalSetLogged={handleLocalSetLogged}
+                    onSyncStateChange={(state) => updateSetSyncState(set.set_order, state.status)}
+                    userId={userId}
+                  />
+                )
+              })}
             </CardContent>
           </Card>
+
+          {isWorkoutFullyLogged ? (
+            <CompleteWorkoutButton
+              cycleId={snapshot.cycleId}
+              redirectTo={null}
+              userIdOverride={snapshot.userId}
+              workoutId={snapshot.workoutId}
+              onCompleted={() => setSnapshot(null)}
+              onQueued={markSnapshotCompletionQueued}
+            />
+          ) : null}
         </div>
       )}
     </main>

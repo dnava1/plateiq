@@ -73,8 +73,10 @@ self.addEventListener('fetch', (event) => {
 });
 
 async function handleNavigation(request, url) {
-  if (PUBLIC_DOCUMENTS.has(url.pathname)) {
-    return networkFirst(request, true);
+  const publicDocumentPath = getPublicDocumentPath(url.pathname);
+
+  if (publicDocumentPath) {
+    return networkFirst(request, true, publicDocumentPath);
   }
 
   try {
@@ -82,6 +84,22 @@ async function handleNavigation(request, url) {
   } catch {
     return caches.match(OFFLINE_URL);
   }
+}
+
+function getPublicDocumentPath(pathname) {
+  if (PUBLIC_DOCUMENTS.has(pathname)) {
+    return pathname;
+  }
+
+  if (pathname !== '/' && pathname.endsWith('/')) {
+    const normalizedPathname = pathname.slice(0, -1);
+
+    if (PUBLIC_DOCUMENTS.has(normalizedPathname)) {
+      return normalizedPathname;
+    }
+  }
+
+  return null;
 }
 
 async function precacheShell(cache) {
@@ -111,7 +129,7 @@ async function precacheShell(cache) {
   }
 }
 
-async function networkFirst(request, shouldCache) {
+async function networkFirst(request, shouldCache, fallbackPath) {
   const cache = await caches.open(CACHE_VERSION);
 
   try {
@@ -119,12 +137,18 @@ async function networkFirst(request, shouldCache) {
 
     if (shouldCache && response.ok) {
       void cache.put(request, response.clone());
+
+      if (fallbackPath) {
+        void cache.put(fallbackPath, response.clone());
+      }
     }
 
     return response;
   } catch {
     const cachedResponse = await cache.match(request);
-    return cachedResponse || caches.match(OFFLINE_URL);
+    const fallbackResponse = fallbackPath ? await cache.match(fallbackPath) : null;
+
+    return cachedResponse || fallbackResponse || caches.match(OFFLINE_URL);
   }
 }
 

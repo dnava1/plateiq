@@ -192,7 +192,7 @@
   h3,
   h4 {
     @apply font-heading;
-    letter-spacing: -0.04em;
+    letter-spacing: 0;
   }
   ::selection {
     background: oklch(0.720 0.180 43 / 0.24);
@@ -235,7 +235,7 @@
     @apply flex flex-col gap-4 md:flex-row md:items-end md:justify-between;
   }
   .page-title {
-    @apply text-3xl font-semibold tracking-[-0.08em] text-foreground md:text-4xl;
+    @apply text-3xl font-semibold tracking-normal text-foreground md:text-4xl;
   }
   .page-copy {
     @apply max-w-2xl text-sm leading-6 text-muted-foreground md:text-[15px];

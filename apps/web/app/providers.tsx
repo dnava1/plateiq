@@ -17,9 +17,11 @@ import {
 import {
   clearActiveWorkoutSnapshot,
   getOfflineWorkoutOutboxEntryId,
+  markOfflineWorkoutPackWorkoutCompleted,
   markOfflineWorkoutOutboxEntryFailed,
   markOfflineWorkoutOutboxEntrySynced,
 } from '@/lib/offline-workout-store'
+import { drainOfflineWorkoutOutbox } from '@/lib/offline-workout-sync'
 import {
   completeWorkoutMutation,
   ensureWorkoutMutation,
@@ -128,7 +130,10 @@ function makeQueryClient(scope: string) {
           input.userId,
           getOfflineWorkoutOutboxEntryId('workout-complete', input.workoutId),
         ).catch(() => undefined)
-        void clearActiveWorkoutSnapshot(input.userId).catch(() => undefined)
+        void Promise.all([
+          clearActiveWorkoutSnapshot(input.userId),
+          markOfflineWorkoutPackWorkoutCompleted(input.userId, input.workoutId),
+        ]).catch(() => undefined)
       }
       useWorkoutSessionStore.getState().completeWorkoutSession(input.workoutId)
       queryClient.invalidateQueries({ queryKey: ['workouts'] })
@@ -288,7 +293,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
         maxAge: QUERY_CACHE_MAX_AGE,
       }}
       onSuccess={() => {
-        void queryClient.resumePausedMutations()
+        void (async () => {
+          await queryClient.resumePausedMutations()
+          await drainOfflineWorkoutOutbox({
+            queryClient,
+            supabase,
+            userId: authScope,
+          })
+        })().catch(() => undefined)
       }}
     >
       {content}

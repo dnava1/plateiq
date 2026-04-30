@@ -8,6 +8,7 @@ import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { buildExerciseKeyMap, resolveExerciseIdFromMap, useExercises } from '@/hooks/useExercises'
 import { useScreenWakeLock } from '@/hooks/useScreenWakeLock'
+import { useOfflineWorkoutSync } from '@/hooks/useOfflineWorkoutSync'
 import { useCurrentTrainingMaxes } from '@/hooks/useTrainingMaxes'
 import { useUser } from '@/hooks/useUser'
 import {
@@ -22,7 +23,7 @@ import {
 } from '@/hooks/useWorkouts'
 import type { TrainingProgram } from '@/hooks/usePrograms'
 import { generateWorkoutPlan } from '@/lib/constants/templates/engine'
-import { getActiveWorkoutSnapshot, saveActiveWorkoutSnapshot } from '@/lib/offline-workout-store'
+import { getActiveWorkoutSnapshot, saveActiveWorkoutSnapshot, type OfflineWorkoutOutboxEntry } from '@/lib/offline-workout-store'
 import { resolveProgramDays } from '@/lib/programs/week'
 import { getPendingMutationCount } from '@/lib/query-persistence'
 import { cn, formatDate, formatExerciseKey, formatWeight, roundToIncrement } from '@/lib/utils'
@@ -121,6 +122,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null)
   const [editingPercentageValue, setEditingPercentageValue] = useState('')
   const wakeLockStatus = useScreenWakeLock(Boolean(activeWorkoutId))
+  const offlineSync = useOfflineWorkoutSync(userId)
 
   const trainingMaxMap = useMemo(() => buildTrainingMaxMap(trainingMaxes), [trainingMaxes])
   const exerciseKeyMap = useMemo(() => buildExerciseKeyMap(exercises), [exercises])
@@ -292,6 +294,35 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
   const isRestComplete = remainingRestSeconds === 0 && isRestTimerForCurrentWorkout
   const completedCount = execution.completedSets
   const isCompletionQueued = pendingCompletionWorkoutId === activeWorkoutId
+  const outboxEntryBySetOrder = useMemo(() => {
+    const entries = new Map<number, OfflineWorkoutOutboxEntry>()
+
+    for (const entry of offlineSync.entries) {
+      if (entry.kind === 'set-log' && entry.workoutId === activeWorkoutId && entry.setOrder !== null) {
+        entries.set(entry.setOrder, entry)
+      }
+    }
+
+    return entries
+  }, [activeWorkoutId, offlineSync.entries])
+
+  const getEffectiveSetSyncState = (setOrder: number) => {
+    const outboxEntry = outboxEntryBySetOrder.get(setOrder)
+
+    if (outboxEntry?.status === 'failed') {
+      return 'error' as const
+    }
+
+    if (outboxEntry?.status === 'queued') {
+      return 'queued' as const
+    }
+
+    if (outboxEntry?.status === 'syncing') {
+      return 'dirty' as const
+    }
+
+    return syncStates[setOrder]?.status
+  }
 
   useEffect(() => {
     if (!userId || !activeWorkoutId || !cycleId || !selectedDay || effectiveDayIndex < 0) {
@@ -311,7 +342,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
         lastFailureReason: existingSnapshot?.lastFailureReason ?? null,
         lastSuccessfulSyncAt: existingSnapshot?.lastSuccessfulSyncAt ?? null,
         pendingCompletionWorkoutId,
-        pendingMutationCount: getPendingMutationCount(queryClient),
+        pendingMutationCount: Math.max(getPendingMutationCount(queryClient), offlineSync.entries.length),
         program: {
           config: program.config,
           id: program.id,
@@ -335,6 +366,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
     effectiveDayIndex,
     effectiveWeekNumber,
     fallbackCycle?.cycle_number,
+    offlineSync.entries.length,
     pendingCompletionWorkoutId,
     program.config,
     program.id,
@@ -532,20 +564,30 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
               </div>
             </div>
           ) : null}
-          {block.sets.map((set) => (
-            <SetRow
-              autoStartRestTimer={shouldAutoStartRestTimer(execution, set.set_order)}
-              key={set.set_order}
-              anchorId={`workout-set-${set.set_order}`}
-              hasRemainingWorkAfterSet={hasRemainingPendingWork(execution, set.set_order)}
-              isNextUp={nextSet?.set_order === set.set_order}
-              layout="default"
-              set={set}
-              syncState={syncStates[set.set_order]?.status}
-              onSyncStateChange={(state) => setSyncState(set.set_order, state)}
-              userId={userId ?? ''}
-            />
-          ))}
+          {block.sets.map((set) => {
+            const outboxEntry = outboxEntryBySetOrder.get(set.set_order)
+
+            return (
+              <SetRow
+                autoStartRestTimer={shouldAutoStartRestTimer(execution, set.set_order)}
+                key={set.set_order}
+                anchorId={`workout-set-${set.set_order}`}
+                hasRemainingWorkAfterSet={hasRemainingPendingWork(execution, set.set_order)}
+                isNextUp={nextSet?.set_order === set.set_order}
+                layout="default"
+                set={set}
+                syncError={outboxEntry?.lastError}
+                syncRetryCount={outboxEntry?.retryCount}
+                syncState={getEffectiveSetSyncState(set.set_order)}
+                onRetrySync={outboxEntry ? offlineSync.retrySync : undefined}
+                onSyncStateChange={(state) => {
+                  setSyncState(set.set_order, state)
+                  window.setTimeout(offlineSync.refresh, 0)
+                }}
+                userId={userId ?? ''}
+              />
+            )
+          })}
           <PlateBreakdownInline weightsLbs={distinctWeightsLbs} />
         </CardContent>
       </Card>
@@ -554,7 +596,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <OfflineSyncBanner />
+      <OfflineSyncBanner sync={offlineSync} />
 
       <Card className="surface-panel">
         <CardHeader className="gap-3">
@@ -699,8 +741,14 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
                 hasRemainingWorkAfterSet={hasRemainingPendingWork(execution, nextSet.set_order)}
                 layout="focus"
                 set={nextSet}
-                syncState={syncStates[nextSet.set_order]?.status}
-                onSyncStateChange={(state) => setSyncState(nextSet.set_order, state)}
+                syncError={outboxEntryBySetOrder.get(nextSet.set_order)?.lastError}
+                syncRetryCount={outboxEntryBySetOrder.get(nextSet.set_order)?.retryCount}
+                syncState={getEffectiveSetSyncState(nextSet.set_order)}
+                onRetrySync={outboxEntryBySetOrder.has(nextSet.set_order) ? offlineSync.retrySync : undefined}
+                onSyncStateChange={(state) => {
+                  setSyncState(nextSet.set_order, state)
+                  window.setTimeout(offlineSync.refresh, 0)
+                }}
                 userId={userId ?? ''}
               />
             </div>

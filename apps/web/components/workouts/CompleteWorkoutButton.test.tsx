@@ -85,6 +85,7 @@ describe('CompleteWorkoutButton', () => {
 
   it('keeps the active workout session when completion is queued offline', async () => {
     const user = userEvent.setup()
+    const onQueued = vi.fn()
     const originalOnline = navigator.onLine
 
     Object.defineProperty(window.navigator, 'onLine', {
@@ -92,11 +93,12 @@ describe('CompleteWorkoutButton', () => {
       value: false,
     })
 
-    render(<CompleteWorkoutButton cycleId={9} workoutId={44} />)
+    render(<CompleteWorkoutButton cycleId={9} workoutId={44} onQueued={onQueued} />)
 
     await user.click(screen.getByRole('button', { name: /complete workout/i }))
 
     expect(mocks.queueWorkoutCompletion).toHaveBeenCalledWith(44)
+    expect(onQueued).toHaveBeenCalled()
     expect(mocks.completeWorkoutSession).not.toHaveBeenCalled()
     expect(mocks.replace).not.toHaveBeenCalled()
 
@@ -104,5 +106,34 @@ describe('CompleteWorkoutButton', () => {
       configurable: true,
       value: originalOnline,
     })
+  })
+
+  it('supports an overridden user id and disables redirect for embedded completion flows', async () => {
+    const user = userEvent.setup()
+    const onCompleted = vi.fn()
+
+    render(
+      <CompleteWorkoutButton
+        cycleId={9}
+        redirectTo={null}
+        userIdOverride="session-user"
+        workoutId={44}
+        onCompleted={onCompleted}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /complete workout/i }))
+
+    const options = mocks.mutate.mock.calls[0]?.[1] as { onSuccess: () => void }
+    options.onSuccess()
+
+    expect(mocks.mutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'session-user',
+      }),
+      expect.any(Object),
+    )
+    expect(onCompleted).toHaveBeenCalled()
+    expect(mocks.replace).not.toHaveBeenCalled()
   })
 })

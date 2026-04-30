@@ -33,6 +33,8 @@ interface SetRowProps {
   isNextUp?: boolean
   layout?: 'default' | 'focus'
   set: WorkoutDisplaySet
+  syncError?: string | null
+  syncRetryCount?: number
   syncState?: SetSyncState['status']
   onLocalSetLogged?: (entry: {
     actualRpe: number | null
@@ -40,6 +42,7 @@ interface SetRowProps {
     setOrder: number
     weightLbs: number
   }) => void
+  onRetrySync?: () => Promise<void>
   onSyncStateChange?: (state: SetSyncState) => void
   userId: string
 }
@@ -91,8 +94,11 @@ export function SetRow({
   isNextUp = false,
   layout = 'default',
   set,
+  syncError,
+  syncRetryCount = 0,
   syncState,
   onLocalSetLogged,
+  onRetrySync,
   onSyncStateChange,
   userId,
 }: SetRowProps) {
@@ -223,6 +229,11 @@ export function SetRow({
           }
         },
         onError: (error) => {
+          if (typeof navigator !== 'undefined' && !navigator.onLine) {
+            updateSyncState('queued')
+            return
+          }
+
           updateSyncState('error')
           toast.error(error.message)
         },
@@ -326,6 +337,19 @@ export function SetRow({
           </Button>
         )}
       </div>
+
+      {syncState === 'error' && syncError ? (
+        <div className="flex flex-col gap-2 rounded-[18px] border border-destructive/25 bg-destructive/8 p-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <span>
+            Sync failed: {syncError}{syncRetryCount > 0 ? ` (${syncRetryCount} ${syncRetryCount === 1 ? 'retry' : 'retries'})` : ''}
+          </span>
+          {onRetrySync ? (
+            <Button type="button" size="sm" variant="outline" onClick={() => void onRetrySync()}>
+              Retry sync
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
 
       {showSetEntry ? (
         <SetEntry

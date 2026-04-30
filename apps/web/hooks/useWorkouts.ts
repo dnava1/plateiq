@@ -19,7 +19,9 @@ import { isWeightRoundingLbs, resolveWeightRoundingLbs } from '@/lib/utils'
 import { collectProgramExerciseKeys } from '@/lib/programs/week'
 import {
   createOfflineWorkoutOutboxEntry,
+  clearActiveWorkoutSnapshot,
   getOfflineWorkoutOutboxEntryId,
+  markOfflineWorkoutPackWorkoutCompleted,
   markOfflineWorkoutOutboxEntryFailed,
   markOfflineWorkoutOutboxEntrySynced,
   upsertOfflineWorkoutOutboxEntry,
@@ -180,6 +182,10 @@ function parseProgramConfig(config: Json | null): ProgramConfig {
 
 function dedupeStrings(values: Array<string | undefined>) {
   return Array.from(new Set(values.filter((value): value is string => Boolean(value))))
+}
+
+function isBrowserOffline() {
+  return typeof navigator !== 'undefined' && !navigator.onLine
 }
 
 function getUniqueSortedExerciseIds(exerciseIds: Array<number | null | undefined> | readonly number[]) {
@@ -708,6 +714,10 @@ export function useLogSet() {
       )
     },
     onError: (error, input, context) => {
+      if (isBrowserOffline()) {
+        return
+      }
+
       markWorkoutOutboxFailed(
         input.userId,
         getOfflineWorkoutOutboxEntryId('set-log', input.workoutId, input.setOrder),
@@ -773,6 +783,10 @@ export function useUpdateWorkoutBlockPrescription() {
       )
     },
     onError: (error, input, context) => {
+      if (isBrowserOffline()) {
+        return
+      }
+
       markWorkoutOutboxFailed(
         input.userId,
         getOfflineWorkoutOutboxEntryId('prescription-update', input.workoutId),
@@ -828,8 +842,18 @@ export function useCompleteWorkout() {
         input.userId,
         getOfflineWorkoutOutboxEntryId('workout-complete', input.workoutId),
       )
+      if (input.userId) {
+        void Promise.all([
+          clearActiveWorkoutSnapshot(input.userId),
+          markOfflineWorkoutPackWorkoutCompleted(input.userId, input.workoutId),
+        ]).catch(() => undefined)
+      }
     },
     onError: (error, input, context) => {
+      if (isBrowserOffline()) {
+        return
+      }
+
       markWorkoutOutboxFailed(
         input.userId,
         getOfflineWorkoutOutboxEntryId('workout-complete', input.workoutId),

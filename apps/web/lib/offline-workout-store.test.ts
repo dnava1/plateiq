@@ -1,17 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearActiveWorkoutSnapshot,
+  clearOfflineWorkoutPack,
   createOfflineWorkoutOutboxEntry,
+  createOfflineWorkoutSnapshotFromPackWorkout,
   getActiveWorkoutSnapshot,
   getActiveWorkoutSnapshotKey,
   getLastSnapshotUserId,
+  getOfflineWorkoutPack,
+  getOfflineWorkoutPackKey,
   getOfflineWorkoutOutboxEntries,
   getOfflineWorkoutOutboxEntryId,
   getOfflineWorkoutOutboxKey,
   markOfflineWorkoutOutboxEntryFailed,
   markOfflineWorkoutOutboxEntrySynced,
+  markOfflineWorkoutPackWorkoutCompleted,
   saveActiveWorkoutSnapshot,
+  saveOfflineWorkoutPack,
   upsertOfflineWorkoutOutboxEntry,
+  type OfflineWorkoutPack,
   type OfflineWorkoutSnapshot,
 } from './offline-workout-store'
 
@@ -61,6 +68,38 @@ function createSnapshot(): OfflineWorkoutSnapshot {
   }
 }
 
+function createWorkoutPack(): OfflineWorkoutPack {
+  return {
+    activeCycle: {
+      cycleNumber: 1,
+      id: 9,
+    },
+    program: {
+      config: null,
+      id: 2,
+      name: 'Program',
+      template_key: 'wendler-531',
+    },
+    savedAt: '2026-04-29T12:00:00.000Z',
+    suggested: {
+      dayIndex: 0,
+      weekNumber: 1,
+    },
+    userId: 'user-123',
+    version: 1,
+    workouts: [
+      {
+        completedAt: null,
+        dayIndex: 0,
+        dayLabel: 'Squat Day',
+        sets: [],
+        weekNumber: 1,
+        workoutId: 44,
+      },
+    ],
+  }
+}
+
 describe('offline workout store', () => {
   beforeEach(() => {
     delMock.mockReset()
@@ -90,6 +129,52 @@ describe('offline workout store', () => {
 
     expect(delMock).toHaveBeenCalledWith(getActiveWorkoutSnapshotKey('user-123'))
     expect(getLastSnapshotUserId()).toBeNull()
+  })
+
+  it('stores a user-scoped workout pack and can convert a saved workout into a snapshot', async () => {
+    const pack = createWorkoutPack()
+    getMock.mockResolvedValue(pack)
+
+    await saveOfflineWorkoutPack(pack)
+    const restored = await getOfflineWorkoutPack('user-123')
+    const snapshot = createOfflineWorkoutSnapshotFromPackWorkout(pack, pack.workouts[0]!)
+    await clearOfflineWorkoutPack('user-123')
+
+    expect(setMock).toHaveBeenCalledWith(getOfflineWorkoutPackKey('user-123'), pack)
+    expect(getMock).toHaveBeenCalledWith(getOfflineWorkoutPackKey('user-123'))
+    expect(restored).toEqual(pack)
+    expect(snapshot).toMatchObject({
+      activeDayIndex: 0,
+      activeWeekNumber: 1,
+      cycleId: 9,
+      dayLabel: 'Squat Day',
+      userId: 'user-123',
+      workoutId: 44,
+    })
+    expect(delMock).toHaveBeenCalledWith(getOfflineWorkoutPackKey('user-123'))
+  })
+
+  it('marks packed workouts complete and blocks resuming completed packed sessions', async () => {
+    const pack = createWorkoutPack()
+    getMock.mockResolvedValue(pack)
+
+    await markOfflineWorkoutPackWorkoutCompleted('user-123', 44, '2026-04-29T13:00:00.000Z')
+
+    expect(setMock).toHaveBeenCalledWith(
+      getOfflineWorkoutPackKey('user-123'),
+      expect.objectContaining({
+        workouts: [
+          expect.objectContaining({
+            completedAt: '2026-04-29T13:00:00.000Z',
+            workoutId: 44,
+          }),
+        ],
+      }),
+    )
+    expect(createOfflineWorkoutSnapshotFromPackWorkout(pack, {
+      ...pack.workouts[0]!,
+      completedAt: '2026-04-29T13:00:00.000Z',
+    })).toBeNull()
   })
 
   it('upserts and lists outbox entries by creation time', async () => {
@@ -149,4 +234,3 @@ describe('offline workout store', () => {
     expect(getOfflineWorkoutOutboxEntryId('set-log', 44, 2)).toBe(entry.id)
   })
 })
-
