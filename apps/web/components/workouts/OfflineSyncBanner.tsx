@@ -1,12 +1,16 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useMutationState } from '@tanstack/react-query'
+import { useMutationState, useQueryClient } from '@tanstack/react-query'
 import { CloudOff, RefreshCw } from 'lucide-react'
 import { workoutMutationKeys } from '@/hooks/useWorkouts'
+import { flushPendingMutations } from '@/lib/query-persistence'
+import { Button } from '@/components/ui/button'
 
 export function OfflineSyncBanner() {
-  const [isOnline, setIsOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine)
+  const queryClient = useQueryClient()
+  const [isOnline, setIsOnline] = useState(true)
+  const [isRetrying, setIsRetrying] = useState(false)
   const pendingSetMutations = useMutationState({
     filters: { mutationKey: workoutMutationKeys.logSet(), status: 'pending' },
   })
@@ -15,6 +19,10 @@ export function OfflineSyncBanner() {
   })
 
   useEffect(() => {
+    const initialStatusId = window.setTimeout(() => {
+      setIsOnline(navigator.onLine)
+    }, 0)
+
     const handleOnline = () => setIsOnline(true)
     const handleOffline = () => setIsOnline(false)
 
@@ -22,6 +30,7 @@ export function OfflineSyncBanner() {
     window.addEventListener('offline', handleOffline)
 
     return () => {
+      window.clearTimeout(initialStatusId)
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
@@ -29,6 +38,16 @@ export function OfflineSyncBanner() {
 
   const pendingCount = pendingSetMutations.length + pendingCompletionMutations.length
   const isSyncing = isOnline && pendingCount > 0
+
+  const retrySync = async () => {
+    setIsRetrying(true)
+
+    try {
+      await flushPendingMutations(queryClient)
+    } finally {
+      setIsRetrying(false)
+    }
+  }
 
   if (isOnline && !isSyncing) {
     return null
@@ -40,8 +59,21 @@ export function OfflineSyncBanner() {
       <span>
         {isOnline
           ? `Syncing ${pendingCount} ${pendingCount === 1 ? 'change' : 'changes'}...`
-          : 'Offline mode — sets will sync when connected'}
+          : 'Offline mode - sets will sync when connected'}
       </span>
+      {isOnline ? (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="ml-auto"
+          onClick={() => void retrySync()}
+          disabled={isRetrying}
+        >
+          <RefreshCw className={isRetrying ? 'animate-spin motion-reduce:animate-none' : undefined} />
+          Retry
+        </Button>
+      ) : null}
     </div>
   )
 }

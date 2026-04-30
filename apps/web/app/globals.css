@@ -49,19 +49,15 @@
 }
 
 :root {
-  --app-background-image:
-    radial-gradient(circle at top, oklch(0.720 0.180 43 / 0.16), transparent 34%),
-    radial-gradient(circle at bottom right, oklch(0.420 0.030 255 / 0.24), transparent 28%);
-  --app-overscroll-background:
+  --app-background-canvas:
     linear-gradient(
       180deg,
       oklch(0.940 0.030 55) 0%,
-      var(--background) 24%,
-      var(--background) 70%,
+      var(--background) 34%,
+      var(--background) 68%,
       oklch(0.930 0.004 285) 100%
     );
-  --app-bottom-edge-background:
-    linear-gradient(180deg, transparent 0%, oklch(0.930 0.004 285) 72%);
+  --app-bottom-edge-color: oklch(0.930 0.004 285);
   --pwa-theme-color: #fafafc;
   --background: oklch(0.985 0.003 285);
   --foreground: oklch(0.190 0.008 285);
@@ -98,16 +94,15 @@
 }
 
 .dark {
-  --app-overscroll-background:
+  --app-background-canvas:
     linear-gradient(
       180deg,
       oklch(0.260 0.048 43) 0%,
-      var(--background) 24%,
-      var(--background) 70%,
-      oklch(0.170 0.007 270) 100%
+      var(--background) 34%,
+      var(--background) 68%,
+      oklch(0.220 0.009 270) 100%
     );
-  --app-bottom-edge-background:
-    linear-gradient(180deg, transparent 0%, oklch(0.170 0.007 270) 72%);
+  --app-bottom-edge-color: oklch(0.220 0.009 270);
   --pwa-theme-color: #06070a;
   --background: oklch(0.130 0.006 270);
   --foreground: oklch(0.965 0.002 285);
@@ -158,13 +153,10 @@
     cursor: not-allowed;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
     isolation: isolate;
     min-height: 100dvh;
-    background-color: var(--background);
-    background-image: var(--app-background-image), var(--app-overscroll-background);
-    background-repeat: no-repeat;
-    background-size: cover;
+    background: var(--app-background-canvas);
     overscroll-behavior-y: none;
     position: relative;
   }
@@ -172,12 +164,9 @@
     content: "";
     pointer-events: none;
     position: fixed;
-    inset: -45dvh 0;
-    z-index: 0;
-    background-color: var(--background);
-    background-image: var(--app-background-image), var(--app-overscroll-background);
-    background-repeat: no-repeat;
-    background-size: cover;
+    inset: 0;
+    z-index: -1;
+    background: var(--app-background-canvas);
     transform: translateZ(0);
   }
   body::after {
@@ -185,25 +174,17 @@
     pointer-events: none;
     position: fixed;
     inset-inline: 0;
-    bottom: -1px;
-    z-index: 0;
-    height: calc(env(safe-area-inset-bottom) + 4rem);
-    background: var(--app-bottom-edge-background);
+    bottom: 0;
+    z-index: -1;
+    height: env(safe-area-inset-bottom);
+    background: var(--app-bottom-edge-color);
     transform: translateZ(0);
   }
-  body > * {
-    position: relative;
-    z-index: 1;
-  }
   html {
-    @apply bg-background font-sans antialiased;
+    @apply font-sans antialiased;
     min-height: 100%;
-    background-color: var(--background);
-    background-image: var(--app-background-image), var(--app-overscroll-background);
-    background-repeat: no-repeat;
-    background-size: cover;
+    background: var(--app-background-canvas);
     overscroll-behavior-y: none;
-    scrollbar-gutter: stable;
     transition: background-color 0.15s ease, color 0.15s ease;
   }
   h1,
@@ -229,12 +210,23 @@
     padding-bottom: calc(env(safe-area-inset-bottom) + 7rem);
   }
   .auth-shell {
-    @apply relative flex items-center justify-center overflow-x-clip px-4;
+    @apply relative flex items-center justify-center px-4;
+    isolation: isolate;
     min-height: 100vh;
     min-height: 100svh;
     min-height: 100dvh;
     padding-top: calc(env(safe-area-inset-top) + 2.5rem);
     padding-bottom: calc(env(safe-area-inset-bottom) + 2.5rem);
+  }
+  .auth-content {
+    @apply relative flex w-full max-w-5xl flex-col gap-6;
+  }
+  .auth-panel {
+    @apply rounded-[32px] border border-border/70 bg-background/86 backdrop-blur-xl;
+    box-shadow: 0 18px 60px -54px rgba(15, 23, 42, 0.34);
+  }
+  .dark .auth-panel {
+    box-shadow: 0 24px 80px -56px rgba(0, 0, 0, 0.7);
   }
   .page-shell {
     @apply mx-auto flex w-full flex-col gap-6 md:gap-8;

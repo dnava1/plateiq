@@ -43,10 +43,11 @@ export async function updateSession(request: NextRequest) {
 
   const isRemovedAuthRoute = pathname === '/login' || pathname === '/create-account'
   const isContinueRoute = pathname === '/continue'
+  const isGymRoute = pathname === '/gym'
   const isUpgradeRoute = pathname === '/upgrade'
   const isLegalRoute = pathname === '/legal'
   const isCallbackRoute = pathname.startsWith('/auth/callback')
-  const isPublicRoute = pathname === '/' || isContinueRoute || isCallbackRoute || isLegalRoute
+  const isPublicRoute = pathname === '/' || isContinueRoute || isCallbackRoute || isGymRoute || isLegalRoute
 
   if (isRemovedAuthRoute) {
     const url = request.nextUrl.clone()

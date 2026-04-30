@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { AlertCircle, ArrowLeft, CircleCheckBig } from 'lucide-react'
 import { toast } from 'sonner'
 import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { buildExerciseKeyMap, resolveExerciseIdFromMap, useExercises } from '@/hooks/useExercises'
+import { useScreenWakeLock } from '@/hooks/useScreenWakeLock'
 import { useCurrentTrainingMaxes } from '@/hooks/useTrainingMaxes'
 import { useUser } from '@/hooks/useUser'
 import {
@@ -20,7 +22,9 @@ import {
 } from '@/hooks/useWorkouts'
 import type { TrainingProgram } from '@/hooks/usePrograms'
 import { generateWorkoutPlan } from '@/lib/constants/templates/engine'
+import { getActiveWorkoutSnapshot, saveActiveWorkoutSnapshot } from '@/lib/offline-workout-store'
 import { resolveProgramDays } from '@/lib/programs/week'
+import { getPendingMutationCount } from '@/lib/query-persistence'
 import { cn, formatDate, formatExerciseKey, formatWeight, roundToIncrement } from '@/lib/utils'
 import { useWorkoutSessionStore } from '@/store/workoutSessionStore'
 import { Badge } from '@/components/ui/badge'
@@ -85,6 +89,7 @@ function getExecutionGroupDescription(kind: 'superset' | 'circuit') {
 }
 
 export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
+  const queryClient = useQueryClient()
   const { data: user } = useUser()
   const userId = user?.id ?? null
   const { data: exercises } = useExercises()
@@ -102,6 +107,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
   const activeWeekNumber = useWorkoutSessionStore((state) => state.activeWeekNumber)
   const clearRestTimer = useWorkoutSessionStore((state) => state.clearRestTimer)
   const exitActiveWorkout = useWorkoutSessionStore((state) => state.exitActiveWorkout)
+  const pendingCompletionWorkoutId = useWorkoutSessionStore((state) => state.pendingCompletionWorkoutId)
   const restTimer = useWorkoutSessionStore((state) => state.restTimer)
   const startRestTimer = useWorkoutSessionStore((state) => state.startRestTimer)
   const syncStates = useWorkoutSessionStore((state) => state.syncStates)
@@ -114,6 +120,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
   const [timerNowMs, setTimerNowMs] = useState(() => Date.now())
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null)
   const [editingPercentageValue, setEditingPercentageValue] = useState('')
+  const wakeLockStatus = useScreenWakeLock(Boolean(activeWorkoutId))
 
   const trainingMaxMap = useMemo(() => buildTrainingMaxMap(trainingMaxes), [trainingMaxes])
   const exerciseKeyMap = useMemo(() => buildExerciseKeyMap(exercises), [exercises])
@@ -284,6 +291,61 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
     : null
   const isRestComplete = remainingRestSeconds === 0 && isRestTimerForCurrentWorkout
   const completedCount = execution.completedSets
+  const isCompletionQueued = pendingCompletionWorkoutId === activeWorkoutId
+
+  useEffect(() => {
+    if (!userId || !activeWorkoutId || !cycleId || !selectedDay || effectiveDayIndex < 0) {
+      return
+    }
+
+    void (async () => {
+      const existingSnapshot = await getActiveWorkoutSnapshot(userId)
+
+      await saveActiveWorkoutSnapshot({
+        activeDayIndex: effectiveDayIndex,
+        activeWeekNumber: effectiveWeekNumber,
+        completedAt: currentWorkout?.completed_at ?? null,
+        cycleId,
+        cycleNumber: fallbackCycle?.cycle_number ?? null,
+        dayLabel: selectedDay.label,
+        lastFailureReason: existingSnapshot?.lastFailureReason ?? null,
+        lastSuccessfulSyncAt: existingSnapshot?.lastSuccessfulSyncAt ?? null,
+        pendingCompletionWorkoutId,
+        pendingMutationCount: getPendingMutationCount(queryClient),
+        program: {
+          config: program.config,
+          id: program.id,
+          name: program.name,
+          template_key: program.template_key,
+        },
+        restTimer,
+        savedAt: new Date().toISOString(),
+        sets: displaySets,
+        syncStates,
+        userId,
+        version: 1,
+        workoutId: activeWorkoutId,
+      })
+    })().catch(() => undefined)
+  }, [
+    activeWorkoutId,
+    currentWorkout?.completed_at,
+    cycleId,
+    displaySets,
+    effectiveDayIndex,
+    effectiveWeekNumber,
+    fallbackCycle?.cycle_number,
+    pendingCompletionWorkoutId,
+    program.config,
+    program.id,
+    program.name,
+    program.template_key,
+    queryClient,
+    restTimer,
+    selectedDay,
+    syncStates,
+    userId,
+  ])
 
   const openWorkoutPercentageEditor = (block: WorkoutDisplayBlock) => {
     const editableBlock = getEditablePercentageBlock(block)
@@ -505,6 +567,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
                 <Badge variant="outline">
                   {execution.completedBlocks}/{execution.totalBlocks} blocks
                 </Badge>
+                {wakeLockStatus === 'active' ? <Badge variant="outline">Screen awake</Badge> : null}
               </div>
               <CardDescription>
                 {completedCount} of {displaySets.length} planned sets logged.
@@ -671,6 +734,13 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
         <div className="flex items-center gap-2 rounded-[22px] border border-border/70 bg-card/60 px-4 py-3 text-sm text-muted-foreground">
           <CircleCheckBig className="text-emerald-600 dark:text-emerald-400" />
           All prescribed sets are logged. Ready to finish the workout.
+        </div>
+      ) : null}
+
+      {isCompletionQueued ? (
+        <div className="flex items-center gap-2 rounded-[22px] border border-primary/25 bg-primary/8 px-4 py-3 text-sm text-muted-foreground">
+          <CircleCheckBig className="text-primary" />
+          Workout completion is queued and will finalize when the connection returns.
         </div>
       ) : null}
 

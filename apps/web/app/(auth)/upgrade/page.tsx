@@ -223,7 +223,7 @@ function UpgradePageContent() {
 
   if (!user && !isLoading && !shouldAutoRetry && action === null) {
     return (
-      <div className="animate-scale-in rounded-[32px] border border-border/70 bg-background/82 p-8 shadow-[0_36px_110px_-52px_rgba(0,0,0,0.92)] backdrop-blur-xl">
+      <div className="auth-panel animate-scale-in p-8">
         <div className="flex flex-col gap-4">
           <h1 className="text-2xl font-semibold tracking-[-0.06em] text-foreground">Google sign-in unavailable</h1>
           <p className="text-sm leading-6 text-muted-foreground">
@@ -238,7 +238,7 @@ function UpgradePageContent() {
   }
 
   return (
-    <div className={`mx-auto w-full max-w-xl rounded-[32px] border border-border/70 bg-background/82 p-6 shadow-[0_36px_110px_-52px_rgba(0,0,0,0.92)] backdrop-blur-xl sm:p-8 ${hasExistingAccountRetry ? '' : 'animate-scale-in'}`}>
+    <div className={`auth-panel mx-auto w-full max-w-xl p-6 sm:p-8 ${hasExistingAccountRetry ? '' : 'animate-scale-in'}`}>
       <section className="flex flex-col gap-6">
         <div className="flex items-center gap-3">
           <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/12 text-primary ring-1 ring-primary/25">

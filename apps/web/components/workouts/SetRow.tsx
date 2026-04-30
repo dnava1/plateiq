@@ -34,6 +34,12 @@ interface SetRowProps {
   layout?: 'default' | 'focus'
   set: WorkoutDisplaySet
   syncState?: SetSyncState['status']
+  onLocalSetLogged?: (entry: {
+    actualRpe: number | null
+    repsActual: number
+    setOrder: number
+    weightLbs: number
+  }) => void
   onSyncStateChange?: (state: SetSyncState) => void
   userId: string
 }
@@ -86,6 +92,7 @@ export function SetRow({
   layout = 'default',
   set,
   syncState,
+  onLocalSetLogged,
   onSyncStateChange,
   userId,
 }: SetRowProps) {
@@ -180,6 +187,12 @@ export function SetRow({
 
     updateSyncState(typeof navigator !== 'undefined' && navigator.onLine ? 'dirty' : 'queued')
     maybeStartRestTimer()
+    onLocalSetLogged?.({
+      actualRpe,
+      repsActual,
+      setOrder: set.set_order,
+      weightLbs,
+    })
 
     logSet.mutate(
       {

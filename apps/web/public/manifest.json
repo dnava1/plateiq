@@ -1,11 +1,11 @@
 {
-  "id": "/?source=pwa",
+  "id": "/gym",
   "name": "PlateIQ",
   "short_name": "PlateIQ",
   "description": "Track workouts, strength programs, analytics, and AI insights in one installable app.",
   "lang": "en-US",
   "dir": "ltr",
-  "start_url": "/dashboard?source=pwa",
+  "start_url": "/gym",
   "scope": "/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "browser"],
@@ -66,7 +66,7 @@
       "name": "Workouts",
       "short_name": "Workouts",
       "description": "Jump straight into your current workouts.",
-      "url": "/workouts"
+      "url": "/gym"
     },
     {
       "name": "Analytics",

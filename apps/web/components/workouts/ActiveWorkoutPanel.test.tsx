@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
     clearRestTimer: vi.fn(),
     clearSession: vi.fn(),
     exitActiveWorkout: vi.fn(),
+    pendingCompletionWorkoutId: null as number | null,
     restTimer: {
       durationSeconds: null,
       endsAt: null,
@@ -61,6 +62,14 @@ const mocks = vi.hoisted(() => ({
     set_order: number
     weight_lbs: number
   }>,
+}))
+
+vi.mock('@tanstack/react-query', () => ({
+  useQueryClient: () => ({
+    getMutationCache: () => ({
+      getAll: () => [],
+    }),
+  }),
 }))
 
 const mockGeneratedSets = [
@@ -183,8 +192,17 @@ vi.mock('@/hooks/useTrainingMaxes', () => ({
   useCurrentTrainingMaxes: () => ({ data: [] }),
 }))
 
+vi.mock('@/hooks/useScreenWakeLock', () => ({
+  useScreenWakeLock: () => 'unsupported',
+}))
+
 vi.mock('@/hooks/useUser', () => ({
   useUser: () => ({ data: { id: 'user-1' } }),
+}))
+
+vi.mock('@/lib/offline-workout-store', () => ({
+  getActiveWorkoutSnapshot: vi.fn().mockResolvedValue(null),
+  saveActiveWorkoutSnapshot: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock('@/hooks/useWorkouts', () => ({
@@ -270,6 +288,7 @@ describe('ActiveWorkoutPanel', () => {
       clearRestTimer: mocks.clearRestTimer,
       clearSession: mocks.clearSession,
       exitActiveWorkout: mocks.exitActiveWorkout,
+      pendingCompletionWorkoutId: null,
       restTimer: {
         durationSeconds: null,
         endsAt: null,

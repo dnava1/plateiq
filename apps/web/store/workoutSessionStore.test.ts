@@ -128,6 +128,18 @@ describe('workoutSessionStore', () => {
     })
   })
 
+  it('keeps queued completion state until the active workout is confirmed complete', () => {
+    useWorkoutSessionStore.getState().setActiveWorkout(44)
+    useWorkoutSessionStore.getState().queueWorkoutCompletion(44)
+
+    expect(useWorkoutSessionStore.getState().pendingCompletionWorkoutId).toBe(44)
+
+    useWorkoutSessionStore.getState().completeWorkoutSession(44)
+
+    expect(useWorkoutSessionStore.getState().pendingCompletionWorkoutId).toBeNull()
+    expect(useWorkoutSessionStore.getState().activeWorkoutId).toBeNull()
+  })
+
   it('migrates a persisted version 2 session without dropping resumable workout state', async () => {
     localStorage.setItem('plateiq-workout-session', JSON.stringify({
       state: {

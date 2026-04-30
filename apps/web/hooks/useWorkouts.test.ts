@@ -22,6 +22,29 @@ vi.mock('./useSupabase', () => ({
   useSupabase: () => useSupabaseMock(),
 }))
 
+vi.mock('@/lib/offline-workout-store', () => ({
+  createOfflineWorkoutOutboxEntry: vi.fn((input: { kind: string; setOrder?: number | null; workoutId: number }) => ({
+    createdAt: '2026-04-10T12:34:56.000Z',
+    id: input.setOrder === null || input.setOrder === undefined
+      ? `${input.kind}:${input.workoutId}`
+      : `${input.kind}:${input.workoutId}:${input.setOrder}`,
+    kind: input.kind,
+    lastError: null,
+    retryCount: 0,
+    setOrder: input.setOrder ?? null,
+    status: 'queued',
+    updatedAt: '2026-04-10T12:34:56.000Z',
+    variables: {},
+    workoutId: input.workoutId,
+  })),
+  getOfflineWorkoutOutboxEntryId: vi.fn((kind: string, workoutId: number, setOrder?: number | null) =>
+    setOrder === null || setOrder === undefined ? `${kind}:${workoutId}` : `${kind}:${workoutId}:${setOrder}`,
+  ),
+  markOfflineWorkoutOutboxEntryFailed: vi.fn().mockResolvedValue(undefined),
+  markOfflineWorkoutOutboxEntrySynced: vi.fn().mockResolvedValue(undefined),
+  upsertOfflineWorkoutOutboxEntry: vi.fn().mockResolvedValue(undefined),
+}))
+
 function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: {

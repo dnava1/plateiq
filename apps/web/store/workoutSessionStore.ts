@@ -28,9 +28,11 @@ interface WorkoutSessionState {
   activeCycleId: number | null
   activeDayIndex: number | null
   activeWeekNumber: number | null
+  pendingCompletionWorkoutId: number | null
   prToastLedger: Record<string, true>
   restTimer: RestTimerState
   syncStates: Record<number, SetSyncState>
+  clearPendingCompletion: () => void
   completeWorkoutSession: (workoutId: number) => void
   clearRestTimer: () => void
   exitActiveWorkout: () => void
@@ -38,6 +40,7 @@ interface WorkoutSessionState {
   markPrToastShown: (toastKey: string) => void
   setActiveWorkout: (id: number | null) => void
   setActiveContext: (context: { cycleId: number; dayIndex: number; weekNumber: number }) => void
+  queueWorkoutCompletion: (workoutId: number) => void
   setSyncState: (setOrder: number, state: SetSyncState) => void
   startRestTimer: (timer: {
     durationSeconds: number
@@ -54,6 +57,7 @@ type PersistedWorkoutSessionState = Pick<
   | 'activeCycleId'
   | 'activeDayIndex'
   | 'activeWeekNumber'
+  | 'pendingCompletionWorkoutId'
   | 'prToastLedger'
   | 'restTimer'
   | 'syncStates'
@@ -65,6 +69,7 @@ function createPersistedWorkoutSessionState(): PersistedWorkoutSessionState {
     activeCycleId: null,
     activeDayIndex: null,
     activeWeekNumber: null,
+    pendingCompletionWorkoutId: null,
     prToastLedger: {},
     restTimer: createEmptyRestTimer(),
     syncStates: {},
@@ -87,6 +92,7 @@ function normalizePersistedWorkoutSessionState(
     activeCycleId: persisted.activeCycleId ?? defaults.activeCycleId,
     activeDayIndex: persisted.activeDayIndex ?? defaults.activeDayIndex,
     activeWeekNumber: persisted.activeWeekNumber ?? defaults.activeWeekNumber,
+    pendingCompletionWorkoutId: persisted.pendingCompletionWorkoutId ?? defaults.pendingCompletionWorkoutId,
     prToastLedger: persisted.prToastLedger ?? defaults.prToastLedger,
     restTimer: {
       ...defaults.restTimer,
@@ -100,6 +106,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
   persist(
     (set, get) => ({
       ...createPersistedWorkoutSessionState(),
+      clearPendingCompletion: () => set({ pendingCompletionWorkoutId: null }),
       completeWorkoutSession: (workoutId) =>
         set((current) => {
           const isActiveWorkout = current.activeWorkoutId === workoutId
@@ -109,6 +116,9 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
             activeCycleId: isActiveWorkout ? null : current.activeCycleId,
             activeDayIndex: isActiveWorkout ? null : current.activeDayIndex,
             activeWeekNumber: isActiveWorkout ? null : current.activeWeekNumber,
+            pendingCompletionWorkoutId: current.pendingCompletionWorkoutId === workoutId
+              ? null
+              : current.pendingCompletionWorkoutId,
             prToastLedger: isActiveWorkout ? {} : current.prToastLedger,
             restTimer:
               isActiveWorkout || current.restTimer.workoutId === workoutId
@@ -135,6 +145,9 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
       setActiveWorkout: (activeWorkoutId) =>
         set((current) => ({
           activeWorkoutId,
+          pendingCompletionWorkoutId: current.pendingCompletionWorkoutId === activeWorkoutId
+            ? current.pendingCompletionWorkoutId
+            : null,
           restTimer:
             current.restTimer.workoutId !== null
             && activeWorkoutId !== null
@@ -148,6 +161,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
           activeDayIndex: context.dayIndex,
           activeWeekNumber: context.weekNumber,
         }),
+      queueWorkoutCompletion: (workoutId) => set({ pendingCompletionWorkoutId: workoutId }),
       setSyncState: (setOrder, state) =>
         set((current) => ({
           syncStates: {
@@ -172,7 +186,7 @@ export const useWorkoutSessionStore = create<WorkoutSessionState>()(
     }),
     {
       name: 'plateiq-workout-session',
-      version: 4,
+      version: 5,
       migrate: (persistedState) => normalizePersistedWorkoutSessionState(persistedState),
     }
   )

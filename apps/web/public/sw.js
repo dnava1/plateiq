@@ -17,15 +17,19 @@ const PRECACHE_URLS = [
   '/favicon-16x16.png',
   '/',
   '/continue',
+  '/gym',
   '/legal',
 ];
 
-const PUBLIC_DOCUMENTS = new Set(['/', '/continue', '/legal']);
+const PUBLIC_DOCUMENTS = new Set(['/', '/continue', '/gym', '/legal']);
 const STATIC_DESTINATIONS = new Set(['style', 'script', 'font', 'image']);
+const NEXT_STATIC_ASSET_PATTERN = /(?:src|href)="([^"]*\/_next\/static\/[^"]+)"/g;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) => cache.addAll(PRECACHE_URLS)).then(() => self.skipWaiting())
+    caches.open(CACHE_VERSION)
+      .then((cache) => precacheShell(cache))
+      .then(() => self.skipWaiting())
   );
 });
 
@@ -77,6 +81,33 @@ async function handleNavigation(request, url) {
     return await fetch(request);
   } catch {
     return caches.match(OFFLINE_URL);
+  }
+}
+
+async function precacheShell(cache) {
+  await cache.addAll(PRECACHE_URLS);
+
+  try {
+    const response = await fetch('/gym', { credentials: 'same-origin' });
+
+    if (!response.ok) {
+      return;
+    }
+
+    await cache.put('/gym', response.clone());
+    const html = await response.text();
+    const assetUrls = Array.from(html.matchAll(NEXT_STATIC_ASSET_PATTERN))
+      .map((match) => match[1])
+      .filter((assetUrl) => typeof assetUrl === 'string')
+      .map((assetUrl) => new URL(assetUrl, self.location.origin))
+      .filter((assetUrl) => assetUrl.origin === self.location.origin)
+      .map((assetUrl) => assetUrl.pathname + assetUrl.search);
+
+    if (assetUrls.length > 0) {
+      await cache.addAll(Array.from(new Set(assetUrls)));
+    }
+  } catch {
+    // The generic offline page still covers install-time cache misses.
   }
 }
 

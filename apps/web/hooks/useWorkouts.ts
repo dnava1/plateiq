@@ -17,6 +17,13 @@ import { dashboardQueryKeys } from '@/hooks/useDashboard'
 import { normalizeEditableProgramConfig } from '@/lib/programs/editable'
 import { isWeightRoundingLbs, resolveWeightRoundingLbs } from '@/lib/utils'
 import { collectProgramExerciseKeys } from '@/lib/programs/week'
+import {
+  createOfflineWorkoutOutboxEntry,
+  getOfflineWorkoutOutboxEntryId,
+  markOfflineWorkoutOutboxEntryFailed,
+  markOfflineWorkoutOutboxEntrySynced,
+  upsertOfflineWorkoutOutboxEntry,
+} from '@/lib/offline-workout-store'
 import { useSupabase } from './useSupabase'
 import type { TrainingProgram } from './usePrograms'
 import type { Database, Json, Tables } from '@/types/database'
@@ -56,6 +63,34 @@ export const workoutMutationKeys = {
   logSet: () => ['workout-set-upsert'] as const,
   updateWorkoutBlockPrescription: () => ['workout-set-prescription', 'update'] as const,
   completeWorkout: () => ['workout-complete'] as const,
+}
+
+export function queueWorkoutOutboxEntry(
+  userId: string | undefined,
+  input: Parameters<typeof createOfflineWorkoutOutboxEntry>[0],
+) {
+  if (!userId) {
+    return
+  }
+
+  const entry = createOfflineWorkoutOutboxEntry(input)
+  void upsertOfflineWorkoutOutboxEntry(userId, entry).catch(() => undefined)
+}
+
+export function markWorkoutOutboxSynced(userId: string | undefined, entryId: string) {
+  if (!userId) {
+    return
+  }
+
+  void markOfflineWorkoutOutboxEntrySynced(userId, entryId).catch(() => undefined)
+}
+
+export function markWorkoutOutboxFailed(userId: string | undefined, entryId: string, error: unknown) {
+  if (!userId) {
+    return
+  }
+
+  void markOfflineWorkoutOutboxEntryFailed(userId, entryId, error).catch(() => undefined)
 }
 
 interface ProgramConfig {
@@ -126,6 +161,7 @@ export interface UpdateWorkoutBlockPrescriptionInput {
 export interface CompleteWorkoutInput {
   workoutId: number
   cycleId: number
+  userId?: string
 }
 
 export interface ResolvedWorkoutProgram {
@@ -625,6 +661,12 @@ export function useLogSet() {
     onMutate: async (input) => {
       const queryKey = workoutQueryKeys.sets(input.workoutId)
       const now = new Date().toISOString()
+      queueWorkoutOutboxEntry(input.userId, {
+        kind: 'set-log',
+        setOrder: input.setOrder,
+        variables: input,
+        workoutId: input.workoutId,
+      })
 
       await queryClient.cancelQueries({ queryKey })
 
@@ -659,7 +701,18 @@ export function useLogSet() {
 
       return { previousSets }
     },
-    onError: (_error, input, context) => {
+    onSuccess: (_data, input) => {
+      markWorkoutOutboxSynced(
+        input.userId,
+        getOfflineWorkoutOutboxEntryId('set-log', input.workoutId, input.setOrder),
+      )
+    },
+    onError: (error, input, context) => {
+      markWorkoutOutboxFailed(
+        input.userId,
+        getOfflineWorkoutOutboxEntryId('set-log', input.workoutId, input.setOrder),
+        error,
+      )
       if (context?.previousSets) {
         queryClient.setQueryData(workoutQueryKeys.sets(input.workoutId), context.previousSets)
       }
@@ -684,6 +737,11 @@ export function useUpdateWorkoutBlockPrescription() {
     mutationFn: async (input: UpdateWorkoutBlockPrescriptionInput) => updateWorkoutBlockPrescriptionMutation(supabase, input),
     onMutate: async (input) => {
       const queryKey = workoutQueryKeys.sets(input.workoutId)
+      queueWorkoutOutboxEntry(input.userId, {
+        kind: 'prescription-update',
+        variables: input,
+        workoutId: input.workoutId,
+      })
 
       await queryClient.cancelQueries({ queryKey })
 
@@ -708,7 +766,18 @@ export function useUpdateWorkoutBlockPrescription() {
 
       return { previousSets }
     },
-    onError: (_error, input, context) => {
+    onSuccess: (_data, input) => {
+      markWorkoutOutboxSynced(
+        input.userId,
+        getOfflineWorkoutOutboxEntryId('prescription-update', input.workoutId),
+      )
+    },
+    onError: (error, input, context) => {
+      markWorkoutOutboxFailed(
+        input.userId,
+        getOfflineWorkoutOutboxEntryId('prescription-update', input.workoutId),
+        error,
+      )
       if (context?.previousSets) {
         queryClient.setQueryData(workoutQueryKeys.sets(input.workoutId), context.previousSets)
       }
@@ -731,6 +800,11 @@ export function useCompleteWorkout() {
     onMutate: async (input) => {
       const queryKey = workoutQueryKeys.cycle(input.cycleId)
       const now = new Date().toISOString()
+      queueWorkoutOutboxEntry(input.userId, {
+        kind: 'workout-complete',
+        variables: input,
+        workoutId: input.workoutId,
+      })
 
       await queryClient.cancelQueries({ queryKey })
 
@@ -749,7 +823,18 @@ export function useCompleteWorkout() {
 
       return { previousWorkouts }
     },
-    onError: (_error, input, context) => {
+    onSuccess: (_data, input) => {
+      markWorkoutOutboxSynced(
+        input.userId,
+        getOfflineWorkoutOutboxEntryId('workout-complete', input.workoutId),
+      )
+    },
+    onError: (error, input, context) => {
+      markWorkoutOutboxFailed(
+        input.userId,
+        getOfflineWorkoutOutboxEntryId('workout-complete', input.workoutId),
+        error,
+      )
       if (context?.previousWorkouts) {
         queryClient.setQueryData(workoutQueryKeys.cycle(input.cycleId), context.previousWorkouts)
       }

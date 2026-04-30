@@ -150,7 +150,7 @@ function ContinuePageContent() {
   const isPending = authAction !== null
 
   return (
-    <div className="mx-auto w-full max-w-xl animate-scale-in rounded-[32px] border border-border/70 bg-background/82 p-6 shadow-[0_36px_110px_-52px_rgba(0,0,0,0.92)] backdrop-blur-xl sm:p-8">
+    <div className="auth-panel mx-auto w-full max-w-xl animate-scale-in p-6 sm:p-8">
       <section className="flex flex-col gap-6">
         <div className="flex items-center gap-3">
           <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/12 text-primary ring-1 ring-primary/25">
