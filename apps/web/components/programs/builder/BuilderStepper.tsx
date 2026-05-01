@@ -22,7 +22,7 @@ export function BuilderStepper({
   const stepNumber = currentIdx + 1
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex min-w-0 flex-col gap-2">
       <div className="flex items-center justify-between md:hidden">
         <p className="text-sm font-medium text-foreground">
           Step {stepNumber} of {BUILDER_STEPS.length}
@@ -31,7 +31,7 @@ export function BuilderStepper({
         <p className="text-xs text-muted-foreground">{BUILDER_STEPS[currentIdx].label}</p>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 md:hidden">
+      <div className="flex w-full min-w-0 max-w-full touch-pan-x gap-2 overflow-x-auto overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch] md:hidden">
         {BUILDER_STEPS.map((step, index) => {
           const isActive = index === currentIdx
           const isCompleted = index < currentIdx

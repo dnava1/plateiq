@@ -13,6 +13,7 @@ import {
   resolveEditableProgramDefinition,
 } from '@/lib/programs/editable'
 import { useProgram, useProgramEditability } from '@/hooks/usePrograms'
+import { resolveTrainingMaxPercentageRatio } from '@/lib/validations/trainingMax'
 import {
   createInitialBuilderDraft,
   useBuilderDraftStore,
@@ -46,7 +47,8 @@ function BuilderPageContent() {
   const requestedName = searchParams.get('name')
   const scratchMethodParam = searchParams.get('method')
   const tmParam = searchParams.get('tm')
-  const tmPercentageParam = tmParam === null ? Number.NaN : Number(tmParam)
+  const rawTmPercentageParam = tmParam === null ? Number.NaN : Number(tmParam)
+  const tmPercentageParam = resolveTrainingMaxPercentageRatio(rawTmPercentageParam) ?? Number.NaN
   const programIdParam = searchParams.get('programId')
   const programId = typeof programIdParam === 'string' && /^\d+$/.test(programIdParam)
     ? Number(programIdParam)

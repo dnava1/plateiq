@@ -6,7 +6,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { useSetTrainingMax } from '@/hooks/useTrainingMaxes'
 import type { ExecutionMaxInputMode } from '@/lib/programs/trainingMax'
-import { setTrainingMaxSchema, type SetTrainingMaxInput } from '@/lib/validations/trainingMax'
+import {
+  resolveTrainingMaxPercentageRatio,
+  setTrainingMaxSchema,
+  type SetTrainingMaxInput,
+} from '@/lib/validations/trainingMax'
 import { displayToLbs, formatUnit, formatWeight, lbsToDisplay, roundToIncrement } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -123,7 +127,7 @@ export function TrainingMaxForm({
     defaultValues: {
       exerciseId,
       weightLbs: lbsToDisplay(currentTm ?? 0, unit),
-      tmPercentage: 0.90,
+      tmPercentage: 90,
     },
   })
 
@@ -131,16 +135,18 @@ export function TrainingMaxForm({
     reset({
       exerciseId,
       weightLbs: lbsToDisplay(currentTm ?? 0, unit),
-      tmPercentage: 0.90,
+      tmPercentage: 90,
     })
   }, [currentTm, exerciseId, reset, unit])
 
   const weight = useWatch({ control, name: 'weightLbs' })
   const tmPercentage = useWatch({ control, name: 'tmPercentage' })
+  const tmPercentageRatio = resolveTrainingMaxPercentageRatio(tmPercentage)
+  const tmPercentageLabel = tmPercentageRatio === null ? null : `${Math.round(tmPercentageRatio * 100)}%`
   const enteredWeightLbs = displayToLbs(weight || 0, unit)
   const initialDisplayWeight = lbsToDisplay(currentTm ?? 0, unit)
-  const calculatedTmLbs = inputType === '1rm' && weight
-    ? roundTrainingMaxLbs(enteredWeightLbs * (tmPercentage ?? 0.9))
+  const calculatedTmLbs = inputType === '1rm' && weight > 0 && tmPercentageRatio !== null
+    ? roundTrainingMaxLbs(enteredWeightLbs * tmPercentageRatio)
     : enteredWeightLbs
 
   const onSubmit = (data: SetTrainingMaxInput) => {
@@ -252,18 +258,23 @@ export function TrainingMaxForm({
                   <Input
                     id="tmPercentage"
                     type="number"
-                    step="0.01"
-                    min="0.5"
-                    max="1.0"
+                    step="1"
+                    min="50"
+                    max="100"
                     className="w-24"
+                    aria-invalid={!!errors.tmPercentage}
+                    aria-describedby={errors.tmPercentage ? 'training-max-percentage-error' : undefined}
                     {...register('tmPercentage', { valueAsNumber: true })}
                   />
                   <span className="text-sm text-muted-foreground">
-                    ({Math.round((tmPercentage ?? 0.9) * 100)}%)
+                    {tmPercentageLabel ? `(${tmPercentageLabel})` : 'Enter 50-100%'}
                   </span>
                 </div>
               </div>
-              {weight > 0 && (
+              {errors.tmPercentage && (
+                <p id="training-max-percentage-error" className="text-sm text-destructive">{errors.tmPercentage.message}</p>
+              )}
+              {weight > 0 && tmPercentageRatio !== null && (
                 <Card className="border-border/70 bg-card/70">
                   <CardContent className="flex flex-col gap-1.5 pt-4">
                     <p className="text-sm">
@@ -271,7 +282,7 @@ export function TrainingMaxForm({
                       <span className="font-bold text-foreground">{formatWeight(calculatedTmLbs, unit, weightRoundingLbs)}</span>
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {weight} {formatUnit(unit)} x {Math.round((tmPercentage ?? 0.9) * 100)}% = {formatWeight(calculatedTmLbs, unit, weightRoundingLbs)}
+                      {weight} {formatUnit(unit)} x {tmPercentageLabel} = {formatWeight(calculatedTmLbs, unit, weightRoundingLbs)}
                     </p>
                   </CardContent>
                 </Card>

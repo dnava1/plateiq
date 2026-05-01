@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { setTrainingMaxSchema } from './trainingMax'
+import { resolveTrainingMaxPercentageRatio, setTrainingMaxSchema } from './trainingMax'
 
 describe('setTrainingMaxSchema', () => {
   const validInput = {
@@ -35,6 +35,35 @@ describe('setTrainingMaxSchema', () => {
       tmPercentage: 1.0,
     })
     expect(result.success).toBe(true)
+  })
+
+  it('accepts percent-point tmPercentage values and normalizes them to ratios', () => {
+    const result = setTrainingMaxSchema.safeParse({
+      ...validInput,
+      tmPercentage: 90,
+    })
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.tmPercentage).toBe(0.9)
+    }
+  })
+
+  it('resolves invalid live percentage values as empty', () => {
+    expect(resolveTrainingMaxPercentageRatio(Number.NaN)).toBeNull()
+    expect(resolveTrainingMaxPercentageRatio(undefined)).toBeNull()
+  })
+
+  it('rejects empty percentage input without exposing NaN wording', () => {
+    const result = setTrainingMaxSchema.safeParse({
+      ...validInput,
+      tmPercentage: Number.NaN,
+    })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('Enter a training max percentage.')
+    }
   })
 
   it('rejects negative weight', () => {

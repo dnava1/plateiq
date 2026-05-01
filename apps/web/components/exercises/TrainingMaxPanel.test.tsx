@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, beforeEach, vi } from 'vitest'
 import { TrainingMaxPanel } from './TrainingMaxPanel'
@@ -267,5 +267,61 @@ describe('TrainingMaxPanel', () => {
     expect(screen.getByRole('heading', { name: 'Set 1RM - Safety Squat Bar' })).toBeInTheDocument()
     expect(screen.getByLabelText('Estimated 1RM (lbs)')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save 1RM' })).toBeInTheDocument()
+  })
+
+  it('treats TM percentage as percent points when saving from estimated 1RM', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <TrainingMaxPanel
+        description="Manage required max inputs for the selected lifts."
+        inputMode="1rm"
+        targetExerciseIds={[10]}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Update 1RM' }))
+
+    fireEvent.change(screen.getByLabelText('Estimated 1RM (lbs)'), { target: { value: '300' } })
+    fireEvent.change(screen.getByLabelText('TM Percentage'), { target: { value: '90' } })
+
+    expect(screen.getByText('300 lbs x 90% = 270 lbs')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Save 1RM' }))
+
+    await waitFor(() => {
+      expect(mutateMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          exerciseId: 10,
+          weightLbs: 270,
+          tmPercentage: 0.9,
+        }),
+        expect.objectContaining({
+          onSuccess: expect.any(Function),
+          onError: expect.any(Function),
+        }),
+      )
+    })
+  })
+
+  it('does not render NaN when the TM percentage field is empty', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <TrainingMaxPanel
+        description="Manage required max inputs for the selected lifts."
+        inputMode="1rm"
+        targetExerciseIds={[10]}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Update 1RM' }))
+
+    fireEvent.change(screen.getByLabelText('Estimated 1RM (lbs)'), { target: { value: '300' } })
+    fireEvent.change(screen.getByLabelText('TM Percentage'), { target: { value: '' } })
+
+    expect(screen.queryByText(/NaN/)).not.toBeInTheDocument()
+    expect(screen.getByText('Enter 50-100%')).toBeInTheDocument()
+    expect(screen.queryByText('Calculated TM:')).not.toBeInTheDocument()
   })
 })

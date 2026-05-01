@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { dashboardQueryKeys } from './useDashboard'
 import { useSupabase } from './useSupabase'
-import type { SetTrainingMaxInput } from '@/lib/validations/trainingMax'
+import { setTrainingMaxSchema, type SetTrainingMaxInput } from '@/lib/validations/trainingMax'
 
 export function useCurrentTrainingMaxes() {
   const supabase = useSupabase()
@@ -31,15 +31,16 @@ export function useSetTrainingMax() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (input: SetTrainingMaxInput) => {
+      const parsedInput = setTrainingMaxSchema.parse(input)
       const { data: { user } } = await supabase.auth.getUser()
       const { data, error } = await supabase
         .from('training_maxes')
         .insert({
           user_id: user!.id,
-          exercise_id: input.exerciseId,
-          weight_lbs: input.weightLbs,
-          tm_percentage: input.tmPercentage ?? 0.90,
-          effective_date: input.effectiveDate ?? new Date().toISOString().split('T')[0],
+          exercise_id: parsedInput.exerciseId,
+          weight_lbs: parsedInput.weightLbs,
+          tm_percentage: parsedInput.tmPercentage ?? 0.90,
+          effective_date: parsedInput.effectiveDate ?? new Date().toISOString().split('T')[0],
         })
         .select()
         .single()
