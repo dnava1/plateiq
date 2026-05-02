@@ -62,6 +62,13 @@ describe('ContinuePage', () => {
     useSearchParamsMock.mockReturnValue(new URLSearchParams())
   })
 
+  it('shows a visible guest verification status while the button is waiting on Cloudflare', () => {
+    render(<ContinuePage />)
+
+    expect(screen.getByRole('button', { name: 'Continue as Guest' })).toBeDisabled()
+    expect(screen.getByText('Preparing human verification')).toBeInTheDocument()
+  })
+
   it('keeps the button in loading state after a successful guest sign-in', async () => {
     const user = userEvent.setup()
     signInAnonymouslyMock.mockResolvedValue({ error: null })
@@ -124,7 +131,7 @@ describe('ContinuePage', () => {
     expect(screen.queryByText('Human verification expired or was already used. It has been reset. If Cloudflare asks for another challenge, complete it and try guest mode again.')).not.toBeInTheDocument()
   })
 
-  it('stays visually quiet while waiting for a fresh guest challenge after reset', async () => {
+  it('shows neutral verification status while waiting for a fresh guest challenge after reset', async () => {
     const user = userEvent.setup()
     autoRefreshOnResetMock.mockReturnValue(false)
     signInAnonymouslyMock.mockResolvedValue({
@@ -147,6 +154,7 @@ describe('ContinuePage', () => {
 
     expect(screen.queryByText('The last verification token was rejected. It has been reset. If Cloudflare asks for another challenge, complete it and try again.')).not.toBeInTheDocument()
     expect(screen.queryByText('Human verification expired or was already used. It has been reset. If Cloudflare asks for another challenge, complete it and try guest mode again.')).not.toBeInTheDocument()
+    expect(screen.getByText('Preparing human verification')).toBeInTheDocument()
   })
 
   it('shows a localhost configuration hint when Supabase rejects the token as invalid input', async () => {

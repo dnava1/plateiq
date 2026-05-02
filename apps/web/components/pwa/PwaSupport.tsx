@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
-import { AppWindow, Download, Ellipsis, SquareArrowUp, SquarePlus, X } from 'lucide-react'
+import { Download, Ellipsis, SquareArrowUp, SquarePlus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -97,6 +97,26 @@ function resolvePwaUiState(): PwaUiState {
 function usesMobileAppNav(pathname: string) {
   return ['/analytics', '/dashboard', '/programs', '/settings', '/workouts'].some((path) =>
     pathname === path || pathname.startsWith(`${path}/`),
+  )
+}
+
+function InlineInstructionIcon({ children, label }: { children: ReactNode; label: string }) {
+  return (
+    <span
+      aria-label={label}
+      className="inline-flex size-6 items-center justify-center rounded-lg border border-border/70 bg-muted/55 text-foreground align-[-0.35rem]"
+      role="img"
+    >
+      {children}
+    </span>
+  )
+}
+
+function InlineInstructionLabel({ children }: { children: ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1 whitespace-nowrap font-medium text-foreground">
+      {children}
+    </span>
   )
 }
 
@@ -220,11 +240,26 @@ export function PwaSupport() {
   const copy = installMode === 'prompt'
     ? 'Install PlateIQ for a full-screen app experience with offline workout support.'
     : installMode === 'ios-safari'
-      ? 'In Safari, tap More, then Share, choose Add to Home Screen, keep Open as Web App on, then tap Add.'
+      ? (
+        <>
+          In Safari, tap{' '}
+          <InlineInstructionIcon label="More">
+            <Ellipsis className="size-4" />
+          </InlineInstructionIcon>, then{' '}
+          <InlineInstructionLabel>
+            <SquareArrowUp className="size-4" />
+            Share
+          </InlineInstructionLabel>, choose{' '}
+          <InlineInstructionLabel>
+            <SquarePlus className="size-4" />
+            Add to Home Screen
+          </InlineInstructionLabel>, keep Open as Web App on, then tap Add.
+        </>
+      )
       : installMode === 'android-browser'
         ? 'In Chrome on Android, tap More, Add to home screen, then Install.'
         : 'On iPhone or iPad, open PlateIQ in Safari first. Safari is required for the Home Screen web app flow.'
-  const shouldShowStepRow = installMode === 'ios-safari' || installMode === 'android-browser'
+  const shouldShowStepRow = installMode === 'android-browser'
 
   return (
     <div
@@ -262,32 +297,14 @@ export function PwaSupport() {
 
             {shouldShowStepRow ? (
               <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-border/70 bg-muted/45 px-3 py-2.5 text-sm text-muted-foreground">
-                {installMode === 'ios-safari' ? (
-                  <>
-                    <Ellipsis className="size-4 text-foreground" />
-                    <span>More</span>
-                    <span className="opacity-50">then</span>
-                    <SquareArrowUp className="size-4 text-foreground" />
-                    <span>Share</span>
-                    <span className="opacity-50">then</span>
-                    <SquarePlus className="size-4 text-foreground" />
-                    <span>Add to Home Screen</span>
-                    <span className="opacity-50">then</span>
-                    <AppWindow className="size-4 text-foreground" />
-                    <span>Open as Web App</span>
-                  </>
-                ) : (
-                  <>
-                    <Ellipsis className="size-4 text-foreground" />
-                    <span>More</span>
-                    <span className="opacity-50">then</span>
-                    <SquarePlus className="size-4 text-foreground" />
-                    <span>Add to home screen</span>
-                    <span className="opacity-50">then</span>
-                    <Download className="size-4 text-foreground" />
-                    <span>Install</span>
-                  </>
-                )}
+                <Ellipsis className="size-4 text-foreground" />
+                <span>More</span>
+                <span className="opacity-50">then</span>
+                <SquarePlus className="size-4 text-foreground" />
+                <span>Add to home screen</span>
+                <span className="opacity-50">then</span>
+                <Download className="size-4 text-foreground" />
+                <span>Install</span>
               </div>
             ) : null}
 

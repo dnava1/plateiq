@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { ArrowRight, Dumbbell, UserRound } from 'lucide-react'
+import { ArrowRight, Dumbbell, Loader2, UserRound } from 'lucide-react'
 import { AuthTurnstileGate } from '@/components/auth/AuthTurnstileGate'
 import { isCaptchaRejectionError, isInvalidCaptchaResponseError, turnstileSiteKey } from '@/lib/auth/captcha'
 import { GOOGLE_OAUTH_SCOPES } from '@/lib/auth/google'
@@ -169,22 +169,30 @@ function ContinuePageContent() {
           unavailableText="Guest mode is temporarily unavailable while human verification is being configured."
           presentation="minimal"
         >
-          {({ token, canProceed, invalidate, statusId }) => (
-            <Button
-              type="button"
-              size="lg"
-              className="w-full justify-between"
-              disabled={isPending || !canProceed}
-              aria-describedby={statusId}
-              onClick={() => void handleGuestContinue(token, invalidate)}
-            >
-              <span className="flex items-center gap-3">
-                <UserRound />
-                <span>{authAction === 'guest' ? 'Starting guest session…' : 'Continue as Guest'}</span>
-              </span>
-              <ArrowRight />
-            </Button>
-          )}
+          {({ token, canProceed, invalidate, state, statusId }) => {
+            const isPreparingGuest = state === 'checking' && !canProceed
+
+            return (
+              <Button
+                type="button"
+                size="lg"
+                className="w-full justify-between"
+                disabled={isPending || !canProceed}
+                aria-describedby={statusId}
+                onClick={() => void handleGuestContinue(token, invalidate)}
+              >
+                <span className="flex items-center gap-3">
+                  <UserRound />
+                  <span>{authAction === 'guest' ? 'Starting guest session…' : 'Continue as Guest'}</span>
+                </span>
+                {isPreparingGuest ? (
+                  <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                ) : (
+                  <ArrowRight />
+                )}
+              </Button>
+            )
+          }}
         </AuthTurnstileGate>
 
         <div className="flex items-center gap-4">

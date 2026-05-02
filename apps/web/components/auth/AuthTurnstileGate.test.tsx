@@ -54,11 +54,11 @@ describe('AuthTurnstileGate', () => {
       </AuthTurnstileGate>,
     )
 
-    expect(screen.getByText('Human verification is running in the background for email sign-in.')).toBeInTheDocument()
+    expect(screen.getByText('Preparing human verification')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Submit' })).toBeDisabled()
 
     await user.click(screen.getByRole('button', { name: 'Require interaction' }))
-    expect(screen.getByText('Cloudflare needs a quick check before email sign-in. Complete it if the challenge appears.')).toBeInTheDocument()
+    expect(screen.getByText('Complete the human verification challenge to continue.')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Solve challenge' }))
     expect(screen.getByText('Human verification is ready for email sign-in.')).toBeInTheDocument()
@@ -85,7 +85,8 @@ describe('AuthTurnstileGate', () => {
     )
 
     const status = screen.getByRole('status')
-    expect(status.className).toContain('sr-only')
+    expect(status).toHaveTextContent('Preparing human verification')
+    expect(status.className).not.toContain('sr-only')
 
     await user.click(screen.getByRole('button', { name: 'Trigger widget error' }))
 

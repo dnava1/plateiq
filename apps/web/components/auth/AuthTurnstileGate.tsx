@@ -31,7 +31,7 @@ function shouldShowVisibleStatus(state: VerificationState, presentation: Present
     return true
   }
 
-  return state === 'unavailable' || state === 'error'
+  return state === 'checking' || state === 'unavailable' || state === 'error'
 }
 
 function getStatusText(state: VerificationState, actionLabel: string, unavailableText: string, widgetError: string | null) {
@@ -39,7 +39,7 @@ function getStatusText(state: VerificationState, actionLabel: string, unavailabl
     case 'unavailable':
       return unavailableText
     case 'interaction':
-      return `Cloudflare needs a quick check before ${actionLabel}. Complete it if the challenge appears.`
+      return 'Complete the human verification challenge to continue.'
     case 'verified':
       return `Human verification is ready for ${actionLabel}.`
     case 'rejected':
@@ -48,7 +48,7 @@ function getStatusText(state: VerificationState, actionLabel: string, unavailabl
       return widgetError ?? 'Human verification is unavailable right now.'
     case 'checking':
     default:
-      return `Human verification is running in the background for ${actionLabel}.`
+      return 'Preparing human verification'
   }
 }
 
@@ -70,7 +70,7 @@ function getStatusTone(state: VerificationState) {
 
 function StatusIcon({ state }: { state: VerificationState }) {
   if (state === 'checking') {
-    return <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin" aria-hidden="true" />
+    return <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin motion-reduce:animate-none" aria-hidden="true" />
   }
 
   if (state === 'verified' || state === 'interaction') {
