@@ -86,7 +86,7 @@ export default async function NotFound() {
       <div className="pointer-events-none absolute -right-32 top-[22%] size-96 rounded-full bg-secondary blur-3xl" />
       <PreferenceSync />
       <Header />
-      <main className="relative mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pb-28 pt-6 md:px-6 md:pb-10 md:pt-8">
+      <main className="app-shell pb-safe-content relative flex flex-1 flex-col pt-6 md:pb-10 md:pt-8">
         <MissingRouteContent
           description="Use Programs to manage exercises and training max context, or jump into Workouts to resume the current session."
           primaryHref="/programs"

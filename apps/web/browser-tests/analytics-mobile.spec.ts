@@ -104,6 +104,45 @@ test.describe('analytics mobile layout', () => {
     await page.goto('/analytics')
     await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible()
     await expect(page.locator('#analytics-range')).toContainText(/6m|Last 6 months/)
+    await expect(page.getByText('Strength OS', { exact: true })).toBeVisible()
+
+    const appTabs = page.getByRole('navigation', { name: 'App tabs' })
+    await expect(appTabs.getByRole('link')).toHaveCount(5)
+    await expect(appTabs.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings')
+
+    const firstCard = page.locator('[data-slot="card"]').first()
+    await expect(firstCard).toBeVisible()
+    const shellEdges = await page.evaluate(() => {
+      const getEdges = (selector: string) => {
+        const element = document.querySelector(selector)
+        if (!element) {
+          throw new Error(`Missing selector: ${selector}`)
+        }
+
+        const rect = element.getBoundingClientRect()
+        return { left: rect.left, right: rect.right, top: rect.top }
+      }
+
+      return {
+        header: getEdges('header .app-shell > div'),
+        card: getEdges('[data-slot="card"]'),
+        tabs: getEdges('nav[aria-label="App tabs"] .app-shell > div'),
+      }
+    })
+    expect(Math.abs(shellEdges.header.left - shellEdges.card.left)).toBeLessThanOrEqual(1)
+    expect(Math.abs(shellEdges.header.right - shellEdges.card.right)).toBeLessThanOrEqual(1)
+    expect(Math.abs(shellEdges.tabs.left - shellEdges.card.left)).toBeLessThanOrEqual(1)
+    expect(Math.abs(shellEdges.tabs.right - shellEdges.card.right)).toBeLessThanOrEqual(1)
+    expect(await page.locator('header').evaluate((element) => getComputedStyle(element).position)).toBe('relative')
+
+    await page.evaluate(() => window.scrollTo(0, 600))
+    await expect.poll(async () => (
+      page.locator('header .app-shell > div').evaluate((element) => element.getBoundingClientRect().bottom)
+    )).toBeLessThan(0)
+    expect(await appTabs.evaluate((element) => (
+      window.innerHeight - element.querySelector('.app-shell > div')!.getBoundingClientRect().bottom
+    ))).toBeLessThanOrEqual(8)
+    await page.evaluate(() => window.scrollTo(0, 0))
 
     await expect.poll(async () => (
       page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)

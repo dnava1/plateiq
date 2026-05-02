@@ -1,12 +1,20 @@
-const CACHE_VERSION = 'plateiq-shell-v3';
+const CACHE_VERSION = 'plateiq-shell-v4';
 const OFFLINE_URL = '/offline.html';
 const PRECACHE_URLS = [
   OFFLINE_URL,
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
+  '/icon-light-192.png',
+  '/icon-light-512.png',
+  '/icon-dark-192.png',
+  '/icon-dark-512.png',
   '/maskable-icon-192.png',
   '/maskable-icon-512.png',
+  '/maskable-icon-light-192.png',
+  '/maskable-icon-light-512.png',
+  '/maskable-icon-dark-192.png',
+  '/maskable-icon-dark-512.png',
   '/apple-touch-icon.png',
   '/apple-touch-icon-light.png',
   '/apple-touch-icon-dark.png',

@@ -2,6 +2,7 @@ import {
   BarChart3,
   Clipboard,
   LayoutDashboard,
+  Settings,
   Timer,
   type LucideIcon,
 } from 'lucide-react'
@@ -17,6 +18,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/workouts', label: 'Workouts', icon: Timer },
   { href: '/programs', label: 'Programs', icon: Clipboard },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
 export function isActiveNavPath(pathname: string, href: string) {
