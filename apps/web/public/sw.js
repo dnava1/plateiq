@@ -3,6 +3,8 @@ const OFFLINE_URL = '/offline.html';
 const PRECACHE_URLS = [
   OFFLINE_URL,
   '/manifest.json',
+  '/icons/plateiq-mark-light.svg',
+  '/icons/plateiq-mark-dark.svg',
   '/icon-192.png',
   '/icon-512.png',
   '/icon-light-192.png',

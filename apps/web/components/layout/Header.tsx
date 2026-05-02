@@ -7,7 +7,7 @@ import { resolveUserDisplayProfile } from '@/lib/auth/user-display'
 import { useUser } from '@/hooks/useUser'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
-import { Dumbbell } from 'lucide-react'
+import { PlateIqMark } from '@/components/brand/PlateIqMark'
 import { APP_NAV_ITEMS, isActiveNavPath } from '@/components/layout/navigation'
 
 export function Header() {
@@ -24,9 +24,7 @@ export function Header() {
       <div className="app-shell">
         <div className="flex w-full items-center gap-2 rounded-[22px] border border-border/70 bg-background/72 px-2.5 py-1.5 shadow-[0_20px_60px_-38px_rgba(0,0,0,0.8)] backdrop-blur-xl sm:gap-3 sm:px-4 md:rounded-[28px] md:px-3 md:py-3">
           <Link href="/dashboard" aria-label="Open dashboard" className="flex min-w-0 items-center gap-2 sm:gap-3">
-            <span className="flex size-8 items-center justify-center rounded-xl bg-primary/12 ring-1 ring-primary/25 md:size-10 md:rounded-2xl">
-              <Dumbbell className="text-primary" />
-            </span>
+            <PlateIqMark className="size-9 md:size-10" />
             <span className="min-w-0">
               <span className="block whitespace-nowrap text-[0.58rem] uppercase tracking-[0.18em] text-muted-foreground sm:text-[0.68rem] sm:tracking-[0.24em]">
                 Strength OS

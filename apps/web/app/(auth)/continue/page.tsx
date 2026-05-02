@@ -2,8 +2,9 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { ArrowRight, Dumbbell, Loader2, UserRound } from 'lucide-react'
+import { ArrowRight, Loader2, UserRound } from 'lucide-react'
 import { AuthTurnstileGate } from '@/components/auth/AuthTurnstileGate'
+import { PlateIqMark } from '@/components/brand/PlateIqMark'
 import { isCaptchaRejectionError, isInvalidCaptchaResponseError, turnstileSiteKey } from '@/lib/auth/captcha'
 import { GOOGLE_OAUTH_SCOPES } from '@/lib/auth/google'
 import { sanitizeNextPath } from '@/lib/auth/auth-state'
@@ -153,9 +154,7 @@ function ContinuePageContent() {
     <div className="auth-panel mx-auto w-full max-w-xl animate-scale-in p-6 sm:p-8">
       <section className="flex flex-col gap-6">
         <div className="flex items-center gap-3">
-          <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/12 text-primary ring-1 ring-primary/25">
-            <Dumbbell />
-          </div>
+          <PlateIqMark className="size-14" />
           <div className="flex flex-col gap-1">
             <span className="eyebrow">PlateIQ</span>
             <h1 className="text-xl font-semibold tracking-[-0.06em] text-foreground">Get Started</h1>

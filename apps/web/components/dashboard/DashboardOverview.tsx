@@ -277,10 +277,10 @@ export function DashboardOverview() {
                     <Badge>Active</Badge>
                     {isCustom ? <Badge variant="outline">Custom</Badge> : null}
                   </div>
-                  <CardDescription>{summaryParts.join(' · ')}</CardDescription>
+                  <p className="text-sm text-muted-foreground">{summaryParts.join(' · ')}</p>
                 </div>
               </div>
-              <CardAction>
+              <CardAction className="row-span-1">
                 <Link href="/programs" className={buttonVariants({ variant: 'outline' })}>
                   Manage
                 </Link>

@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { ArrowRight, BarChart3, Dumbbell, Smartphone, Sparkles } from 'lucide-react'
+import { ArrowRight, BarChart3, Smartphone, Sparkles } from 'lucide-react'
+import { PlateIqMark } from '@/components/brand/PlateIqMark'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 
@@ -10,9 +11,7 @@ export default function HomePage() {
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/12 ring-1 ring-primary/25">
-                <Dumbbell className="text-primary" />
-              </div>
+              <PlateIqMark className="size-16" />
               <span className="eyebrow">PlateIQ</span>
             </div>
             <h1 className="text-5xl font-semibold -tracking-widest text-foreground md:text-6xl">

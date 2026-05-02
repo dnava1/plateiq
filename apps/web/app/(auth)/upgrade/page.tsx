@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { Suspense, useEffect, useEffectEvent, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Dumbbell } from 'lucide-react'
+import { PlateIqMark } from '@/components/brand/PlateIqMark'
 import { sanitizeNextPath } from '@/lib/auth/auth-state'
 import { GOOGLE_OAUTH_SCOPES } from '@/lib/auth/google'
 import {
@@ -241,9 +241,7 @@ function UpgradePageContent() {
     <div className={`auth-panel mx-auto w-full max-w-xl p-6 sm:p-8 ${hasExistingAccountRetry ? '' : 'animate-scale-in'}`}>
       <section className="flex flex-col gap-6">
         <div className="flex items-center gap-3">
-          <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/12 text-primary ring-1 ring-primary/25">
-            <Dumbbell />
-          </div>
+          <PlateIqMark className="size-14" />
           <div className="flex flex-col gap-1">
             <span className="eyebrow">PlateIQ</span>
             <span className="text-xl font-semibold tracking-[-0.06em] text-foreground">Sign In</span>
