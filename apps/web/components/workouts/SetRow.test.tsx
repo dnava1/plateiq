@@ -213,6 +213,11 @@ describe('SetRow', () => {
     render(<SetRow set={baseSet} userId="user-1" />)
 
     await user.click(screen.getByRole('button', { name: /^adjust$/i }))
+    expect(screen.queryByLabelText(/actual effort/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: 'RPE' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: 'RIR' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/leave this blank when effort capture/i)).not.toBeInTheDocument()
+
     await user.clear(screen.getByLabelText(/load \(lbs\)/i))
     await user.type(screen.getByLabelText(/load \(lbs\)/i), '205')
     await user.clear(screen.getByLabelText(/reps achieved/i))
@@ -221,6 +226,7 @@ describe('SetRow', () => {
 
     expect(mutateMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        actualRpe: null,
         repsActual: 6,
         weightLbs: 205,
       }),
@@ -245,6 +251,7 @@ describe('SetRow', () => {
     expect(screen.queryByRole('button', { name: /log planned/i })).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /enter details/i }))
+    expect(screen.getByLabelText(/actual effort/i)).toBeInTheDocument()
     await user.click(screen.getByRole('radio', { name: 'RIR' }))
     await user.type(screen.getByLabelText(/actual effort/i), '2')
     await user.click(screen.getByRole('button', { name: /save set/i }))
@@ -280,6 +287,7 @@ describe('SetRow', () => {
       <SetRow
         set={{
           ...baseSet,
+          intensity_type: 'rpe',
           prescribedRpe: 8,
           repsActual: 5,
           rpe: 9,

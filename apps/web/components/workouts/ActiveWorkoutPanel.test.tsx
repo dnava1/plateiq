@@ -439,7 +439,7 @@ describe('ActiveWorkoutPanel', () => {
     expect(screen.getByText('All prescribed sets are logged. Ready to finish the workout.')).toBeInTheDocument()
   })
 
-  it('shows the expanded manual rest presets while keeping programmed auto rest active', async () => {
+  it('starts a manual rest timer with an arbitrary duration while keeping programmed auto rest active', async () => {
     const user = userEvent.setup()
 
     render(
@@ -453,18 +453,25 @@ describe('ActiveWorkoutPanel', () => {
       />,
     )
 
-    expect(screen.getByRole('button', { name: '0:30' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '1:00' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '1:30' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '2:00' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '2:30' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '3:00' })).toBeInTheDocument()
+    const restDurationSelect = screen.getByLabelText('Rest duration')
+
+    expect(screen.queryByText('Rest time')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Hours')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Minutes')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Seconds')).not.toBeInTheDocument()
+    expect(restDurationSelect).toHaveTextContent('1:30')
+
+    await user.click(restDurationSelect)
+
+    expect(await screen.findByRole('option', { name: '5:00' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: '5:01' })).not.toBeInTheDocument()
     expect(screen.getAllByText('Chin-Up set 3 auto:true').length).toBeGreaterThan(0)
 
-    await user.click(screen.getByRole('button', { name: '2:30' }))
+    await user.click(screen.getByRole('option', { name: '2:45' }))
+    await user.click(screen.getByRole('button', { name: 'Start rest' }))
 
     expect(mocks.startRestTimer).toHaveBeenCalledWith({
-      durationSeconds: 150,
+      durationSeconds: 165,
       label: 'Chin-Up',
       sourceSetOrder: null,
       workoutId: 44,

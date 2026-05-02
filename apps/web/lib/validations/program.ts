@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { MAX_REST_DURATION_SECONDS, isValidRestDurationSeconds } from '@/lib/rest-duration'
 import type { DayTemplate } from '@/types/template'
 
 const MIN_PROGRAM_NAME_LENGTH = 2
@@ -29,6 +30,7 @@ const EXERCISE_NAME_ERROR_MESSAGE = 'Enter a name for each exercise.'
 const SET_COUNT_ERROR_MESSAGE = `Enter between ${MIN_SET_COUNT} and ${MAX_SET_COUNT} sets.`
 const REPS_ERROR_MESSAGE = 'Use reps like 5, 5+, or 3-5.'
 const INTENSITY_ERROR_MESSAGE = 'Enter a valid intensity.'
+const REST_ERROR_MESSAGE = 'Enter a valid rest time.'
 const PERCENTAGE_WORK_SET_BASE_ERROR_MESSAGE = 'Add a non-warm-up base set before using First work set %.'
 const DEFAULT_CUSTOM_PROGRAM_ERROR_MESSAGE = 'Check your program details and try again.'
 
@@ -53,7 +55,7 @@ const setPrescriptionSchema = z.object({
   display_type: z.enum(['backoff', 'drop']).optional(),
   purpose: z.enum(['warmup', 'working']).optional(),
   is_amrap: z.boolean().optional(),
-  rest_seconds: z.number().int().min(0).max(600).optional(),
+  rest_seconds: z.number().int().min(0, REST_ERROR_MESSAGE).max(MAX_REST_DURATION_SECONDS, REST_ERROR_MESSAGE).optional(),
 })
 
 const executionGroupSchema = z.object({
@@ -219,6 +221,10 @@ export function validateCustomProgramExerciseDay(day: CustomProgramDayLike, dayI
         if (!isValidIntensity(set.intensity)) {
           return `Enter a valid intensity for set ${setIndex + 1} of exercise ${blockIndex + 1} on ${dayReference} before continuing.`
         }
+
+        if (!isValidRestDurationSeconds(set.rest_seconds)) {
+          return `Enter a valid rest time for set ${setIndex + 1} of exercise ${blockIndex + 1} on ${dayReference} before continuing.`
+        }
       }
 
       if (usesPercentageWorkSetWithoutLocalBase(block)) {
@@ -301,6 +307,10 @@ export function getCreateCustomProgramErrorMessage(error: z.ZodError<CreateCusto
           if (path[6] === 'intensity') {
             return `Enter a valid intensity for set ${setNumber} of exercise ${exerciseNumber} on day ${dayNumber} before creating the program.`
           }
+
+          if (path[6] === 'rest_seconds') {
+            return `Enter a valid rest time for set ${setNumber} of exercise ${exerciseNumber} on day ${dayNumber} before creating the program.`
+          }
         }
       }
     }
@@ -328,6 +338,10 @@ export function getCreateCustomProgramErrorMessage(error: z.ZodError<CreateCusto
 
   if (issue.message === INTENSITY_ERROR_MESSAGE) {
     return 'Enter a valid intensity before creating the program.'
+  }
+
+  if (issue.message === REST_ERROR_MESSAGE) {
+    return 'Enter a valid rest time before creating the program.'
   }
 
   if (issue.message === PERCENTAGE_WORK_SET_BASE_ERROR_MESSAGE) {

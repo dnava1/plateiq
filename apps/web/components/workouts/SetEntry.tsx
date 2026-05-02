@@ -23,6 +23,7 @@ import { estimateOneRepMax } from './types'
 
 interface SetEntryProps {
   allowZeroWeight?: boolean
+  captureEffort?: boolean
   defaultActualRpe?: number | null
   defaultReps?: number | null
   defaultWeightLbs: number
@@ -61,6 +62,7 @@ function parseLoggedEffort(value: string, mode: EffortInputMode) {
 
 export function SetEntry({
   allowZeroWeight = false,
+  captureEffort = false,
   defaultActualRpe = null,
   defaultReps,
   defaultWeightLbs,
@@ -82,8 +84,9 @@ export function SetEntry({
   const enteredWeight = parseLoggedWeight(weightValue, allowZeroWeight)
   const enteredReps = parseLoggedReps(repsValue)
   const weightLbs = enteredWeight !== null ? displayToLbs(enteredWeight, preferredUnit) : null
-  const hasEffortInput = effortValue.trim().length > 0
-  const actualRpe = parseLoggedEffort(effortValue, effortMode)
+  const hasEffortInput = captureEffort && effortValue.trim().length > 0
+  const actualRpe = captureEffort ? parseLoggedEffort(effortValue, effortMode) : null
+  const hasInvalidEffortInput = hasEffortInput && actualRpe === null
   const estimatedOneRepMax = showEstimatedOneRepMax && enteredReps !== null && weightLbs !== null
     ? estimateOneRepMax(weightLbs, enteredReps)
     : null
@@ -145,54 +148,56 @@ export function SetEntry({
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 rounded-[18px] border border-border/60 bg-background/65 p-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Label htmlFor="set-entry-effort">Actual effort</Label>
-          {prescribedRpe !== null ? (
-            <p className="text-xs text-muted-foreground">{formatTargetEffort(prescribedRpe)}</p>
-          ) : (
-            <p className="text-xs text-muted-foreground">Optional</p>
-          )}
+      {captureEffort ? (
+        <div className="flex flex-col gap-2 rounded-[18px] border border-border/60 bg-background/65 p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Label htmlFor="set-entry-effort">Actual effort</Label>
+            {prescribedRpe !== null ? (
+              <p className="text-xs text-muted-foreground">{formatTargetEffort(prescribedRpe)}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">Optional</p>
+            )}
+          </div>
+
+          <ToggleGroup
+            value={[effortMode]}
+            role="radiogroup"
+            aria-label="Effort input mode"
+            onValueChange={handleEffortModeChange}
+            variant="outline"
+            spacing={2}
+            className="w-full"
+          >
+            <ToggleGroupItem value="rpe" role="radio" aria-checked={effortMode === 'rpe'} className="flex-1 justify-center">
+              RPE
+            </ToggleGroupItem>
+            <ToggleGroupItem value="rir" role="radio" aria-checked={effortMode === 'rir'} className="flex-1 justify-center">
+              RIR
+            </ToggleGroupItem>
+          </ToggleGroup>
+
+          <Input
+            id="set-entry-effort"
+            type="number"
+            min={effortMode === 'rpe' ? MIN_RPE : MIN_RIR}
+            max={effortMode === 'rpe' ? MAX_RPE : MAX_RIR}
+            step="0.5"
+            inputMode="decimal"
+            placeholder={effortMode === 'rpe' ? '7.5' : '2'}
+            value={effortValue}
+            onChange={(event) => setEffortValue(event.target.value)}
+            className="h-9 text-sm"
+          />
+
+          <p className="text-xs text-muted-foreground">
+            {hasInvalidEffortInput
+              ? effortMode === 'rpe'
+                ? 'Enter an RPE between 1 and 10.'
+                : 'Enter an RIR between 0 and 9.'
+              : 'Log the set effort as RPE or RIR.'}
+          </p>
         </div>
-
-        <ToggleGroup
-          value={[effortMode]}
-          role="radiogroup"
-          aria-label="Effort input mode"
-          onValueChange={handleEffortModeChange}
-          variant="outline"
-          spacing={2}
-          className="w-full"
-        >
-          <ToggleGroupItem value="rpe" role="radio" aria-checked={effortMode === 'rpe'} className="flex-1 justify-center">
-            RPE
-          </ToggleGroupItem>
-          <ToggleGroupItem value="rir" role="radio" aria-checked={effortMode === 'rir'} className="flex-1 justify-center">
-            RIR
-          </ToggleGroupItem>
-        </ToggleGroup>
-
-        <Input
-          id="set-entry-effort"
-          type="number"
-          min={effortMode === 'rpe' ? MIN_RPE : MIN_RIR}
-          max={effortMode === 'rpe' ? MAX_RPE : MAX_RIR}
-          step="0.5"
-          inputMode="decimal"
-          placeholder={effortMode === 'rpe' ? '7.5' : '2'}
-          value={effortValue}
-          onChange={(event) => setEffortValue(event.target.value)}
-          className="h-9 text-sm"
-        />
-
-        <p className="text-xs text-muted-foreground">
-          {hasEffortInput && actualRpe === null
-            ? effortMode === 'rpe'
-              ? 'Enter an RPE between 1 and 10.'
-              : 'Enter an RIR between 0 and 9.'
-            : 'Leave this blank when effort capture is not useful for the set.'}
-        </p>
-      </div>
+      ) : null}
 
       {estimatedOneRepMax ? (
         <p className="text-sm text-muted-foreground">
@@ -208,9 +213,9 @@ export function SetEntry({
           type="button"
           size="sm"
           className="flex-1"
-          disabled={isPending || enteredReps === null || weightLbs === null || (hasEffortInput && actualRpe === null)}
+          disabled={isPending || enteredReps === null || weightLbs === null || hasInvalidEffortInput}
           onClick={() => {
-            if (enteredReps === null || weightLbs === null || (hasEffortInput && actualRpe === null)) {
+            if (enteredReps === null || weightLbs === null || hasInvalidEffortInput) {
               return
             }
 

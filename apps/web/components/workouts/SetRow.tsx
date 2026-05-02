@@ -133,8 +133,9 @@ export function SetRow({
     ? `${loggedWeightLabel} × ${set.repsActual} reps`
     : null
   const shouldShowLoggedOutcome = Boolean(loggedOutcomeLabel) && (set.is_amrap || !matchesPrescription)
-  const prescribedEffortLabel = set.prescribedRpe !== null ? formatTargetEffort(set.prescribedRpe) : null
-  const loggedEffortLabel = set.rpe !== null ? formatCanonicalEffort(set.rpe) : null
+  const capturesEffort = set.intensity_type === 'rpe'
+  const prescribedEffortLabel = capturesEffort && set.prescribedRpe !== null ? formatTargetEffort(set.prescribedRpe) : null
+  const loggedEffortLabel = capturesEffort && set.rpe !== null ? formatCanonicalEffort(set.rpe) : null
 
   const updateSyncState = (status: SetSyncState['status']) => {
     onSyncStateChange?.({ status })
@@ -354,6 +355,7 @@ export function SetRow({
       {showSetEntry ? (
         <SetEntry
           allowZeroWeight={set.intensity_type === 'bodyweight'}
+          captureEffort={capturesEffort}
           defaultActualRpe={set.rpe}
           defaultReps={set.repsActual ?? set.reps_prescribed}
           defaultWeightLbs={set.weight_lbs}

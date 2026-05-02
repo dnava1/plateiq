@@ -24,6 +24,7 @@ describe('SetEntry', () => {
 
     expect(screen.getByLabelText(/load \(kg\)/i)).toHaveValue(42.5)
     expect(screen.queryByText(/suggested load/i)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/actual effort/i)).not.toBeInTheDocument()
   })
 
   it('normalizes RIR input into canonical RPE before submit', async () => {
@@ -32,6 +33,7 @@ describe('SetEntry', () => {
 
     render(
       <SetEntry
+        captureEffort
         defaultReps={8}
         defaultWeightLbs={185}
         onCancel={() => {}}

@@ -7,6 +7,7 @@ import { ExerciseLibraryField } from './ExerciseLibraryField'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { RestDurationPicker } from '@/components/shared/RestDurationPicker'
 import {
   Select,
   SelectContent,
@@ -29,7 +30,6 @@ const MIN_SET_COUNT = 1
 const MAX_SET_COUNT = 20
 const MIN_INTENSITY = 0
 const MAX_INTENSITY = 10000
-const REST_PRESET_SECONDS = [30, 60, 90, 120, 150, 180] as const
 
 const ROLE_LABELS: Record<ExerciseBlock['role'], string> = {
   primary: 'Primary',
@@ -195,36 +195,6 @@ function normalizeRepsInput(
     reps: parseRepsValue(normalizedValue),
     is_amrap: purpose !== 'warmup' && (hasAmrapSuffix || currentIsAmrap),
   }
-}
-
-function formatRestOptionLabel(seconds: number) {
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
-
-  return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`
-}
-
-function buildRestOptionItems(currentSeconds?: number) {
-  const options = [
-    { label: 'Off', value: 'off' },
-    ...REST_PRESET_SECONDS.map((seconds) => ({
-      label: formatRestOptionLabel(seconds),
-      value: String(seconds),
-    })),
-  ]
-
-  if (
-    typeof currentSeconds === 'number'
-    && currentSeconds > 0
-    && !REST_PRESET_SECONDS.includes(currentSeconds as (typeof REST_PRESET_SECONDS)[number])
-  ) {
-    options.push({
-      label: `${formatRestOptionLabel(currentSeconds)} (custom)`,
-      value: String(currentSeconds),
-    })
-  }
-
-  return options
 }
 
 export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, onRemove }: ExerciseBlockEditorProps) {
@@ -461,24 +431,15 @@ export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, o
 
               <div className="flex flex-col gap-2">
                 <Label htmlFor={`${fieldId}-rest-${si}`} className="text-xs xl:sr-only">Rest</Label>
-                <Select
-                  value={typeof set.rest_seconds === 'number' && set.rest_seconds > 0 ? String(set.rest_seconds) : 'off'}
-                  onValueChange={(value) => updateSet(si, {
-                    rest_seconds: value === 'off' ? undefined : Number(value),
+                <RestDurationPicker
+                  id={`${fieldId}-rest-${si}`}
+                  ariaLabel="Rest"
+                  valueSeconds={set.rest_seconds}
+                  onChange={(durationSeconds) => updateSet(si, {
+                    rest_seconds: durationSeconds ?? undefined,
                   })}
-                  items={buildRestOptionItems(set.rest_seconds)}
-                >
-                  <SelectTrigger id={`${fieldId}-rest-${si}`} className="w-full h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {buildRestOptionItems(set.rest_seconds).map((option) => (
-                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                  className="h-9 text-sm"
+                />
               </div>
 
               <Button

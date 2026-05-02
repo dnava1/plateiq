@@ -120,4 +120,23 @@ describe('ExerciseBlockEditor', () => {
     expect(screen.getByTestId('set-state')).toHaveTextContent('"display_type":"backoff"')
     expect(screen.getByTestId('set-state')).toHaveTextContent('"is_amrap":true')
   })
+
+  it('uses the shared rest duration dropdown for program prescriptions', async () => {
+    const user = userEvent.setup()
+
+    render(<ExerciseBlockEditorHarness initialBlock={buildBlock()} />)
+
+    const restSelect = screen.getByLabelText('Rest')
+
+    expect(restSelect).toHaveTextContent('0:00')
+
+    await user.click(restSelect)
+
+    expect(await screen.findByRole('option', { name: '5:00' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: '5:01' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('option', { name: '2:45' }))
+
+    expect(screen.getByTestId('set-state')).toHaveTextContent('"rest_seconds":165')
+  })
 })

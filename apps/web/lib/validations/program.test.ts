@@ -201,6 +201,65 @@ describe('custom program builder validation helpers', () => {
     expect(result.success).toBe(true)
   })
 
+  it('accepts arbitrary programmed rest durations up to 5 minutes', () => {
+    const input = buildValidCustomProgramInput()
+    const result = createCustomProgramSchema.safeParse({
+      ...input,
+      definition: {
+        ...input.definition,
+        days: [
+          {
+            ...input.definition.days[0],
+            exercise_blocks: [
+              {
+                ...input.definition.days[0].exercise_blocks[0],
+                sets: [
+                  {
+                    ...input.definition.days[0].exercise_blocks[0].sets[0],
+                    rest_seconds: 275,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    })
+
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects programmed rest durations above 5 minutes', () => {
+    const input = buildValidCustomProgramInput()
+    const result = createCustomProgramSchema.safeParse({
+      ...input,
+      definition: {
+        ...input.definition,
+        days: [
+          {
+            ...input.definition.days[0],
+            exercise_blocks: [
+              {
+                ...input.definition.days[0].exercise_blocks[0],
+                sets: [
+                  {
+                    ...input.definition.days[0].exercise_blocks[0].sets[0],
+                    rest_seconds: 301,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(getCreateCustomProgramErrorMessage(result.error)).toBe('Enter a valid rest time for set 1 of exercise 1 on day 1 before creating the program.')
+    }
+  })
+
   it('rejects percentage_work_set blocks without a local non-warmup base set', () => {
     const input = buildValidCustomProgramInput()
     const result = createCustomProgramSchema.safeParse({

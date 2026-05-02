@@ -33,6 +33,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { RestDurationPicker } from '@/components/shared/RestDurationPicker'
 import { CompleteWorkoutButton } from './CompleteWorkoutButton'
 import { OfflineSyncBanner } from './OfflineSyncBanner'
 import { PlateBreakdownInline } from './PlateBreakdownInline'
@@ -59,7 +60,7 @@ interface ActiveWorkoutPanelProps {
   program: TrainingProgram
 }
 
-const REST_TIMER_PRESET_SECONDS = [30, 60, 90, 120, 150, 180] as const
+const DEFAULT_MANUAL_REST_SECONDS = 90
 
 function formatPercentageValue(value: number) {
   const normalizedValue = Number.isInteger(value) ? String(value) : value.toFixed(1)
@@ -121,6 +122,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
   const [timerNowMs, setTimerNowMs] = useState(() => Date.now())
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null)
   const [editingPercentageValue, setEditingPercentageValue] = useState('')
+  const [manualRestDurationSeconds, setManualRestDurationSeconds] = useState<number | null>(DEFAULT_MANUAL_REST_SECONDS)
   const wakeLockStatus = useScreenWakeLock(Boolean(activeWorkoutId))
   const offlineSync = useOfflineWorkoutSync(userId)
 
@@ -416,7 +418,12 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
     )
   }
 
-  const startManualRestTimer = (durationSeconds: number) => {
+  const startManualRestTimer = (durationSeconds = manualRestDurationSeconds) => {
+    if (!durationSeconds || durationSeconds <= 0) {
+      toast.error('Enter a rest time first.')
+      return
+    }
+
     startRestTimer({
       durationSeconds,
       label: nextSet?.exerciseName ?? selectedDay.label ?? 'Workout rest',
@@ -691,13 +698,21 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
                       </>
                     ) : (
                       <>
-                        <p className="text-sm text-muted-foreground">Start a quick rest timer and keep the workout moving.</p>
-                        <div className="flex flex-wrap gap-2">
-                          {REST_TIMER_PRESET_SECONDS.map((durationSeconds) => (
-                            <Button key={durationSeconds} type="button" size="sm" variant="outline" onClick={() => startManualRestTimer(durationSeconds)}>
-                              {formatDurationClock(durationSeconds)}
-                            </Button>
-                          ))}
+                        <p className="text-sm text-muted-foreground">Set a rest timer and keep the workout moving.</p>
+                        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                          <RestDurationPicker
+                            id="manual-rest-timer"
+                            valueSeconds={manualRestDurationSeconds}
+                            onChange={setManualRestDurationSeconds}
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => startManualRestTimer()}
+                            disabled={!manualRestDurationSeconds}
+                          >
+                            Start rest
+                          </Button>
                         </div>
                       </>
                     )}
