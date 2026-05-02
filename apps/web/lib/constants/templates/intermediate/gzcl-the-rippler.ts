@@ -30,9 +30,9 @@ function createRipplerDays(week: RipplerWeekDefinition): DayTemplate[] {
 
   const buildDay = (
     label: string,
-    primaryKey: 'bench' | 'squat' | 'ohp' | 'deadlift',
-    secondaryKey: 'incline_bench' | 'rdl' | 'close_grip_bench' | 'front_squat',
-    accessories: Array<'lateral_raise' | 'tricep_pushdown' | 'pull_up' | 'barbell_curl' | 'dumbbell_bench_press' | 'lat_pulldown' | 'barbell_row' | 'face_pull'>,
+    primaryKey: 'Bench Press' | 'Squat' | 'Overhead Press' | 'Deadlift',
+    secondaryKey: 'Incline Bench Press' | 'Romanian Deadlift' | 'Close-Grip Bench Press' | 'Front Squat',
+    accessories: Array<'Lateral Raise' | 'Tricep Pushdown' | 'Pull-up' | 'Barbell Curl' | 'Dumbbell Bench Press' | 'Lat Pulldown' | 'Barbell Row' | 'Face Pull'>,
   ): DayTemplate => ({
     label,
     exercise_blocks: [
@@ -62,10 +62,10 @@ function createRipplerDays(week: RipplerWeekDefinition): DayTemplate[] {
   })
 
   return [
-    buildDay('Day 1 — Bench Focus', 'bench', 'incline_bench', ['lateral_raise', 'tricep_pushdown']),
-    buildDay('Day 2 — Squat Focus', 'squat', 'rdl', ['pull_up', 'barbell_curl']),
-    buildDay('Day 3 — Press Focus', 'ohp', 'close_grip_bench', ['dumbbell_bench_press', 'lat_pulldown']),
-    buildDay('Day 4 — Deadlift Focus', 'deadlift', 'front_squat', ['barbell_row', 'face_pull']),
+    buildDay('Day 1 — Bench Focus', 'Bench Press', 'Incline Bench Press', ['Lateral Raise', 'Tricep Pushdown']),
+    buildDay('Day 2 — Squat Focus', 'Squat', 'Romanian Deadlift', ['Pull-up', 'Barbell Curl']),
+    buildDay('Day 3 — Press Focus', 'Overhead Press', 'Close-Grip Bench Press', ['Dumbbell Bench Press', 'Lat Pulldown']),
+    buildDay('Day 4 — Deadlift Focus', 'Deadlift', 'Front Squat', ['Barbell Row', 'Face Pull']),
   ]
 }
 
@@ -178,22 +178,22 @@ export const gzclTheRippler: ProgramTemplate = {
   cycle_length_weeks: 12,
   uses_training_max: false,
   required_exercises: [
-    'bench',
-    'squat',
-    'ohp',
-    'deadlift',
-    'incline_bench',
-    'rdl',
-    'close_grip_bench',
-    'front_squat',
-    'lateral_raise',
-    'tricep_pushdown',
-    'pull_up',
-    'barbell_curl',
-    'dumbbell_bench_press',
-    'lat_pulldown',
-    'barbell_row',
-    'face_pull',
+    'Bench Press',
+    'Squat',
+    'Overhead Press',
+    'Deadlift',
+    'Incline Bench Press',
+    'Romanian Deadlift',
+    'Close-Grip Bench Press',
+    'Front Squat',
+    'Lateral Raise',
+    'Tricep Pushdown',
+    'Pull-up',
+    'Barbell Curl',
+    'Dumbbell Bench Press',
+    'Lat Pulldown',
+    'Barbell Row',
+    'Face Pull',
   ],
   week_schemes: Object.fromEntries([
     [RIPPLER_WEEK_ONE.weekNumber, { label: RIPPLER_WEEK_ONE.label }],

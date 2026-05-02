@@ -93,7 +93,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
   const queryClient = useQueryClient()
   const { data: user } = useUser()
   const userId = user?.id ?? null
-  const { data: exercises } = useExercises()
+  const { data: exercises, isLoading: areExercisesLoading } = useExercises()
   const { data: trainingMaxes } = useCurrentTrainingMaxes()
   const preferredUnit = usePreferredUnit()
   const preferredWeightRounding = usePreferredWeightRounding()
@@ -182,10 +182,21 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
 
   const displaySets = useMemo<WorkoutDisplaySet[]>(() => {
     const storedSetsByOrder = new Map((workoutSets ?? []).map((set) => [set.set_order, set]))
+    const resolveKnownExerciseId = (exerciseId: number | null | undefined, exerciseKey?: string | null) => {
+      if (typeof exerciseId === 'number') {
+        if (areExercisesLoading || typeof exercises === 'undefined') {
+          return exerciseId
+        }
+
+        return exerciseNameById.has(exerciseId) ? exerciseId : null
+      }
+
+      return resolveExerciseIdFromMap(exerciseKeyMap, exerciseKey) ?? null
+    }
 
     return generatedSets.map((set) => {
       const storedSet = storedSetsByOrder.get(set.set_order)
-      const exerciseId = storedSet?.exercise_id ?? set.exercise_id ?? resolveExerciseIdFromMap(exerciseKeyMap, set.exercise_key) ?? null
+      const exerciseId = resolveKnownExerciseId(storedSet?.exercise_id ?? set.exercise_id, set.exercise_key)
       const exerciseName = storedSet?.exercises?.name
         ?? (exerciseId ? exerciseNameById.get(exerciseId) : undefined)
         ?? formatExerciseKey(set.exercise_key)
@@ -206,7 +217,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
         workoutSetId: storedSet?.id ?? null,
       }
     })
-  }, [activeWorkoutId, exerciseKeyMap, exerciseNameById, generatedSets, workoutSets])
+  }, [activeWorkoutId, areExercisesLoading, exerciseKeyMap, exerciseNameById, exercises, generatedSets, workoutSets])
 
   useEffect(() => {
     if (!activeWorkoutId || !cycleId || !userId || seedWorkoutSets.isPending) {

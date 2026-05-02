@@ -1,9 +1,9 @@
 import type { DayTemplate, ProgramTemplate } from '@/types/template'
 
 function createTexasMethodDays(
-  mondayPressKey: 'bench' | 'ohp',
-  wednesdayPressKey: 'bench' | 'ohp',
-  fridayPressKey: 'bench' | 'ohp',
+  mondayPressKey: 'Bench Press' | 'Overhead Press',
+  wednesdayPressKey: 'Bench Press' | 'Overhead Press',
+  fridayPressKey: 'Bench Press' | 'Overhead Press',
 ): DayTemplate[] {
   return [
     {
@@ -11,7 +11,7 @@ function createTexasMethodDays(
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'squat',
+          exercise_key: 'Squat',
           sets: [{ sets: 5, reps: 5, intensity: 0.9, intensity_type: 'percentage_1rm' }],
           notes: '5×5 @ ~90% of Friday 5RM. This is the volume cornerstone.',
         },
@@ -23,7 +23,7 @@ function createTexasMethodDays(
         },
         {
           role: 'variation',
-          exercise_key: 'row',
+          exercise_key: 'Barbell Row',
           sets: [{ sets: 3, reps: 8, intensity: 0, intensity_type: 'fixed_weight' }],
         },
       ],
@@ -33,7 +33,7 @@ function createTexasMethodDays(
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'squat',
+          exercise_key: 'Squat',
           sets: [{ sets: 2, reps: 5, intensity: 0.8, intensity_type: 'percentage_1rm' }],
           notes: '2×5 light squat — do NOT grind',
         },
@@ -45,7 +45,7 @@ function createTexasMethodDays(
         },
         {
           role: 'variation',
-          exercise_key: 'deadlift',
+          exercise_key: 'Deadlift',
           sets: [{ sets: 1, reps: 5, intensity: 0.7, intensity_type: 'percentage_1rm' }],
           notes: 'Light pull — Power Clean 5×3 is a common substitution',
         },
@@ -56,7 +56,7 @@ function createTexasMethodDays(
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'squat',
+          exercise_key: 'Squat',
           sets: [{ sets: 1, reps: '5+', intensity: 1.0, intensity_type: 'percentage_1rm', is_amrap: true }],
           notes: 'Work to a new 5-rep PR — add 5 lbs from last week\'s Friday',
         },
@@ -68,7 +68,7 @@ function createTexasMethodDays(
         },
         {
           role: 'variation',
-          exercise_key: 'deadlift',
+          exercise_key: 'Deadlift',
           sets: [{ sets: 1, reps: 5, intensity: 1.0, intensity_type: 'fixed_weight' }],
           notes: 'Heavy 1×5 deadlift, add weight when possible',
         },
@@ -86,15 +86,15 @@ export const texasMethod: ProgramTemplate = {
   days_per_week: 3,
   cycle_length_weeks: 2,
   uses_training_max: false,
-  required_exercises: ['squat', 'bench', 'ohp', 'deadlift', 'row', 'power_clean'],
+  required_exercises: ['Squat', 'Bench Press', 'Overhead Press', 'Deadlift', 'Barbell Row', 'Power Clean'],
   week_schemes: {
     1: { label: 'Week 1 — Bench Focus' },
     2: {
       label: 'Week 2 — OHP Focus',
-      days: createTexasMethodDays('ohp', 'bench', 'ohp'),
+      days: createTexasMethodDays('Overhead Press', 'Bench Press', 'Overhead Press'),
     },
   },
-  days: createTexasMethodDays('bench', 'ohp', 'bench'),
+  days: createTexasMethodDays('Bench Press', 'Overhead Press', 'Bench Press'),
   progression: {
     style: 'linear_per_week',
     increment_lbs: { upper: 5, lower: 10 },

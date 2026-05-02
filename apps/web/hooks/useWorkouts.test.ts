@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  buildTrainingMaxMap,
   fetchRecentExerciseHistory,
   resolveWorkoutProgram,
   seedWorkoutSetsMutation,
@@ -13,7 +14,7 @@ import {
 } from './useWorkouts'
 import { generateWorkoutPlan } from '@/lib/constants/templates/engine'
 import { getTemplate } from '@/lib/constants/templates'
-import { buildEditableConfigFromTemplate } from '@/lib/programs/editable'
+import { buildEditableConfigFromTemplate, rewriteCustomProgramExerciseReferences } from '@/lib/programs/editable'
 import type { Json } from '@/types/database'
 
 const useSupabaseMock = vi.fn()
@@ -449,7 +450,7 @@ describe('useWorkouts', () => {
     expect(generatedSets.slice(0, 3).map((set) => set.reps_prescribed)).toEqual([3, 3, 3])
     expect(generatedSets[0]?.weight_lbs).toBe(90)
     expect(generatedSets[2]?.is_amrap).toBe(true)
-    expect(generatedSets[3]?.exercise_key).toBe('ohp')
+    expect(generatedSets[3]?.exercise_key).toBe('Overhead Press')
   })
 
   it('resolveWorkoutProgram prefers the active cycle snapshot when the saved program has moved on', () => {
@@ -472,6 +473,56 @@ describe('useWorkouts', () => {
     expect(resolved.isCustom).toBe(true)
     expect(resolved.template?.days_per_week).toBe(4)
     expect(resolved.template?.week_schemes?.['2']?.days?.[0]?.exercise_blocks).toHaveLength(2)
+  })
+
+  it('preserves percentage-based loads after a renamed custom exercise rewrites legacy name-only blocks', () => {
+    const legacyConfig = {
+      type: 'custom' as const,
+      level: 'intermediate' as const,
+      days_per_week: 1,
+      cycle_length_weeks: 1,
+      uses_training_max: true,
+      tm_percentage: 0.9,
+      days: [{
+        label: 'Day 1',
+        exercise_blocks: [{
+          role: 'primary' as const,
+          exercise_key: 'Safety Squat Bar',
+          sets: [{ sets: 1, reps: 5, intensity: 0.8, intensity_type: 'percentage_tm' as const }],
+        }],
+      }],
+      progression: { style: 'custom' as const },
+    }
+    const rewritten = rewriteCustomProgramExerciseReferences(legacyConfig, {
+      exerciseId: 42,
+      previousName: 'Safety Squat Bar',
+      nextName: 'Yoke Bar Squat',
+    })
+    const resolved = resolveWorkoutProgram({
+      id: 11,
+      name: 'Custom Yoke Bar Program',
+      template_key: 'custom',
+      config: rewritten.config,
+    } as never)
+    const generatedSets = generateWorkoutPlan(
+      resolved.template!,
+      0,
+      1,
+      buildTrainingMaxMap([
+        {
+          exercise_id: 42,
+          weight_lbs: 315,
+          exercises: { name: 'Yoke Bar Squat' },
+        },
+      ]),
+    )
+
+    expect(rewritten.changed).toBe(true)
+    expect(generatedSets[0]).toMatchObject({
+      exercise_id: 42,
+      exercise_key: 'Yoke Bar Squat',
+      weight_lbs: 250,
+    })
   })
 
   it('fetchRecentExerciseHistory excludes the current workout and limits to completed logged history', async () => {

@@ -12,10 +12,10 @@ interface Wendler531SetTarget {
 type Wendler531WeekTargets = [Wendler531SetTarget, Wendler531SetTarget, Wendler531SetTarget]
 
 const WENDLER_531_DAY_DEFINITIONS = [
-  { label: 'OHP Day', exerciseKey: 'ohp' },
-  { label: 'Deadlift Day', exerciseKey: 'deadlift' },
-  { label: 'Bench Day', exerciseKey: 'bench' },
-  { label: 'Squat Day', exerciseKey: 'squat' },
+  { label: 'OHP Day', exerciseKey: 'Overhead Press' },
+  { label: 'Deadlift Day', exerciseKey: 'Deadlift' },
+  { label: 'Bench Day', exerciseKey: 'Bench Press' },
+  { label: 'Squat Day', exerciseKey: 'Squat' },
 ] as const
 
 function createWendler531Sets(targets: Wendler531WeekTargets): SetPrescription[] {
@@ -56,7 +56,7 @@ export const wendler531: ProgramTemplate = {
   cycle_length_weeks: 4,
   uses_training_max: true,
   default_tm_percentage: 0.9,
-  required_exercises: ['squat', 'bench', 'ohp', 'deadlift'],
+  required_exercises: ['Squat', 'Bench Press', 'Overhead Press', 'Deadlift'],
   week_schemes: {
     1: { label: '5s Week' },
     2: {

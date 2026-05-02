@@ -36,21 +36,101 @@ function buildGeneratedBlockId(
   ].join(GENERATED_BLOCK_ID_DELIMITER)
 }
 
+function normalizeExerciseReference(value: string | undefined) {
+  return value
+    ?.trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+}
+
+const TRAINING_MAX_LOOKUP_ALIASES: Record<string, string[]> = {
+  barbell_row: ['row'],
+  bench_press: ['bench'],
+  close_grip_bench_press: ['close_grip_bench'],
+  dumbbell_row: ['db_row'],
+  incline_bench_press: ['incline_bench'],
+  overhead_press: ['ohp'],
+  romanian_deadlift: ['rdl'],
+}
+
+function getTrainingMaxLookupKeys(exerciseKey: string) {
+  const normalizedExerciseKey = normalizeExerciseReference(exerciseKey)
+
+  if (!normalizedExerciseKey) {
+    return []
+  }
+
+  const lookupKeys = new Set([normalizedExerciseKey])
+
+  if (normalizedExerciseKey.endsWith('_press')) {
+    lookupKeys.add(normalizedExerciseKey.replace(/_press$/, ''))
+  }
+
+  for (const alias of TRAINING_MAX_LOOKUP_ALIASES[normalizedExerciseKey] ?? []) {
+    lookupKeys.add(alias)
+  }
+
+  return Array.from(lookupKeys)
+}
+
+function shouldInheritPrimaryExerciseId(
+  blockExerciseKey: string | undefined,
+  primaryExerciseKey: string | undefined,
+) {
+  if (!blockExerciseKey) {
+    return true
+  }
+
+  if (!primaryExerciseKey) {
+    return false
+  }
+
+  return normalizeExerciseReference(blockExerciseKey) === normalizeExerciseReference(primaryExerciseKey)
+}
+
+function resolveTrainingMaxValue(
+  trainingMaxes: Map<string, number>,
+  exerciseKey: string,
+  exerciseId?: number,
+) {
+  if (typeof exerciseId === 'number') {
+    const exerciseTrainingMax = trainingMaxes.get(`id:${exerciseId}`)
+
+    if (typeof exerciseTrainingMax === 'number') {
+      return exerciseTrainingMax
+    }
+  }
+
+  for (const lookupKey of getTrainingMaxLookupKeys(exerciseKey)) {
+    const trainingMax = trainingMaxes.get(`key:${lookupKey}`)
+      ?? trainingMaxes.get(lookupKey)
+
+    if (typeof trainingMax === 'number') {
+      return trainingMax
+    }
+  }
+
+  return trainingMaxes.get(`key:${exerciseKey}`)
+    ?? trainingMaxes.get(exerciseKey)
+}
+
 export function resolveWeight(
   prescription: SetPrescription,
   trainingMaxes: Map<string, number>,
   exerciseKey: string,
   preferredRounding: number = 5,
-  percentageWorkSetBase: number = 0
+  percentageWorkSetBase: number = 0,
+  exerciseId?: number,
 ): number {
   switch (prescription.intensity_type) {
     case 'percentage_tm': {
-      const tm = trainingMaxes.get(exerciseKey)
+      const tm = resolveTrainingMaxValue(trainingMaxes, exerciseKey, exerciseId)
       if (!tm) return 0
       return roundToIncrement(tm * prescription.intensity, preferredRounding, 'down')
     }
     case 'percentage_1rm': {
-      const tm = trainingMaxes.get(exerciseKey)
+      const tm = resolveTrainingMaxValue(trainingMaxes, exerciseKey, exerciseId)
       if (!tm) return 0
       // Assume TM is stored, use it as proxy for 1RM % (user's TM/1RM ratio varies)
       return roundToIncrement(tm * prescription.intensity, preferredRounding, 'down')
@@ -106,6 +186,7 @@ function resolvePercentageWorkSetBase(
   trainingMaxes: Map<string, number>,
   exerciseKey: string,
   preferredRounding: number,
+  exerciseId?: number,
 ) {
   if (!block) {
     return 0
@@ -124,6 +205,8 @@ function resolvePercentageWorkSetBase(
     trainingMaxes,
     exerciseKey,
     preferredRounding,
+    0,
+    exerciseId,
   )
 }
 
@@ -132,11 +215,14 @@ function resolvePrescriptionBaseWeight(
   trainingMaxes: Map<string, number>,
   exerciseKey: string,
   percentageWorkSetBase: number,
+  exerciseId?: number,
 ) {
+  const trainingMax = resolveTrainingMaxValue(trainingMaxes, exerciseKey, exerciseId)
+
   switch (prescription.intensity_type) {
     case 'percentage_tm':
     case 'percentage_1rm':
-      return trainingMaxes.get(exerciseKey) ?? 0
+      return trainingMax ?? 0
     case 'percentage_work_set':
       return percentageWorkSetBase
     default:
@@ -165,6 +251,7 @@ function expandBlock(
       trainingMaxes,
       exerciseKey,
       percentageWorkSetBase,
+      exerciseId,
     )
     const weight = resolveWeight(
       prescription,
@@ -172,6 +259,7 @@ function expandBlock(
       exerciseKey,
       preferredRounding,
       percentageWorkSetBase,
+      exerciseId,
     )
     const actualIsAmrap = prescription.purpose === 'warmup'
       ? false
@@ -246,17 +334,23 @@ export function generateWorkoutPlan(
     trainingMaxes,
     primaryExerciseKey,
     preferredRounding,
+    primaryExerciseId,
   )
 
   for (const [index, block] of adjustedDayBlocks.entries()) {
     const exerciseKey = block.exercise_key ?? primaryExerciseKey ?? 'unknown'
-    const exerciseId = block.exercise_id ?? primaryExerciseId
+    const exerciseId = typeof block.exercise_id === 'number'
+      ? block.exercise_id
+      : shouldInheritPrimaryExerciseId(block.exercise_key, primaryExerciseKey)
+        ? primaryExerciseId
+        : undefined
     const blockId = buildGeneratedBlockId(block, dayIndex, index, 'base')
     const blockPercentageWorkSetBase = resolvePercentageWorkSetBase(
       block,
       trainingMaxes,
       exerciseKey,
       preferredRounding,
+      exerciseId,
     )
     const percentageWorkSetBase = blockPercentageWorkSetBase > 0
       ? blockPercentageWorkSetBase
@@ -284,13 +378,18 @@ export function generateWorkoutPlan(
       if (selectedVariations.includes(variation.key)) {
         for (const [index, block] of variation.blocks.entries()) {
           const exerciseKey = block.exercise_key ?? primaryExerciseKey ?? 'unknown'
-          const exerciseId = block.exercise_id ?? primaryExerciseId
+          const exerciseId = typeof block.exercise_id === 'number'
+            ? block.exercise_id
+            : shouldInheritPrimaryExerciseId(block.exercise_key, primaryExerciseKey)
+              ? primaryExerciseId
+              : undefined
           const blockId = buildGeneratedBlockId(block, dayIndex, index, `variation-${variation.key}`)
           const blockPercentageWorkSetBase = resolvePercentageWorkSetBase(
             block,
             trainingMaxes,
             exerciseKey,
             preferredRounding,
+            exerciseId,
           )
           const percentageWorkSetBase = blockPercentageWorkSetBase > 0
             ? blockPercentageWorkSetBase
@@ -323,6 +422,7 @@ export function getProgressionIncrements(
 ): { upper: number; lower: number } {
   const defaults = template.progression.increment_lbs ?? { upper: 5, lower: 10 }
   // Lower body exercises (squat, deadlift) typically progress faster
-  const isLower = ['squat', 'deadlift'].includes(exerciseKey)
+  const normalizedExerciseKey = normalizeExerciseReference(exerciseKey)
+  const isLower = ['squat', 'deadlift'].includes(normalizedExerciseKey ?? '')
   return isLower ? { upper: defaults.lower, lower: defaults.lower } : { upper: defaults.upper, lower: defaults.upper }
 }

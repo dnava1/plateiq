@@ -153,9 +153,9 @@ describe('ProgramCard', () => {
     expect(screen.getByText('Program Training Maxes')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Hide Training Maxes' })).toBeInTheDocument()
     const latestCall = trainingMaxPanelPropsMock.mock.calls.at(-1)?.[0]
-    expect(latestCall?.targetExerciseKeys).toEqual(expect.arrayContaining(['squat', 'bench', 'deadlift', 'ohp']))
+    expect(latestCall?.targetExerciseKeys).toEqual(expect.arrayContaining(['Squat', 'Bench Press', 'Deadlift', 'Overhead Press']))
     expect(latestCall?.targetExerciseKeys).toHaveLength(4)
-    expect(latestCall?.targetExerciseKeys).not.toEqual(expect.arrayContaining(['front_squat', 'power_clean', 'push_press']))
+    expect(latestCall?.targetExerciseKeys).not.toEqual(expect.arrayContaining(['Front Squat', 'Power Clean', 'Push Press']))
   })
 
   it('keeps inline training max access available for inactive programs that still need it', async () => {

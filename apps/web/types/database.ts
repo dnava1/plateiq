@@ -486,6 +486,18 @@ export type Database = {
         }
         Returns: Json
       }
+      update_exercise_definition: {
+        Args: {
+          p_analytics_track: string
+          p_category: string
+          p_exercise_id: number
+          p_is_main_lift: boolean
+          p_movement_pattern: string
+          p_name: string
+          p_strength_lift_slug: string | null
+        }
+        Returns: Json
+      }
       update_strength_profile: {
         Args: {
           p_age_years?: number | null

@@ -2,8 +2,8 @@ import type { DayTemplate, ProgramTemplate } from '@/types/template'
 
 function createStrongliftsWorkout(
   label: string,
-  pressExerciseKey: 'bench' | 'ohp',
-  pullExerciseKey: 'barbell_row' | 'deadlift',
+  pressExerciseKey: 'Bench Press' | 'Overhead Press',
+  pullExerciseKey: 'Barbell Row' | 'Deadlift',
   pullSets: DayTemplate['exercise_blocks'][number]['sets'],
 ): DayTemplate {
   return {
@@ -11,7 +11,7 @@ function createStrongliftsWorkout(
     exercise_blocks: [
       {
         role: 'primary',
-        exercise_key: 'squat',
+        exercise_key: 'Squat',
         sets: [{ sets: 5, reps: 5, intensity: 0, intensity_type: 'fixed_weight' }],
       },
       {
@@ -30,14 +30,14 @@ function createStrongliftsWorkout(
 
 const STRONGLIFTS_WORKOUT_A = createStrongliftsWorkout(
   'Workout A',
-  'bench',
-  'barbell_row',
+  'Bench Press',
+  'Barbell Row',
   [{ sets: 5, reps: 5, intensity: 0, intensity_type: 'fixed_weight' }],
 )
 const STRONGLIFTS_WORKOUT_B = createStrongliftsWorkout(
   'Workout B',
-  'ohp',
-  'deadlift',
+  'Overhead Press',
+  'Deadlift',
   [{ sets: 1, reps: 5, intensity: 0, intensity_type: 'fixed_weight' }],
 )
 
@@ -50,7 +50,7 @@ export const stronglifts5x5: ProgramTemplate = {
   days_per_week: 3,
   cycle_length_weeks: 2,
   uses_training_max: false,
-  required_exercises: ['squat', 'bench', 'ohp', 'deadlift', 'barbell_row'],
+  required_exercises: ['Squat', 'Bench Press', 'Overhead Press', 'Deadlift', 'Barbell Row'],
   week_schemes: {
     1: { label: 'Week 1 — A / B / A' },
     2: {

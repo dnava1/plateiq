@@ -88,6 +88,16 @@ describe('ReviewStep', () => {
           created_at: null,
           created_by_user_id: null,
         },
+        {
+          id: 3,
+          name: 'Overhead Press',
+          category: 'main',
+          movement_pattern: 'vertical_push',
+          is_main_lift: true,
+          strength_lift_slug: 'overhead_press',
+          created_at: null,
+          created_by_user_id: null,
+        },
       ],
       isLoading: false,
     })
@@ -158,6 +168,59 @@ describe('ReviewStep', () => {
 
     expect(screen.getByText('1x5 at 95 lbs - warm-up')).toBeInTheDocument()
     expect(screen.getByText('1x12 at 70% first work set - drop set')).toBeInTheDocument()
+  })
+
+  it('shows AMRAP sets clearly in the review summary', () => {
+    const draft = useBuilderDraftStore.getState().draft
+
+    useBuilderDraftStore.setState({
+      draft: {
+        ...draft,
+        days: [
+          {
+            label: 'Day 1',
+            exercise_blocks: [
+              {
+                role: 'primary',
+                exercise_id: 1,
+                exercise_key: 'Squat',
+                sets: [{ sets: 1, reps: 5, intensity: 0.85, intensity_type: 'percentage_tm', is_amrap: true }],
+              },
+            ],
+          },
+        ],
+      },
+    })
+
+    render(<ReviewStep />)
+
+    expect(screen.getByText('1x5+ at 85% TM - AMRAP')).toBeInTheDocument()
+  })
+
+  it('resolves template shorthand exercise keys to seeded exercise names in the review step', () => {
+    const draft = useBuilderDraftStore.getState().draft
+
+    useBuilderDraftStore.setState({
+      draft: {
+        ...draft,
+        days: [
+          {
+            label: 'Press Day',
+            exercise_blocks: [
+              {
+                role: 'primary',
+                exercise_key: 'ohp',
+                sets: [{ sets: 3, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' }],
+              },
+            ],
+          },
+        ],
+      },
+    })
+
+    render(<ReviewStep />)
+
+    expect(screen.getByText('Overhead Press')).toBeInTheDocument()
   })
 
   it('renders week-specific sections when the draft includes explicit cycle layouts', () => {
@@ -387,5 +450,88 @@ describe('ReviewStep', () => {
 
     expect(screen.getByText(/Completed cycles keep their saved program snapshots/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeInTheDocument()
+  })
+
+  it('blocks saving when a block name is still ambiguous or unresolved', () => {
+    const draft = useBuilderDraftStore.getState().draft
+
+    mocks.useExercises.mockReturnValue({
+      data: [
+        {
+          id: 1,
+          name: 'Bench Press',
+          category: 'main',
+          movement_pattern: 'horizontal_push',
+          is_main_lift: true,
+          strength_lift_slug: 'bench_press',
+          created_at: null,
+          created_by_user_id: null,
+        },
+        {
+          id: 2,
+          name: 'Bench Press',
+          category: 'accessory',
+          movement_pattern: 'horizontal_push',
+          is_main_lift: false,
+          strength_lift_slug: null,
+          created_at: null,
+          created_by_user_id: 'user-1',
+        },
+      ],
+      isLoading: false,
+    })
+
+    useBuilderDraftStore.setState({
+      draft: {
+        ...draft,
+        uses_training_max: false,
+        days: [
+          {
+            label: 'Day 1',
+            exercise_blocks: [
+              {
+                role: 'primary',
+                exercise_key: 'Bench Press',
+                sets: [{ sets: 3, reps: 5, intensity: 225, intensity_type: 'fixed_weight' }],
+              },
+            ],
+          },
+        ],
+      },
+    })
+
+    render(<ReviewStep />)
+
+    expect(screen.getByText('Choose library exercises for Bench Press (Day 1) before you save this program.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Create Program' })).toBeDisabled()
+  })
+
+  it('blocks saving when a stale exercise id no longer exists in the library', () => {
+    const draft = useBuilderDraftStore.getState().draft
+
+    useBuilderDraftStore.setState({
+      draft: {
+        ...draft,
+        uses_training_max: false,
+        days: [
+          {
+            label: 'Day 1',
+            exercise_blocks: [
+              {
+                role: 'primary',
+                exercise_id: 999,
+                exercise_key: 'Bench Press',
+                sets: [{ sets: 3, reps: 5, intensity: 225, intensity_type: 'fixed_weight' }],
+              },
+            ],
+          },
+        ],
+      },
+    })
+
+    render(<ReviewStep />)
+
+    expect(screen.getByText('Choose library exercises for Bench Press (Day 1) before you save this program.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Create Program' })).toBeDisabled()
   })
 })

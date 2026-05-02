@@ -2,8 +2,8 @@ import type { DayTemplate, ProgramTemplate } from '@/types/template'
 
 function createPhraksWorkout(
   label: string,
-  firstExerciseKey: 'ohp' | 'bench',
-  thirdExerciseKey: 'squat' | 'deadlift',
+  firstExerciseKey: 'Overhead Press' | 'Bench Press',
+  thirdExerciseKey: 'Squat' | 'Deadlift',
   thirdExerciseNotes: string,
 ): DayTemplate {
   return {
@@ -20,7 +20,7 @@ function createPhraksWorkout(
       },
       {
         role: 'primary',
-        exercise_key: 'row',
+        exercise_key: 'Barbell Row',
         sets: [
           { sets: 2, reps: 5, intensity: 0, intensity_type: 'fixed_weight' },
           { sets: 1, reps: '5+', intensity: 0, intensity_type: 'fixed_weight', is_amrap: true },
@@ -30,7 +30,7 @@ function createPhraksWorkout(
       {
         role: 'primary',
         exercise_key: thirdExerciseKey,
-        sets: thirdExerciseKey === 'deadlift'
+        sets: thirdExerciseKey === 'Deadlift'
           ? [{ sets: 1, reps: '5+', intensity: 0, intensity_type: 'fixed_weight', is_amrap: true }]
           : [
               { sets: 2, reps: 5, intensity: 0, intensity_type: 'fixed_weight' },
@@ -42,8 +42,8 @@ function createPhraksWorkout(
   }
 }
 
-const PHRAKS_WORKOUT_A = createPhraksWorkout('Workout A', 'ohp', 'squat', 'Last set AMRAP')
-const PHRAKS_WORKOUT_B = createPhraksWorkout('Workout B', 'bench', 'deadlift', 'Only set — AMRAP')
+const PHRAKS_WORKOUT_A = createPhraksWorkout('Workout A', 'Overhead Press', 'Squat', 'Last set AMRAP')
+const PHRAKS_WORKOUT_B = createPhraksWorkout('Workout B', 'Bench Press', 'Deadlift', 'Only set — AMRAP')
 
 export const phraksGslp: ProgramTemplate = {
   key: 'phraks_gslp',
@@ -54,7 +54,7 @@ export const phraksGslp: ProgramTemplate = {
   days_per_week: 3,
   cycle_length_weeks: 2,
   uses_training_max: false,
-  required_exercises: ['squat', 'bench', 'ohp', 'deadlift', 'row'],
+  required_exercises: ['Squat', 'Bench Press', 'Overhead Press', 'Deadlift', 'Barbell Row'],
   week_schemes: {
     1: { label: 'Week 1 — A / B / A' },
     2: {

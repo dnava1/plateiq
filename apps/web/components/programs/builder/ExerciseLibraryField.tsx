@@ -1,16 +1,16 @@
 'use client'
 
-import { useId, useState } from 'react'
-import { useExercises } from '@/hooks/useExercises'
+import { useEffect, useId, useState } from 'react'
+import { matchesExerciseSearch, resolveExerciseFromList, useExercises } from '@/hooks/useExercises'
 import { cn } from '@/lib/utils'
 import { CreateExerciseForm } from '@/components/exercises/CreateExerciseForm'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CheckIcon, PlusIcon, Search, SearchX } from 'lucide-react'
+import { CheckIcon, Pencil, PlusIcon, Search, SearchX } from 'lucide-react'
 import type { Tables } from '@/types/database'
-import type { ExerciseCategory, MovementPattern } from '@/types/domain'
+import type { MovementPattern } from '@/types/domain'
 import { formatMovementPattern } from '@/components/charts/chart-utils'
 
 type Exercise = Tables<'exercises'>
@@ -35,40 +35,68 @@ const MOVEMENT_PATTERN_LABELS: Record<MovementPattern, string> = {
 interface ExerciseLibraryFieldProps {
   selectedExerciseId?: number
   value?: string
-  defaultCategory?: ExerciseCategory
   onSelect: (selection: ExerciseSelection) => void
 }
 
 export function ExerciseLibraryField({
   selectedExerciseId,
   value,
-  defaultCategory = 'accessory',
   onSelect,
 }: ExerciseLibraryFieldProps) {
   const fieldId = useId()
   const { data: exercises = [], isLoading } = useExercises()
   const [query, setQuery] = useState(value ?? '')
   const [createOpen, setCreateOpen] = useState(false)
+  const [editingExercise, setEditingExercise] = useState<Exercise | null>(null)
 
   const normalizedQuery = query.trim().toLowerCase()
-  const normalizedValue = (value ?? '').trim().toLowerCase()
-  const selectedExercise = typeof selectedExerciseId === 'number'
-    ? exercises.find((exercise) => exercise.id === selectedExerciseId)
-      ?? exercises.find((exercise) => exercise.name.toLowerCase() === normalizedValue)
-    : exercises.find((exercise) => exercise.name.toLowerCase() === normalizedValue)
-  const filteredExercises = exercises
-    .filter((exercise) => {
-      if (normalizedQuery.length === 0) {
-        return true
-      }
+  const normalizedValue = value?.trim().toLowerCase() ?? ''
+  const selectedExercise = resolveExerciseFromList(exercises, {
+    exerciseId: selectedExerciseId,
+    exerciseKey: value,
+  })
+  const queryResolvedExercise = resolveExerciseFromList(exercises, { exerciseKey: query })
+  const displayedQuery = selectedExercise && (
+    normalizedQuery.length === 0
+    || normalizedQuery === normalizedValue
+    || queryResolvedExercise?.id === selectedExercise.id
+  )
+    ? selectedExercise.name
+    : query
 
-      return exercise.name.toLowerCase().includes(normalizedQuery)
-    })
-    .slice(0, 8)
+  useEffect(() => {
+    if (!value || typeof selectedExerciseId === 'number' || !selectedExercise) {
+      return
+    }
+
+    onSelect({ exerciseId: selectedExercise.id, exerciseName: selectedExercise.name })
+  }, [onSelect, selectedExercise, selectedExerciseId, value])
+
+  const filteredExercises = exercises
+    .filter((exercise) => matchesExerciseSearch(exercise, query))
 
   const handleSelect = (exercise: Exercise) => {
     onSelect({ exerciseId: exercise.id, exerciseName: exercise.name })
     setQuery(exercise.name)
+  }
+
+  const handleClearSelection = () => {
+    onSelect({})
+    setQuery('')
+  }
+
+  const handleToggleSelection = (exercise: Exercise) => {
+    if (selectedExercise?.id === exercise.id) {
+      handleClearSelection()
+      return
+    }
+
+    handleSelect(exercise)
+  }
+
+  const handleEditSaved = (exercise: Exercise) => {
+    handleSelect(exercise)
+    setEditingExercise(null)
   }
 
   const handleQueryChange = (nextQuery: string) => {
@@ -85,18 +113,13 @@ export function ExerciseLibraryField({
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
         <Label htmlFor={`${fieldId}-search`}>Exercise</Label>
-        {selectedExercise && (
-          <Badge variant="outline" className="rounded-full px-2.5">
-            Selected
-          </Badge>
-        )}
       </div>
 
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <Input
           id={`${fieldId}-search`}
-          value={query}
+          value={displayedQuery}
           onChange={(event) => handleQueryChange(event.target.value)}
           placeholder="Search your exercise library"
           aria-describedby={`${fieldId}-help`}
@@ -112,39 +135,77 @@ export function ExerciseLibraryField({
         {isLoading ? (
           <p className="px-2 py-6 text-sm text-muted-foreground">Loading exercises…</p>
         ) : filteredExercises.length > 0 ? (
-          <div role="listbox" aria-label="Exercise search results" className="flex max-h-56 flex-col gap-1 overflow-y-auto">
+          <div aria-label="Exercise search results" className="flex max-h-72 flex-col gap-1 overflow-y-auto">
             {filteredExercises.map((exercise) => {
               const isSelected = selectedExercise?.id === exercise.id
               const movementLabel = MOVEMENT_PATTERN_LABELS[exercise.movement_pattern as MovementPattern] ?? formatMovementPattern(exercise.movement_pattern)
               return (
-                <button
+                <div
                   key={exercise.id}
-                  type="button"
-                  role="option"
-                  aria-label={`${exercise.name} ${exercise.is_main_lift ? 'main lift' : 'accessory'} ${movementLabel}`}
-                  aria-selected={isSelected}
-                  onClick={() => handleSelect(exercise)}
                   className={cn(
-                    'flex w-full items-start justify-between gap-3 rounded-2xl px-3 py-3 text-left transition-colors outline-none hover:bg-muted/60 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
-                    isSelected && 'bg-primary/6 ring-1 ring-primary/20',
+                    'group relative flex min-h-12 w-full items-center justify-between gap-3 rounded-2xl border border-transparent px-3 py-2.5 text-left transition-colors hover:border-border/80 hover:bg-muted/55 has-focus-visible:border-foreground/20 has-focus-visible:ring-2 has-focus-visible:ring-foreground/10',
+                    isSelected && 'border-border bg-muted/70 shadow-sm',
                   )}
                 >
-                  <div className="flex min-w-0 flex-1 flex-col gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-foreground">{exercise.name}</span>
-                      <Badge variant={exercise.is_main_lift ? 'default' : 'secondary'}>
-                        {exercise.is_main_lift ? 'Main lift' : 'Accessory'}
+                  <button
+                    type="button"
+                    onClick={() => handleToggleSelection(exercise)}
+                    aria-label={`${isSelected ? 'Unselect' : 'Choose'} ${exercise.name} ${exercise.created_by_user_id ? 'custom exercise' : 'system exercise'} ${movementLabel}`}
+                    aria-pressed={isSelected}
+                    className="absolute inset-0 rounded-2xl border-0 bg-transparent p-0 outline-none focus-visible:outline-none"
+                  />
+
+                  <div className="pointer-events-none relative z-10 flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1.5">
+                    <span className="min-w-0 truncate text-sm font-semibold leading-5 text-foreground">
+                      {exercise.name}
+                    </span>
+                    <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+                      <Badge
+                        variant={exercise.created_by_user_id ? 'secondary' : 'outline'}
+                        className={cn(
+                          'rounded-full px-2 py-0 text-[0.68rem] leading-5',
+                          !exercise.created_by_user_id && 'bg-background/70',
+                        )}
+                      >
+                        {exercise.created_by_user_id ? 'Custom' : 'System'}
                       </Badge>
-                      <Badge variant="outline" className="capitalize">
+                      <Badge variant="outline" className="rounded-full bg-background/70 px-2 py-0 text-[0.68rem] leading-5 capitalize">
                         {movementLabel}
                       </Badge>
                     </div>
                   </div>
 
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-                    {isSelected ? <CheckIcon className="text-primary" /> : null}
-                  </span>
-                </button>
+                  <div className="pointer-events-none relative z-10 flex shrink-0 items-center gap-2">
+                    {exercise.created_by_user_id ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="pointer-events-auto h-8 px-2 text-muted-foreground"
+                        aria-label={`Edit ${exercise.name}`}
+                        onClick={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          setEditingExercise(exercise)
+                        }}
+                      >
+                        <Pencil data-icon="inline-start" />
+                        Edit
+                      </Button>
+                    ) : null}
+
+                    <span
+                      className={cn(
+                        'pointer-events-none flex size-8 shrink-0 items-center justify-center rounded-full border transition-colors',
+                        isSelected
+                          ? 'border-border bg-background/80 text-primary'
+                          : 'border-transparent text-muted-foreground/50 group-hover:border-border group-hover:bg-background/60',
+                      )}
+                    >
+                      {isSelected ? <CheckIcon className="text-primary" /> : null}
+                    </span>
+                  </div>
+                </div>
               )
             })}
           </div>
@@ -181,13 +242,27 @@ export function ExerciseLibraryField({
         initialValues={{
           name: query.trim(),
           analytics_track: 'standard',
-          category: defaultCategory,
+          category: 'accessory',
           movement_pattern: 'other',
         }}
         title="Create and Add Exercise"
         description="Add a custom exercise to your shared library and select it for this program block immediately."
         submitLabel="Create and Select Exercise"
         onCreated={handleSelect}
+      />
+
+      <CreateExerciseForm
+        open={Boolean(editingExercise)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingExercise(null)
+          }
+        }}
+        existingExercise={editingExercise}
+        title="Edit Exercise"
+        description="Update your custom exercise and keep using it in this program block."
+        submitLabel="Save Exercise"
+        onUpdated={handleEditSaved}
       />
     </div>
   )

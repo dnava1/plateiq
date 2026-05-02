@@ -118,7 +118,7 @@ function createBuildingTheMonolithDays(week: BuildingTheMonolithWeekTarget): Day
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'squat',
+          exercise_key: 'Squat',
           sets: createBuildingTheMonolithMainSets(week, true),
           notes: `${week.notes} Widowmaker set at the first-set-last weight.`,
         },
@@ -129,7 +129,7 @@ function createBuildingTheMonolithDays(week: BuildingTheMonolithWeekTarget): Day
             label: 'Press + Chin Superset',
             type: 'superset',
           },
-          exercise_key: 'ohp',
+          exercise_key: 'Overhead Press',
           sets: [{ sets: 5, reps: 5, intensity: week.firstSetLastIntensity, intensity_type: 'percentage_tm', display_type: 'backoff' }],
           notes: `OHP 5×5 at first-set-last (${Math.round(week.firstSetLastIntensity * 100)}%)`,
         },
@@ -140,19 +140,19 @@ function createBuildingTheMonolithDays(week: BuildingTheMonolithWeekTarget): Day
             label: 'Press + Chin Superset',
             type: 'superset',
           },
-          exercise_key: 'chin_up',
+          exercise_key: 'Chin-up',
           sets: [{ sets: 5, reps: 10, intensity: 0, intensity_type: 'bodyweight' }],
           notes: '50 chins per session × 2 sessions = 100/week — superset with OHP',
         },
         {
           role: 'accessory',
-          exercise_key: 'dip',
+          exercise_key: 'Dip',
           sets: [{ sets: 5, reps: 10, intensity: 0, intensity_type: 'bodyweight' }],
           notes: '50 dips per session',
         },
         {
           role: 'accessory',
-          exercise_key: 'face_pull',
+          exercise_key: 'Face Pull',
           sets: [{ sets: 5, reps: 20, intensity: 0, intensity_type: 'fixed_weight' }],
           notes: '100 face pulls per session',
         },
@@ -163,25 +163,25 @@ function createBuildingTheMonolithDays(week: BuildingTheMonolithWeekTarget): Day
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'deadlift',
+          exercise_key: 'Deadlift',
           sets: createBuildingTheMonolithMainSets(week, false),
           notes: `${week.notes} No Widowmaker on deadlift day.`,
         },
         {
           role: 'variation',
-          exercise_key: 'bench',
+          exercise_key: 'Bench Press',
           sets: [{ sets: 5, reps: 5, intensity: week.firstSetLastIntensity, intensity_type: 'percentage_tm', display_type: 'backoff' }],
           notes: `Bench 5×5 at first-set-last (${Math.round(week.firstSetLastIntensity * 100)}%)`,
         },
         {
           role: 'accessory',
-          exercise_key: 'db_row',
+          exercise_key: 'Dumbbell Row',
           sets: [{ sets: 5, reps: 20, intensity: 0, intensity_type: 'fixed_weight' }],
           notes: '100 dumbbell rows (50 each side) per session',
         },
         {
           role: 'accessory',
-          exercise_key: 'curl',
+          exercise_key: 'Dumbbell Curl',
           sets: [{ sets: 4, reps: 10, intensity: 0, intensity_type: 'fixed_weight' }],
           notes: 'Curls 40 reps',
         },
@@ -192,31 +192,31 @@ function createBuildingTheMonolithDays(week: BuildingTheMonolithWeekTarget): Day
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'ohp',
+          exercise_key: 'Overhead Press',
           sets: createBuildingTheMonolithMainSets(week, false),
           notes: week.notes,
         },
         {
           role: 'variation',
-          exercise_key: 'squat',
+          exercise_key: 'Squat',
           sets: [{ sets: 5, reps: 5, intensity: week.firstSetLastIntensity, intensity_type: 'percentage_tm', display_type: 'backoff' }],
           notes: `Squat 5×5 at first-set-last (${Math.round(week.firstSetLastIntensity * 100)}%)`,
         },
         {
           role: 'accessory',
-          exercise_key: 'chin_up',
+          exercise_key: 'Chin-up',
           sets: [{ sets: 5, reps: 10, intensity: 0, intensity_type: 'bodyweight' }],
           notes: '50 chins — second session of the week',
         },
         {
           role: 'accessory',
-          exercise_key: 'dip',
+          exercise_key: 'Dip',
           sets: [{ sets: 5, reps: 10, intensity: 0, intensity_type: 'bodyweight' }],
           notes: '50 dips',
         },
         {
           role: 'accessory',
-          exercise_key: 'band_pull_apart',
+          exercise_key: 'Band Pull-Apart',
           sets: [{ sets: 10, reps: 20, intensity: 0, intensity_type: 'fixed_weight' }],
           notes: '200 band pull-aparts per session',
         },
@@ -237,7 +237,7 @@ export const buildingTheMonolith: ProgramTemplate = {
   cycle_length_weeks: 6,
   uses_training_max: true,
   default_tm_percentage: 0.9,
-  required_exercises: ['squat', 'bench', 'ohp', 'deadlift'],
+  required_exercises: ['Squat', 'Bench Press', 'Overhead Press', 'Deadlift'],
   week_schemes: Object.fromEntries([
     [BUILDING_THE_MONOLITH_WEEK_ONE.weekNumber, { label: BUILDING_THE_MONOLITH_WEEK_ONE.label }],
     ...BUILDING_THE_MONOLITH_REMAINING_WEEKS.map((week) => [

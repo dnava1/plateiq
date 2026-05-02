@@ -2,7 +2,7 @@ import type { DayTemplate, ProgramTemplate } from '@/types/template'
 
 const LINEAR_SET = { intensity: 0, intensity_type: 'fixed_weight' as const }
 
-function createPushDay(label: string, mainPressKey: 'bench' | 'ohp', secondaryPressKey: 'bench' | 'ohp'): DayTemplate {
+function createPushDay(label: string, mainPressKey: 'Bench Press' | 'Overhead Press', secondaryPressKey: 'Bench Press' | 'Overhead Press'): DayTemplate {
   return {
     label,
     exercise_blocks: [
@@ -22,37 +22,37 @@ function createPushDay(label: string, mainPressKey: 'bench' | 'ohp', secondaryPr
       },
       {
         role: 'variation',
-        exercise_key: 'incline_bench',
+        exercise_key: 'Incline Bench Press',
         sets: [{ sets: 3, reps: '8-12', ...LINEAR_SET }],
       },
       {
         role: 'accessory',
-        exercise_key: 'tricep_pushdown',
+        exercise_key: 'Tricep Pushdown',
         sets: [{ sets: 3, reps: '10-15', ...LINEAR_SET }],
       },
       {
         role: 'accessory',
-        exercise_key: 'lateral_raise',
+        exercise_key: 'Lateral Raise',
         sets: [{ sets: 3, reps: '12-20', ...LINEAR_SET }],
       },
     ],
   }
 }
 
-function createPullDay(label: string, primaryKey: 'deadlift' | 'barbell_row', pullVariationKey: 'pull_up' | 'lat_pulldown', curlKey: 'dumbbell_curl' | 'barbell_curl'): DayTemplate {
+function createPullDay(label: string, primaryKey: 'Deadlift' | 'Barbell Row', pullVariationKey: 'Pull-up' | 'Lat Pulldown', curlKey: 'Dumbbell Curl' | 'Barbell Curl'): DayTemplate {
   return {
     label,
     exercise_blocks: [
       {
         role: 'primary',
         exercise_key: primaryKey,
-        sets: primaryKey === 'deadlift'
+        sets: primaryKey === 'Deadlift'
           ? [{ sets: 1, reps: '5+', is_amrap: true, ...LINEAR_SET }]
           : [
               { sets: 4, reps: 5, ...LINEAR_SET },
               { sets: 1, reps: '5+', is_amrap: true, ...LINEAR_SET },
             ],
-        notes: primaryKey === 'deadlift'
+        notes: primaryKey === 'Deadlift'
           ? 'Pull A uses the single top-set deadlift progression from the canonical Reddit PPL.'
           : 'Pull B uses barbell rows as the main progressive pull.',
       },
@@ -63,12 +63,12 @@ function createPullDay(label: string, primaryKey: 'deadlift' | 'barbell_row', pu
       },
       {
         role: 'variation',
-        exercise_key: 'cable_row',
+        exercise_key: 'Cable Row',
         sets: [{ sets: 3, reps: '8-12', ...LINEAR_SET }],
       },
       {
         role: 'accessory',
-        exercise_key: 'face_pull',
+        exercise_key: 'Face Pull',
         sets: [{ sets: 3, reps: '15-20', ...LINEAR_SET }],
       },
       {
@@ -86,7 +86,7 @@ function createLegDay(label: string): DayTemplate {
     exercise_blocks: [
       {
         role: 'primary',
-        exercise_key: 'squat',
+        exercise_key: 'Squat',
         sets: [
           { sets: 2, reps: 5, ...LINEAR_SET },
           { sets: 1, reps: '5+', is_amrap: true, ...LINEAR_SET },
@@ -95,22 +95,22 @@ function createLegDay(label: string): DayTemplate {
       },
       {
         role: 'variation',
-        exercise_key: 'rdl',
+        exercise_key: 'Romanian Deadlift',
         sets: [{ sets: 3, reps: '8-10', ...LINEAR_SET }],
       },
       {
         role: 'variation',
-        exercise_key: 'leg_press',
+        exercise_key: 'Leg Press',
         sets: [{ sets: 3, reps: '10-15', ...LINEAR_SET }],
       },
       {
         role: 'accessory',
-        exercise_key: 'leg_curl',
+        exercise_key: 'Leg Curl',
         sets: [{ sets: 3, reps: '10-15', ...LINEAR_SET }],
       },
       {
         role: 'accessory',
-        exercise_key: 'calf_raise',
+        exercise_key: 'Calf Raise',
         sets: [{ sets: 5, reps: '8-12', ...LINEAR_SET }],
       },
     ],
@@ -127,31 +127,31 @@ export const redditPpl: ProgramTemplate = {
   cycle_length_weeks: 1,
   uses_training_max: false,
   required_exercises: [
-    'bench',
-    'ohp',
-    'deadlift',
-    'barbell_row',
-    'incline_bench',
-    'tricep_pushdown',
-    'lateral_raise',
-    'pull_up',
-    'lat_pulldown',
-    'cable_row',
-    'face_pull',
-    'dumbbell_curl',
-    'barbell_curl',
-    'squat',
-    'rdl',
-    'leg_press',
-    'leg_curl',
-    'calf_raise',
+    'Bench Press',
+    'Overhead Press',
+    'Deadlift',
+    'Barbell Row',
+    'Incline Bench Press',
+    'Tricep Pushdown',
+    'Lateral Raise',
+    'Pull-up',
+    'Lat Pulldown',
+    'Cable Row',
+    'Face Pull',
+    'Dumbbell Curl',
+    'Barbell Curl',
+    'Squat',
+    'Romanian Deadlift',
+    'Leg Press',
+    'Leg Curl',
+    'Calf Raise',
   ],
   days: [
-    createPushDay('Push A', 'bench', 'ohp'),
-    createPullDay('Pull A', 'deadlift', 'pull_up', 'dumbbell_curl'),
+    createPushDay('Push A', 'Bench Press', 'Overhead Press'),
+    createPullDay('Pull A', 'Deadlift', 'Pull-up', 'Dumbbell Curl'),
     createLegDay('Legs A'),
-    createPushDay('Push B', 'ohp', 'bench'),
-    createPullDay('Pull B', 'barbell_row', 'lat_pulldown', 'barbell_curl'),
+    createPushDay('Push B', 'Overhead Press', 'Bench Press'),
+    createPullDay('Pull B', 'Barbell Row', 'Lat Pulldown', 'Barbell Curl'),
     createLegDay('Legs B'),
   ],
   progression: {

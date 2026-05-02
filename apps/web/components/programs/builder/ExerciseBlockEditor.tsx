@@ -18,11 +18,12 @@ import {
 import { Trash2 } from 'lucide-react'
 import type {
   ExerciseBlock,
-  SetDisplayType,
   SetPrescription,
   SetPrescriptionPurpose,
 } from '@/types/template'
 import type { IntensityType } from '@/types/domain'
+
+type SetTypeValue = 'standard' | 'warmup' | 'amrap' | 'backoff' | 'backoff_amrap' | 'drop' | 'drop_amrap'
 
 const MIN_SET_COUNT = 1
 const MAX_SET_COUNT = 20
@@ -45,15 +46,14 @@ const LOAD_BASIS_LABELS: Record<IntensityType, string> = {
   percentage_work_set: 'First work set %',
 }
 
-const SET_PURPOSE_LABELS: Record<SetPrescriptionPurpose, string> = {
-  warmup: 'Warm-up',
-  working: 'Work set',
-}
-
-const SET_DISPLAY_LABELS: Record<'standard' | SetDisplayType, string> = {
+const SET_TYPE_LABELS: Record<SetTypeValue, string> = {
   standard: 'Standard',
+  warmup: 'Warm-up',
+  amrap: 'AMRAP',
   backoff: 'Backoff',
+  backoff_amrap: 'Backoff AMRAP',
   drop: 'Drop set',
+  drop_amrap: 'Drop-set AMRAP',
 }
 
 interface ExerciseBlockEditorProps {
@@ -77,18 +77,123 @@ function getSafeNumber(value: string, fallback: number) {
   return Number.isFinite(nextValue) ? nextValue : fallback
 }
 
+function parseRepsValue(value: string): SetPrescription['reps'] {
+  const numericValue = Number(value)
+
+  return Number.isNaN(numericValue) || value !== String(numericValue)
+    ? value
+    : numericValue
+}
+
+function stripAmrapSuffix(reps: SetPrescription['reps']): SetPrescription['reps'] {
+  if (typeof reps !== 'string') {
+    return reps
+  }
+
+  const normalizedReps = reps.trim()
+
+  return normalizedReps.endsWith('+')
+    ? parseRepsValue(normalizedReps.slice(0, -1))
+    : reps
+}
+
+function hasAmrapReps(reps: SetPrescription['reps']) {
+  return typeof reps === 'string' && reps.trim().endsWith('+')
+}
+
+function isAmrapSet(set: SetPrescription) {
+  return set.purpose !== 'warmup' && (Boolean(set.is_amrap) || hasAmrapReps(set.reps))
+}
+
+function resolveSetType(set: SetPrescription): SetTypeValue {
+  if (set.purpose === 'warmup') {
+    return 'warmup'
+  }
+
+  if (set.display_type === 'backoff' && isAmrapSet(set)) {
+    return 'backoff_amrap'
+  }
+
+  if (set.display_type === 'drop' && isAmrapSet(set)) {
+    return 'drop_amrap'
+  }
+
+  if (isAmrapSet(set)) {
+    return 'amrap'
+  }
+
+  if (set.display_type === 'backoff' || set.display_type === 'drop') {
+    return set.display_type
+  }
+
+  return 'standard'
+}
+
+function buildSetTypePatch(nextType: SetTypeValue, set: SetPrescription): Partial<SetPrescription> {
+  const repsWithoutAmrapSuffix = stripAmrapSuffix(set.reps)
+
+  switch (nextType) {
+    case 'warmup':
+      return {
+        purpose: 'warmup',
+        display_type: undefined,
+        is_amrap: false,
+        reps: repsWithoutAmrapSuffix,
+      }
+    case 'amrap':
+      return {
+        purpose: undefined,
+        display_type: undefined,
+        is_amrap: true,
+      }
+    case 'backoff':
+      return {
+        purpose: undefined,
+        display_type: 'backoff',
+        is_amrap: false,
+        reps: repsWithoutAmrapSuffix,
+      }
+    case 'backoff_amrap':
+      return {
+        purpose: undefined,
+        display_type: 'backoff',
+        is_amrap: true,
+      }
+    case 'drop':
+      return {
+        purpose: undefined,
+        display_type: 'drop',
+        is_amrap: false,
+        reps: repsWithoutAmrapSuffix,
+      }
+    case 'drop_amrap':
+      return {
+        purpose: undefined,
+        display_type: 'drop',
+        is_amrap: true,
+      }
+    default:
+      return {
+        purpose: undefined,
+        display_type: undefined,
+        is_amrap: false,
+        reps: repsWithoutAmrapSuffix,
+      }
+  }
+}
+
 function normalizeRepsInput(
   value: string,
   purpose: SetPrescriptionPurpose | undefined,
+  currentIsAmrap = false,
 ): Pick<SetPrescription, 'reps' | 'is_amrap'> {
-  const normalizedValue = purpose === 'warmup' && value.endsWith('+') ? value.slice(0, -1) : value
-  const numericValue = Number(normalizedValue)
+  const trimmedValue = value.trim()
+  const hasAmrapSuffix = trimmedValue.endsWith('+')
+  const normalizedValue = hasAmrapSuffix ? trimmedValue.slice(0, -1) : value
 
   return {
-    reps: Number.isNaN(numericValue) || normalizedValue !== String(numericValue)
-      ? normalizedValue
-      : numericValue,
-    is_amrap: purpose !== 'warmup' && normalizedValue.endsWith('+'),
+    reps: parseRepsValue(normalizedValue),
+    is_amrap: purpose !== 'warmup' && (hasAmrapSuffix || currentIsAmrap),
   }
 }
 
@@ -130,8 +235,7 @@ export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, o
     value,
     label: value === 'fixed_weight' ? `${label} (${formatUnit(preferredUnit)})` : label,
   }))
-  const purposeItems = Object.entries(SET_PURPOSE_LABELS).map(([value, label]) => ({ value, label }))
-  const displayTypeItems = Object.entries(SET_DISPLAY_LABELS).map(([value, label]) => ({ value, label }))
+  const setTypeItems = Object.entries(SET_TYPE_LABELS).map(([value, label]) => ({ value, label }))
 
   const updateSet = (setIdx: number, patch: Partial<SetPrescription>) => {
     const sets = [...block.sets]
@@ -183,7 +287,6 @@ export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, o
         <ExerciseLibraryField
           selectedExerciseId={block.exercise_id}
           value={block.exercise_key}
-          defaultCategory={block.role === 'primary' ? 'main' : 'accessory'}
           onSelect={({ exerciseId, exerciseName }) => onChange({
             ...block,
             exercise_id: exerciseId,
@@ -226,22 +329,21 @@ export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, o
           </Button>
         </div>
 
-        <div className="hidden grid-cols-[minmax(0,0.7fr)_minmax(0,0.7fr)_minmax(0,1fr)_minmax(0,1.05fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(0,0.9fr)_auto] gap-2 px-1 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground xl:grid">
+        <div className="hidden grid-cols-[minmax(0,0.65fr)_minmax(0,0.65fr)_minmax(0,1.05fr)_minmax(0,0.95fr)_minmax(0,1.1fr)_minmax(0,0.85fr)_auto] gap-2 px-1 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground xl:grid">
           <span>Sets</span>
           <span>Reps</span>
+          <span>Set Type</span>
           <span>Load</span>
           <span>Load Basis</span>
-          <span>Purpose</span>
-          <span>Label</span>
           <span>Rest</span>
           <span className="sr-only">Remove</span>
         </div>
         <div className="flex flex-col gap-3">
           {block.sets.map((set, si) => (
-            <div
-              key={si}
-              className="grid gap-3 rounded-[18px] border border-border/70 bg-card p-3 md:grid-cols-2 xl:grid-cols-[minmax(0,0.7fr)_minmax(0,0.7fr)_minmax(0,1fr)_minmax(0,1.05fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(0,0.9fr)_auto] xl:items-end"
-            >
+              <div
+                key={si}
+                className="grid gap-3 rounded-[18px] border border-border/70 bg-card p-3 md:grid-cols-2 xl:grid-cols-[minmax(0,0.65fr)_minmax(0,0.65fr)_minmax(0,1.05fr)_minmax(0,0.95fr)_minmax(0,1.1fr)_minmax(0,0.85fr)_auto] xl:items-end"
+              >
               <div className="flex flex-col gap-2">
                 <Label htmlFor={`${fieldId}-sets-${si}`} className="text-xs xl:sr-only">Sets</Label>
                 <Input
@@ -266,11 +368,31 @@ export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, o
                   id={`${fieldId}-reps-${si}`}
                   value={String(set.reps)}
                   onChange={(event) => {
-                    updateSet(si, normalizeRepsInput(event.target.value, set.purpose))
+                    updateSet(si, normalizeRepsInput(event.target.value, set.purpose, Boolean(set.is_amrap)))
                   }}
-                  placeholder="5 or 5+"
+                  placeholder="5"
                   className="h-9 text-sm"
                 />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor={`${fieldId}-set-type-${si}`} className="text-xs xl:sr-only">Set Type</Label>
+                <Select
+                  value={resolveSetType(set)}
+                  onValueChange={(value) => updateSet(si, buildSetTypePatch(value as SetTypeValue, set))}
+                  items={setTypeItems}
+                >
+                  <SelectTrigger id={`${fieldId}-set-type-${si}`} className="w-full h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {setTypeItems.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex flex-col gap-2">
@@ -338,61 +460,6 @@ export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, o
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor={`${fieldId}-purpose-${si}`} className="text-xs xl:sr-only">Purpose</Label>
-                <Select
-                  value={set.purpose ?? 'working'}
-                  onValueChange={(value) => {
-                    const nextPurpose = value as SetPrescriptionPurpose
-                    const shouldTrimAmrapSuffix = nextPurpose === 'warmup' && typeof set.reps === 'string' && set.reps.endsWith('+')
-                    const trimmedWarmupReps = shouldTrimAmrapSuffix && typeof set.reps === 'string'
-                      ? set.reps.slice(0, -1)
-                      : null
-
-                    updateSet(si, {
-                      purpose: nextPurpose === 'working' ? undefined : nextPurpose,
-                      ...(trimmedWarmupReps !== null
-                        ? { reps: trimmedWarmupReps, is_amrap: false }
-                        : {}),
-                    })
-                  }}
-                  items={purposeItems}
-                >
-                  <SelectTrigger id={`${fieldId}-purpose-${si}`} className="w-full h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {purposeItems.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <Label htmlFor={`${fieldId}-display-${si}`} className="text-xs xl:sr-only">Label</Label>
-                <Select
-                  value={set.display_type ?? 'standard'}
-                  onValueChange={(value) => updateSet(si, {
-                    display_type: value === 'standard' ? undefined : value as SetDisplayType,
-                  })}
-                  items={displayTypeItems}
-                >
-                  <SelectTrigger id={`${fieldId}-display-${si}`} className="w-full h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {displayTypeItems.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex flex-col gap-2">
                 <Label htmlFor={`${fieldId}-rest-${si}`} className="text-xs xl:sr-only">Rest</Label>
                 <Select
                   value={typeof set.rest_seconds === 'number' && set.rest_seconds > 0 ? String(set.rest_seconds) : 'off'}
@@ -425,7 +492,7 @@ export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, o
               >
                 <Trash2 />
               </Button>
-            </div>
+              </div>
           ))}
         </div>
       </div>

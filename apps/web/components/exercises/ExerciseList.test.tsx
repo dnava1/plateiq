@@ -8,6 +8,23 @@ vi.mock('@/hooks/usePreferredWeightRounding', () => ({
   usePreferredWeightRounding: () => 5,
 }))
 
+vi.mock('./CreateExerciseForm', () => ({
+  CreateExerciseForm: ({ open, existingExercise, onUpdated }: {
+    open: boolean
+    existingExercise?: Tables<'exercises'> | null
+    onUpdated?: (exercise: Tables<'exercises'>) => void
+  }) => (
+    open && existingExercise ? (
+      <div>
+        <p>Edit exercise dialog</p>
+        <button type="button" onClick={() => onUpdated?.(existingExercise)}>
+          Finish edit
+        </button>
+      </div>
+    ) : null
+  ),
+}))
+
 const exercises: Array<Tables<'exercises'>> = [
   {
     analytics_track: 'standard',
@@ -54,5 +71,17 @@ describe('ExerciseList', () => {
 
     expect(screen.getByText('Bench Press')).toBeInTheDocument()
     expect(screen.queryByText('Barbell Row')).not.toBeInTheDocument()
+  })
+
+  it('shows edit actions only for custom exercises', async () => {
+    const user = userEvent.setup()
+
+    render(<ExerciseList exercises={exercises} unit="lbs" />)
+
+    expect(screen.queryByRole('button', { name: 'Edit Bench Press' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Edit Barbell Row' }))
+
+    expect(screen.getByText('Edit exercise dialog')).toBeInTheDocument()
   })
 })

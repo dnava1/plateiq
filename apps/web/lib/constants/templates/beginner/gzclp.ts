@@ -9,26 +9,26 @@ export const gzclp: ProgramTemplate = {
   days_per_week: 4,
   cycle_length_weeks: 1,
   uses_training_max: false,
-  required_exercises: ['squat', 'bench', 'ohp', 'deadlift', 'lat_pulldown', 'row'],
+  required_exercises: ['Squat', 'Bench Press', 'Overhead Press', 'Deadlift', 'Lat Pulldown', 'Barbell Row'],
   days: [
     {
       label: 'Day 1 — T1 Squat',
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'squat',
+          exercise_key: 'Squat',
           sets: [{ sets: 5, reps: 3, intensity: 0, intensity_type: 'fixed_weight' }],
           notes: 'T1 — 5 sets of 3 (last set AMRAP); if AMRAP >= 10 add weight next session',
         },
         {
           role: 'variation',
-          exercise_key: 'bench',
+          exercise_key: 'Bench Press',
           sets: [{ sets: 3, reps: 10, intensity: 0, intensity_type: 'fixed_weight' }],
           notes: 'T2 — 3×10; add weight when all reps completed',
         },
         {
           role: 'accessory',
-          exercise_key: 'lat_pulldown',
+          exercise_key: 'Lat Pulldown',
           sets: [{ sets: 3, reps: 15, intensity: 0, intensity_type: 'fixed_weight' }],
           notes: 'T3 — 3×15+',
         },
@@ -39,19 +39,19 @@ export const gzclp: ProgramTemplate = {
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'ohp',
+          exercise_key: 'Overhead Press',
           sets: [{ sets: 5, reps: 3, intensity: 0, intensity_type: 'fixed_weight' }],
           notes: 'T1 — 5×3 (last set AMRAP)',
         },
         {
           role: 'variation',
-          exercise_key: 'deadlift',
+          exercise_key: 'Deadlift',
           sets: [{ sets: 3, reps: 10, intensity: 0, intensity_type: 'fixed_weight' }],
           notes: 'T2 — 3×10',
         },
         {
           role: 'accessory',
-          exercise_key: 'row',
+          exercise_key: 'Barbell Row',
           sets: [{ sets: 3, reps: 15, intensity: 0, intensity_type: 'fixed_weight' }],
           notes: 'T3 — 3×15+',
         },
@@ -62,19 +62,19 @@ export const gzclp: ProgramTemplate = {
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'bench',
+          exercise_key: 'Bench Press',
           sets: [{ sets: 5, reps: 3, intensity: 0, intensity_type: 'fixed_weight' }],
           notes: 'T1 — 5×3 (last set AMRAP)',
         },
         {
           role: 'variation',
-          exercise_key: 'squat',
+          exercise_key: 'Squat',
           sets: [{ sets: 3, reps: 10, intensity: 0, intensity_type: 'fixed_weight' }],
           notes: 'T2 — 3×10',
         },
         {
           role: 'accessory',
-          exercise_key: 'lat_pulldown',
+          exercise_key: 'Lat Pulldown',
           sets: [{ sets: 3, reps: 15, intensity: 0, intensity_type: 'fixed_weight' }],
           notes: 'T3 — 3×15+',
         },
@@ -85,19 +85,19 @@ export const gzclp: ProgramTemplate = {
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'deadlift',
+          exercise_key: 'Deadlift',
           sets: [{ sets: 5, reps: 3, intensity: 0, intensity_type: 'fixed_weight' }],
           notes: 'T1 — 5×3 (last set AMRAP)',
         },
         {
           role: 'variation',
-          exercise_key: 'ohp',
+          exercise_key: 'Overhead Press',
           sets: [{ sets: 3, reps: 10, intensity: 0, intensity_type: 'fixed_weight' }],
           notes: 'T2 — 3×10',
         },
         {
           role: 'accessory',
-          exercise_key: 'row',
+          exercise_key: 'Barbell Row',
           sets: [{ sets: 3, reps: 15, intensity: 0, intensity_type: 'fixed_weight' }],
           notes: 'T3 — 3×15+',
         },

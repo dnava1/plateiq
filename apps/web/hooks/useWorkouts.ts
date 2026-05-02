@@ -256,6 +256,7 @@ export function resolveWorkoutProgram(
 export function buildTrainingMaxMap(
   trainingMaxes:
     | Array<{
+        exercise_id?: number
         weight_lbs: number
         exercises?: { name: string } | null
       }>
@@ -264,12 +265,18 @@ export function buildTrainingMaxMap(
   const lookup = new Map<string, number>()
 
   for (const trainingMax of trainingMaxes ?? []) {
+    if (typeof trainingMax.exercise_id === 'number') {
+      lookup.set(`id:${trainingMax.exercise_id}`, Number(trainingMax.weight_lbs))
+    }
+
     const exerciseName = trainingMax.exercises?.name
     if (!exerciseName) continue
 
     for (const key of getExerciseLookupKeys(exerciseName)) {
-      if (!lookup.has(key)) {
-        lookup.set(key, Number(trainingMax.weight_lbs))
+      const lookupKey = `key:${key}`
+
+      if (!lookup.has(lookupKey)) {
+        lookup.set(lookupKey, Number(trainingMax.weight_lbs))
       }
     }
   }

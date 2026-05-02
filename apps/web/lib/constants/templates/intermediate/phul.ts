@@ -9,43 +9,43 @@ export const phul: ProgramTemplate = {
   days_per_week: 4,
   cycle_length_weeks: 1,
   uses_training_max: false,
-  required_exercises: ['squat', 'bench', 'ohp', 'deadlift', 'row', 'incline_bench', 'leg_press', 'rdl', 'front_squat'],
+  required_exercises: ['Squat', 'Bench Press', 'Overhead Press', 'Deadlift', 'Barbell Row', 'Incline Bench Press', 'Leg Press', 'Romanian Deadlift', 'Front Squat'],
   days: [
     {
       label: 'Day 1 — Upper Power',
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'bench',
+          exercise_key: 'Bench Press',
           sets: [{ sets: 4, reps: '3-5', intensity: 8.0, intensity_type: 'rpe' }],
           notes: 'Flat barbell bench — work up to heavy sets of 3-5',
         },
         {
           role: 'primary',
-          exercise_key: 'row',
+          exercise_key: 'Barbell Row',
           sets: [{ sets: 4, reps: '3-5', intensity: 8.0, intensity_type: 'rpe' }],
           notes: 'Bent-over barbell row — match bench intensity',
         },
         {
           role: 'variation',
-          exercise_key: 'incline_bench',
+          exercise_key: 'Incline Bench Press',
           sets: [{ sets: 3, reps: '5-8', intensity: 7.5, intensity_type: 'rpe' }],
           notes: 'Incline dumbbell or barbell press',
         },
         {
           role: 'accessory',
-          exercise_key: 'ohp',
+          exercise_key: 'Overhead Press',
           sets: [{ sets: 3, reps: '5-8', intensity: 7.0, intensity_type: 'rpe' }],
           notes: 'Seated dumbbell OHP or barbell OHP',
         },
         {
           role: 'accessory',
-          exercise_key: 'lat_pulldown',
+          exercise_key: 'Lat Pulldown',
           sets: [{ sets: 3, reps: '8-12', intensity: 7.0, intensity_type: 'rpe' }],
         },
         {
           role: 'accessory',
-          exercise_key: 'cable_row',
+          exercise_key: 'Cable Row',
           sets: [{ sets: 3, reps: '8-12', intensity: 7.0, intensity_type: 'rpe' }],
         },
       ],
@@ -55,29 +55,29 @@ export const phul: ProgramTemplate = {
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'squat',
+          exercise_key: 'Squat',
           sets: [{ sets: 4, reps: '3-5', intensity: 8.0, intensity_type: 'rpe' }],
           notes: 'Back squat — primary lower power movement',
         },
         {
           role: 'primary',
-          exercise_key: 'deadlift',
+          exercise_key: 'Deadlift',
           sets: [{ sets: 4, reps: '3-5', intensity: 8.0, intensity_type: 'rpe' }],
           notes: 'Conventional or sumo deadlift',
         },
         {
           role: 'variation',
-          exercise_key: 'leg_press',
+          exercise_key: 'Leg Press',
           sets: [{ sets: 3, reps: '10-15', intensity: 7.0, intensity_type: 'rpe' }],
         },
         {
           role: 'accessory',
-          exercise_key: 'leg_curl',
+          exercise_key: 'Leg Curl',
           sets: [{ sets: 3, reps: '10-15', intensity: 7.0, intensity_type: 'rpe' }],
         },
         {
           role: 'accessory',
-          exercise_key: 'calf_raise',
+          exercise_key: 'Calf Raise',
           sets: [{ sets: 4, reps: '10-12', intensity: 7.0, intensity_type: 'rpe' }],
         },
       ],
@@ -87,34 +87,34 @@ export const phul: ProgramTemplate = {
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'incline_bench',
+          exercise_key: 'Incline Bench Press',
           sets: [{ sets: 4, reps: '8-12', intensity: 7.0, intensity_type: 'rpe' }],
           notes: 'Incline barbell or dumbbell bench',
         },
         {
           role: 'primary',
-          exercise_key: 'cable_row',
+          exercise_key: 'Cable Row',
           sets: [{ sets: 4, reps: '8-12', intensity: 7.0, intensity_type: 'rpe' }],
         },
         {
           role: 'variation',
-          exercise_key: 'bench',
+          exercise_key: 'Bench Press',
           sets: [{ sets: 4, reps: '8-12', intensity: 7.0, intensity_type: 'rpe' }],
           notes: 'Flat dumbbell press',
         },
         {
           role: 'variation',
-          exercise_key: 'lat_pulldown',
+          exercise_key: 'Lat Pulldown',
           sets: [{ sets: 4, reps: '8-12', intensity: 7.0, intensity_type: 'rpe' }],
         },
         {
           role: 'accessory',
-          exercise_key: 'tricep_pushdown',
+          exercise_key: 'Tricep Pushdown',
           sets: [{ sets: 3, reps: '10-15', intensity: 7.0, intensity_type: 'rpe' }],
         },
         {
           role: 'accessory',
-          exercise_key: 'curl',
+          exercise_key: 'Dumbbell Curl',
           sets: [{ sets: 3, reps: '10-15', intensity: 7.0, intensity_type: 'rpe' }],
         },
       ],
@@ -124,35 +124,35 @@ export const phul: ProgramTemplate = {
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'front_squat',
+          exercise_key: 'Front Squat',
           sets: [{ sets: 4, reps: '8-12', intensity: 7.0, intensity_type: 'rpe' }],
           notes: 'Front squat or hack squat for quad emphasis',
         },
         {
           role: 'primary',
-          exercise_key: 'rdl',
+          exercise_key: 'Romanian Deadlift',
           sets: [{ sets: 4, reps: '8-12', intensity: 7.0, intensity_type: 'rpe' }],
           notes: 'Romanian deadlift for hamstring/glute development',
         },
         {
           role: 'variation',
-          exercise_key: 'leg_press',
+          exercise_key: 'Leg Press',
           sets: [{ sets: 3, reps: '12-15', intensity: 6.5, intensity_type: 'rpe' }],
         },
         {
           role: 'variation',
-          exercise_key: 'leg_curl',
+          exercise_key: 'Leg Curl',
           sets: [{ sets: 3, reps: '12-15', intensity: 6.5, intensity_type: 'rpe' }],
         },
         {
           role: 'accessory',
-          exercise_key: 'lunge',
+          exercise_key: 'Lunge',
           sets: [{ sets: 3, reps: '12-15', intensity: 6.5, intensity_type: 'rpe' }],
           notes: 'Walking or reverse lunges',
         },
         {
           role: 'accessory',
-          exercise_key: 'calf_raise',
+          exercise_key: 'Calf Raise',
           sets: [{ sets: 4, reps: '12-15', intensity: 7.0, intensity_type: 'rpe' }],
         },
       ],

@@ -4,6 +4,72 @@ import {
   getTemplate,
   getTemplatesByLevel,
 } from '@/lib/constants/templates'
+import type { DayTemplate, ProgramTemplate } from '@/types/template'
+
+const SEEDED_EXERCISE_NAMES = new Set([
+  'Ab Wheel Rollout',
+  'Band Pull-Apart',
+  'Barbell Curl',
+  'Barbell Row',
+  'Bench Press',
+  'Board Press',
+  'Box Squat',
+  'Bulgarian Split Squat',
+  'Cable Row',
+  'Calf Raise',
+  'Chin-up',
+  'Close-Grip Bench Press',
+  'Deadlift',
+  'Dip',
+  'Dumbbell Bench Press',
+  'Dumbbell Curl',
+  'Dumbbell Row',
+  'Dumbbell Shoulder Press',
+  'Face Pull',
+  'Front Squat',
+  'Good Morning',
+  'Hanging Leg Raise',
+  'Hip Thrust',
+  'Incline Bench Press',
+  'Lateral Raise',
+  'Lat Pulldown',
+  'Leg Curl',
+  'Leg Extension',
+  'Leg Press',
+  'Lunge',
+  'Overhead Press',
+  'Pendlay Row',
+  'Plank',
+  'Power Clean',
+  'Pull-up',
+  'Push Press',
+  'Romanian Deadlift',
+  'Snatch Press',
+  'Squat',
+  'Sumo Deadlift',
+  'Tricep Extension',
+  'Tricep Pushdown',
+  'Weighted Chin-up',
+  'Weighted Dip',
+  'Weighted Pull-up',
+])
+
+function collectExerciseKeysFromDays(days: DayTemplate[] | undefined) {
+  return (days ?? []).flatMap((day) =>
+    day.exercise_blocks.flatMap((block) => block.exercise_key ? [block.exercise_key] : []),
+  )
+}
+
+function collectTemplateExerciseKeys(template: ProgramTemplate) {
+  return [
+    ...template.required_exercises,
+    ...collectExerciseKeysFromDays(template.days),
+    ...Object.values(template.week_schemes ?? {}).flatMap((scheme) => collectExerciseKeysFromDays(scheme.days)),
+    ...(template.variation_options ?? []).flatMap((option) =>
+      option.blocks.flatMap((block) => block.exercise_key ? [block.exercise_key] : []),
+    ),
+  ]
+}
 
 describe('TEMPLATE_REGISTRY', () => {
   it('contains exactly 19 templates', () => {
@@ -79,6 +145,16 @@ describe('TEMPLATE_REGISTRY', () => {
         expect(day.label).toBeTruthy()
         expect(day.exercise_blocks.length).toBeGreaterThan(0)
       }
+    }
+  })
+
+  it('references only seeded exercise names', () => {
+    for (const template of Object.values(TEMPLATE_REGISTRY)) {
+      const unknownExerciseKeys = Array.from(new Set(
+        collectTemplateExerciseKeys(template).filter((exerciseKey) => !SEEDED_EXERCISE_NAMES.has(exerciseKey)),
+      ))
+
+      expect(unknownExerciseKeys, `${template.key} has unknown exercise references`).toEqual([])
     }
   })
 

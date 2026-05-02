@@ -13,14 +13,14 @@ export const madcow5x5: ProgramTemplate = {
   days_per_week: 3,
   cycle_length_weeks: 4,
   uses_training_max: false,
-  required_exercises: ['squat', 'bench', 'ohp', 'deadlift', 'row'],
+  required_exercises: ['Squat', 'Bench Press', 'Overhead Press', 'Deadlift', 'Barbell Row'],
   days: [
     {
       label: 'Monday — Volume',
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'squat',
+          exercise_key: 'Squat',
           sets: [
             { sets: 1, reps: 5, intensity: 0.6, intensity_type: 'percentage_1rm' },
             { sets: 1, reps: 5, intensity: 0.7, intensity_type: 'percentage_1rm' },
@@ -32,7 +32,7 @@ export const madcow5x5: ProgramTemplate = {
         },
         {
           role: 'primary',
-          exercise_key: 'bench',
+          exercise_key: 'Bench Press',
           sets: [
             { sets: 1, reps: 5, intensity: 0.6, intensity_type: 'percentage_1rm' },
             { sets: 1, reps: 5, intensity: 0.7, intensity_type: 'percentage_1rm' },
@@ -44,7 +44,7 @@ export const madcow5x5: ProgramTemplate = {
         },
         {
           role: 'primary',
-          exercise_key: 'row',
+          exercise_key: 'Barbell Row',
           sets: [
             { sets: 1, reps: 5, intensity: 0.6, intensity_type: 'percentage_1rm' },
             { sets: 1, reps: 5, intensity: 0.7, intensity_type: 'percentage_1rm' },
@@ -61,7 +61,7 @@ export const madcow5x5: ProgramTemplate = {
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'squat',
+          exercise_key: 'Squat',
           sets: [
             { sets: 1, reps: 5, intensity: 0.6, intensity_type: 'percentage_1rm' },
             { sets: 1, reps: 5, intensity: 0.7, intensity_type: 'percentage_1rm' },
@@ -70,7 +70,7 @@ export const madcow5x5: ProgramTemplate = {
         },
         {
           role: 'primary',
-          exercise_key: 'ohp',
+          exercise_key: 'Overhead Press',
           sets: [
             { sets: 1, reps: 5, intensity: 0.6, intensity_type: 'percentage_1rm' },
             { sets: 1, reps: 5, intensity: 0.7, intensity_type: 'percentage_1rm' },
@@ -81,7 +81,7 @@ export const madcow5x5: ProgramTemplate = {
         },
         {
           role: 'primary',
-          exercise_key: 'deadlift',
+          exercise_key: 'Deadlift',
           sets: [
             { sets: 1, reps: 5, intensity: 0.6, intensity_type: 'percentage_1rm' },
             { sets: 1, reps: 5, intensity: 0.7, intensity_type: 'percentage_1rm' },
@@ -97,7 +97,7 @@ export const madcow5x5: ProgramTemplate = {
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'squat',
+          exercise_key: 'Squat',
           sets: [
             { sets: 1, reps: 5, intensity: 0.6, intensity_type: 'percentage_1rm' },
             { sets: 1, reps: 5, intensity: 0.7, intensity_type: 'percentage_1rm' },
@@ -110,7 +110,7 @@ export const madcow5x5: ProgramTemplate = {
         },
         {
           role: 'primary',
-          exercise_key: 'bench',
+          exercise_key: 'Bench Press',
           sets: [
             { sets: 1, reps: 5, intensity: 0.6, intensity_type: 'percentage_1rm' },
             { sets: 1, reps: 5, intensity: 0.7, intensity_type: 'percentage_1rm' },
@@ -123,7 +123,7 @@ export const madcow5x5: ProgramTemplate = {
         },
         {
           role: 'primary',
-          exercise_key: 'row',
+          exercise_key: 'Barbell Row',
           sets: [
             { sets: 1, reps: 5, intensity: 0.6, intensity_type: 'percentage_1rm' },
             { sets: 1, reps: 5, intensity: 0.7, intensity_type: 'percentage_1rm' },

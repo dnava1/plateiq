@@ -15,13 +15,13 @@ function createCanditoSquatBenchDay(
     exercise_blocks: [
       {
         role: 'primary',
-        exercise_key: 'squat',
+        exercise_key: 'Squat',
         sets: squatSets,
         notes,
       },
       {
         role: 'primary',
-        exercise_key: 'bench',
+        exercise_key: 'Bench Press',
         sets: benchSets,
         notes: 'Optional upper accessories are fine here if recovery stays strong: rows, pull-ups, OHP, curls, and lateral raises are common picks.',
       },
@@ -35,7 +35,7 @@ function createCanditoDeadliftDay(label: string, deadliftSets: SetPrescription[]
     exercise_blocks: [
       {
         role: 'primary',
-        exercise_key: 'deadlift',
+        exercise_key: 'Deadlift',
         sets: deadliftSets,
         notes,
       },
@@ -49,7 +49,7 @@ function createCanditoBenchDay(label: string, benchSets: SetPrescription[], note
     exercise_blocks: [
       {
         role: 'primary',
-        exercise_key: 'bench',
+        exercise_key: 'Bench Press',
         sets: benchSets,
         notes,
       },
@@ -199,7 +199,7 @@ export const candito6WeekStrength: ProgramTemplate = {
   days_per_week: 4,
   cycle_length_weeks: 6,
   uses_training_max: false,
-  required_exercises: ['squat', 'bench', 'deadlift'],
+  required_exercises: ['Squat', 'Bench Press', 'Deadlift'],
   week_schemes: {
     1: { label: 'Week 1 — Muscular Conditioning' },
     2: { label: 'Week 2 — Hypertrophy', days: CANDITO_WEEK_2_DAYS },

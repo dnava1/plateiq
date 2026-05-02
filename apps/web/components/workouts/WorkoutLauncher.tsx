@@ -27,7 +27,7 @@ interface WorkoutLauncherProps {
 
 export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
   const { data: user } = useUser()
-  const { data: exercises } = useExercises()
+  const { data: exercises, isLoading: areExercisesLoading } = useExercises()
   const { data: trainingMaxes } = useCurrentTrainingMaxes()
   const preferredWeightRounding = usePreferredWeightRounding()
   const { data: activeCycle, isLoading: isCycleLoading } = useActiveCycle(program.id)
@@ -85,6 +85,18 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
   const previewSets = useMemo<WorkoutDisplaySet[]>(() => {
     if (!template || !selectedDay) return []
 
+    const resolveKnownExerciseId = (exerciseId: number | null | undefined, exerciseKey?: string | null) => {
+      if (typeof exerciseId === 'number') {
+        if (areExercisesLoading || typeof exercises === 'undefined') {
+          return exerciseId
+        }
+
+        return exerciseNameById.has(exerciseId) ? exerciseId : null
+      }
+
+      return resolveExerciseIdFromMap(exerciseKeyMap, exerciseKey) ?? null
+    }
+
     return generateWorkoutPlan(
       template,
       currentDayIndex,
@@ -93,7 +105,7 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
       selectedVariationKeys,
       rounding,
     ).map((set) => {
-      const exerciseId = set.exercise_id ?? resolveExerciseIdFromMap(exerciseKeyMap, set.exercise_key) ?? null
+      const exerciseId = resolveKnownExerciseId(set.exercise_id, set.exercise_key)
       return {
         ...set,
         exerciseId,
@@ -111,7 +123,7 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
         workoutSetId: null,
       }
     })
-  }, [currentDayIndex, currentWeekNumber, exerciseKeyMap, exerciseNameById, rounding, selectedDay, selectedVariationKeys, template, trainingMaxMap])
+  }, [areExercisesLoading, currentDayIndex, currentWeekNumber, exerciseKeyMap, exerciseNameById, exercises, rounding, selectedDay, selectedVariationKeys, template, trainingMaxMap])
 
   const offlinePackWorkouts = useMemo<OfflineWorkoutPackWorkout[]>(() => {
     if (!template || !activeCycle) {
@@ -119,6 +131,17 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
     }
 
     const workouts: OfflineWorkoutPackWorkout[] = []
+    const resolveKnownExerciseId = (exerciseId: number | null | undefined, exerciseKey?: string | null) => {
+      if (typeof exerciseId === 'number') {
+        if (areExercisesLoading || typeof exercises === 'undefined') {
+          return exerciseId
+        }
+
+        return exerciseNameById.has(exerciseId) ? exerciseId : null
+      }
+
+      return resolveExerciseIdFromMap(exerciseKeyMap, exerciseKey) ?? null
+    }
 
     for (let weekNumber = 1; weekNumber <= template.cycle_length_weeks; weekNumber += 1) {
       const days = resolveProgramDays(template, weekNumber)
@@ -137,7 +160,7 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
           rounding,
         ).map((set) => {
           const storedSet = storedSetsByOrder.get(set.set_order)
-          const exerciseId = storedSet?.exercise_id ?? set.exercise_id ?? resolveExerciseIdFromMap(exerciseKeyMap, set.exercise_key) ?? null
+          const exerciseId = resolveKnownExerciseId(storedSet?.exercise_id ?? set.exercise_id, set.exercise_key)
 
           return {
             ...set,
@@ -171,9 +194,11 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
     return workouts
   }, [
     activeCycle,
+    areExercisesLoading,
     cycleWorkouts,
     exerciseKeyMap,
     exerciseNameById,
+    exercises,
     rounding,
     selectedVariationKeys,
     template,
@@ -276,7 +301,11 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
     }
 
     const primaryBlock = selectedDay.exercise_blocks.find((block) => block.role === 'primary') ?? selectedDay.exercise_blocks[0]
-    const primaryExerciseId = primaryBlock?.exercise_id ?? resolveExerciseIdFromMap(exerciseKeyMap, primaryBlock?.exercise_key)
+    const primaryExerciseId = typeof primaryBlock?.exercise_id === 'number'
+      ? (areExercisesLoading || typeof exercises === 'undefined'
+        ? primaryBlock.exercise_id
+        : (exerciseNameById.has(primaryBlock.exercise_id) ? primaryBlock.exercise_id : null))
+      : resolveExerciseIdFromMap(exerciseKeyMap, primaryBlock?.exercise_key) ?? null
 
     if (!primaryExerciseId) {
       toast.error(`Couldn't resolve the primary exercise for ${selectedDay.label}.`)

@@ -2,9 +2,9 @@ import type { DayTemplate, ProgramTemplate } from '@/types/template'
 
 function createGreyskullWorkout(
   label: string,
-  firstExerciseKey: 'ohp' | 'bench',
-  secondExerciseKey: 'chin_up' | 'row',
-  thirdExerciseKey: 'squat' | 'deadlift',
+  firstExerciseKey: 'Overhead Press' | 'Bench Press',
+  secondExerciseKey: 'Chin-up' | 'Barbell Row',
+  thirdExerciseKey: 'Squat' | 'Deadlift',
   thirdExerciseNotes: string,
 ): DayTemplate {
   return {
@@ -23,14 +23,14 @@ function createGreyskullWorkout(
         role: 'primary',
         exercise_key: secondExerciseKey,
         sets: [
-          { sets: 2, reps: 5, intensity: 0, intensity_type: secondExerciseKey === 'chin_up' ? 'bodyweight' : 'fixed_weight' },
-          { sets: 1, reps: '5+', intensity: 0, intensity_type: secondExerciseKey === 'chin_up' ? 'bodyweight' : 'fixed_weight', is_amrap: true },
+          { sets: 2, reps: 5, intensity: 0, intensity_type: secondExerciseKey === 'Chin-up' ? 'bodyweight' : 'fixed_weight' },
+          { sets: 1, reps: '5+', intensity: 0, intensity_type: secondExerciseKey === 'Chin-up' ? 'bodyweight' : 'fixed_weight', is_amrap: true },
         ],
       },
       {
         role: 'primary',
         exercise_key: thirdExerciseKey,
-        sets: thirdExerciseKey === 'deadlift'
+        sets: thirdExerciseKey === 'Deadlift'
           ? [{ sets: 1, reps: '5+', intensity: 0, intensity_type: 'fixed_weight', is_amrap: true }]
           : [
               { sets: 2, reps: 5, intensity: 0, intensity_type: 'fixed_weight' },
@@ -42,8 +42,8 @@ function createGreyskullWorkout(
   }
 }
 
-const GREYSKULL_WORKOUT_A = createGreyskullWorkout('Workout A', 'ohp', 'chin_up', 'squat', 'Last set AMRAP')
-const GREYSKULL_WORKOUT_B = createGreyskullWorkout('Workout B', 'bench', 'row', 'deadlift', 'Last (only) set AMRAP')
+const GREYSKULL_WORKOUT_A = createGreyskullWorkout('Workout A', 'Overhead Press', 'Chin-up', 'Squat', 'Last set AMRAP')
+const GREYSKULL_WORKOUT_B = createGreyskullWorkout('Workout B', 'Bench Press', 'Barbell Row', 'Deadlift', 'Last (only) set AMRAP')
 
 export const greyskulllp: ProgramTemplate = {
   key: 'greyskull_lp',
@@ -54,7 +54,7 @@ export const greyskulllp: ProgramTemplate = {
   days_per_week: 3,
   cycle_length_weeks: 2,
   uses_training_max: false,
-  required_exercises: ['squat', 'bench', 'ohp', 'deadlift', 'chin_up', 'row'],
+  required_exercises: ['Squat', 'Bench Press', 'Overhead Press', 'Deadlift', 'Chin-up', 'Barbell Row'],
   week_schemes: {
     1: { label: 'Week 1 — A / B / A' },
     2: {

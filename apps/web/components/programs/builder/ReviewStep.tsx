@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { useExercises, buildExerciseKeyMap, resolveExerciseIdFromMap } from '@/hooks/useExercises'
+import { useExercises, buildExerciseKeyMap, resolveExerciseDisplayName, resolveExerciseFromList, resolveExerciseIdFromMap } from '@/hooks/useExercises'
 import { useCurrentTrainingMaxes } from '@/hooks/useTrainingMaxes'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import {
@@ -62,6 +62,19 @@ function formatSetDisplayLabel(displayType: SetDisplayType | undefined) {
     default:
       return null
   }
+}
+
+function isAmrapSet(set: SetPrescription) {
+  return set.purpose !== 'warmup'
+    && (Boolean(set.is_amrap) || (typeof set.reps === 'string' && set.reps.trim().endsWith('+')))
+}
+
+function formatRepsLabel(set: SetPrescription) {
+  const repsLabel = String(set.reps)
+
+  return isAmrapSet(set) && !repsLabel.trim().endsWith('+')
+    ? `${repsLabel}+`
+    : repsLabel
 }
 
 function formatTrainingMaxTargetLabel(value: string) {
@@ -176,17 +189,59 @@ export function ReviewStep() {
     }
   })
   const showPerWeekStructure = Boolean(draft.week_schemes && draft.cycle_length_weeks > 1)
+  const unresolvedExerciseNames = Array.from(new Set(weeklyStructure.flatMap((week) => {
+    return week.days.flatMap((day) => {
+      return day.exercise_blocks.flatMap((block) => {
+        const resolvedExercise = resolveExerciseFromList(exercises, {
+          exerciseId: block.exercise_id,
+          exerciseKey: block.exercise_key,
+        })
+        const hasResolvedExercise = Boolean(resolvedExercise)
+          || (typeof block.exercise_id !== 'number' && typeof resolveExerciseIdFromMap(exerciseKeyMap, block.exercise_key) === 'number')
+
+        if (hasResolvedExercise) {
+          return []
+        }
+
+        const exerciseLabel = resolveExerciseDisplayName(exercises, {
+          exerciseId: block.exercise_id,
+          exerciseKey: block.exercise_key,
+        }) ?? block.exercise_key?.trim() ?? 'Unnamed exercise'
+        const locationLabel = showPerWeekStructure
+          ? `${week.label} / ${day.label}`
+          : day.label
+
+        return `${exerciseLabel} (${locationLabel})`
+      })
+    })
+  })))
   const isPending = createProgramDefinition.isPending
     || updateProgramDefinition.isPending
     || createProgramRevision.isPending
+  const isExerciseSelectionStateLoading = areExercisesLoading
   const isTrainingMaxStateLoading = requiresMaxInputs && (areExercisesLoading || areTrainingMaxesLoading)
   const isTrainingMaxRequirementMet = !requiresMaxInputs && !isTrainingMaxStateLoading
     ? true
     : requiresMaxInputs && !isTrainingMaxStateLoading && missingMaxInputNames.length === 0
-  const isSaveDisabled = isPending || isTrainingMaxStateLoading || (requiresMaxInputs && !isTrainingMaxRequirementMet)
+  const isSaveDisabled = isPending
+    || isExerciseSelectionStateLoading
+    || unresolvedExerciseNames.length > 0
+    || isTrainingMaxStateLoading
+    || (requiresMaxInputs && !isTrainingMaxRequirementMet)
   const showHistoryPreservationNote = saveStrategy !== 'revision' && Boolean(source?.has_workout_history)
 
   const handleSubmit = () => {
+    if (isExerciseSelectionStateLoading) {
+      toast.error('Exercise selections are still loading for this program.')
+      return
+    }
+
+    if (unresolvedExerciseNames.length > 0) {
+      toast.error(`Choose library exercises for ${unresolvedExerciseNames.join(', ')} before saving this program.`)
+      setStep('exercises')
+      return
+    }
+
     if (isTrainingMaxStateLoading) {
       toast.error(requiredInputCopy.toastLoadingMessage)
       return
@@ -274,6 +329,7 @@ export function ReviewStep() {
   const formatSetSummarySuffix = (set: SetPrescription) => {
     const descriptors = [
       set.purpose === 'warmup' ? 'warm-up' : null,
+      isAmrapSet(set) ? 'AMRAP' : null,
       formatSetDisplayLabel(set.display_type),
     ].filter((value): value is string => Boolean(value))
 
@@ -295,7 +351,12 @@ export function ReviewStep() {
         {day.exercise_blocks.map((block, blockIndex) => (
           <div key={blockIndex} className="flex flex-col gap-2 rounded-[18px] bg-background/60 p-3 text-sm text-muted-foreground">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-medium text-foreground">{block.exercise_key || 'Unnamed exercise'}</span>
+              <span className="font-medium text-foreground">
+                {resolveExerciseDisplayName(exercises, {
+                  exerciseId: block.exercise_id,
+                  exerciseKey: block.exercise_key,
+                }) || 'Unnamed exercise'}
+              </span>
               <span className="text-[0.72rem] uppercase tracking-[0.18em] text-muted-foreground">
                 {BLOCK_ROLE_LABELS[block.role]}
               </span>
@@ -303,7 +364,7 @@ export function ReviewStep() {
             <div className="flex flex-wrap gap-2 text-xs">
               {block.sets.map((set, setIndex) => (
                 <span key={setIndex} className="rounded-full bg-muted px-2.5 py-1 text-foreground">
-                  {set.sets}x{set.reps} at {formatIntensity(set.intensity, set.intensity_type)}
+                  {set.sets}x{formatRepsLabel(set)} at {formatIntensity(set.intensity, set.intensity_type)}
                   {formatSetSummarySuffix(set)}
                   {typeof set.rest_seconds === 'number' && set.rest_seconds > 0
                     ? ` - rest ${formatRestDurationLabel(set.rest_seconds)}`
@@ -359,6 +420,16 @@ export function ReviewStep() {
         ) : null}
         <p>Deload decisions stay manual and happen during the current cycle checkpoint.</p>
       </div>
+
+      {isExerciseSelectionStateLoading ? (
+        <div className="rounded-[24px] border border-border/70 bg-card/82 p-4 text-sm text-muted-foreground shadow-sm">
+          <p>Loading exercise selections for this program.</p>
+        </div>
+      ) : unresolvedExerciseNames.length > 0 ? (
+        <div className="rounded-[24px] border border-border/70 bg-card/82 p-4 text-sm text-muted-foreground shadow-sm">
+          <p>Choose library exercises for {unresolvedExerciseNames.join(', ')} before you save this program.</p>
+        </div>
+      ) : null}
 
       {requiresMaxInputs ? (
         <div className="flex flex-col gap-3">

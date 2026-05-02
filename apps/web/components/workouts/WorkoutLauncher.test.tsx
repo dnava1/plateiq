@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   setActiveWorkout: vi.fn(),
   useActiveCycle: vi.fn(),
   useCycleWorkouts: vi.fn(),
+  useExercises: vi.fn(),
   workoutSessionState: {
     activeCycleId: null,
     activeDayIndex: null,
@@ -30,12 +31,7 @@ vi.mock('@/hooks/usePreferredWeightRounding', () => ({
 vi.mock('@/hooks/useExercises', () => ({
   resolveExerciseIdFromMap: () => null,
   useExerciseKeyMap: () => new Map(),
-  useExercises: () => ({
-    data: [
-      { id: 1, name: 'Overhead Press' },
-      { id: 2, name: 'Bench Press' },
-    ],
-  }),
+  useExercises: () => mocks.useExercises(),
 }))
 
 vi.mock('@/hooks/useTrainingMaxes', () => ({
@@ -79,6 +75,7 @@ describe('WorkoutLauncher', () => {
     mocks.setActiveWorkout.mockReset()
     mocks.useActiveCycle.mockReset()
     mocks.useCycleWorkouts.mockReset()
+    mocks.useExercises.mockReset()
     mocks.workoutSessionState = {
       activeCycleId: null,
       activeDayIndex: null,
@@ -103,6 +100,13 @@ describe('WorkoutLauncher', () => {
     })
     mocks.useActiveCycle.mockReturnValue({ data: { cycle_number: 2, id: 44 }, isLoading: false })
     mocks.useCycleWorkouts.mockReturnValue({ data: [] })
+    mocks.useExercises.mockReturnValue({
+      data: [
+        { id: 1, name: 'Overhead Press' },
+        { id: 2, name: 'Bench Press' },
+      ],
+      isLoading: false,
+    })
     mocks.generateWorkoutPlan.mockImplementation((template, dayIndex, weekNumber) => [{
       block_id: `week-${String(weekNumber)}-${String(dayIndex)}`,
       block_order: 1,
@@ -143,5 +147,46 @@ describe('WorkoutLauncher', () => {
     expect(screen.getByRole('button', { name: /Week 2 Bench Only/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Week 1 OHP Only/i })).not.toBeInTheDocument()
     expect(screen.getByText('Bench Press:3')).toBeInTheDocument()
+  })
+
+  it('trusts explicit exercise ids while the exercise catalog is still loading', async () => {
+    const user = userEvent.setup()
+
+    mocks.useExercises.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+    })
+    mocks.resolveWorkoutProgram.mockReturnValue({
+      rounding: 5,
+      selectedVariationKeys: [],
+      template: {
+        cycle_length_weeks: 1,
+        days: [{ label: 'Week 1 OHP Only', exercise_blocks: [{ role: 'primary', exercise_id: 1, exercise_key: 'ohp', sets: [] }] }],
+      },
+    })
+
+    render(
+      <WorkoutLauncher
+        program={{
+          config: null,
+          id: 1,
+          name: 'Alternating Upper',
+          template_key: 'custom',
+        } as never}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Start' }))
+
+    expect(mocks.ensureWorkout.mutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cycleId: 44,
+        dayLabel: 'Week 1 OHP Only',
+        primaryExerciseId: 1,
+        userId: 'user-1',
+        weekNumber: 1,
+      }),
+      expect.any(Object),
+    )
   })
 })

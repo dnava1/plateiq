@@ -15,6 +15,33 @@ import {
 
 const DEFAULT_TM_PERCENTAGE = 0.9
 
+function normalizeExerciseReference(value: string | undefined) {
+  return value
+    ?.trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+}
+
+function normalizeLegacyExerciseName(value: string | undefined) {
+  return value?.trim().toLowerCase()
+}
+
+function shouldInheritPrimaryExerciseId(
+  blockExerciseKey: string | undefined,
+  primaryExerciseKey: string | undefined,
+) {
+  if (!blockExerciseKey) {
+    return true
+  }
+
+  if (!primaryExerciseKey) {
+    return false
+  }
+
+  return normalizeExerciseReference(blockExerciseKey) === normalizeExerciseReference(primaryExerciseKey)
+}
+
 interface StandardProgramConfig {
   variation_key?: string | null
   rounding?: number
@@ -119,7 +146,11 @@ function materializeTemplateDay(day: DayTemplate, variationBlocks: ExerciseBlock
       ...variationBlocks.map((block) => ({
         ...cloneExerciseBlock(block),
         exercise_key: block.exercise_key ?? primaryExerciseKey,
-        exercise_id: block.exercise_id ?? primaryExerciseId,
+        exercise_id: typeof block.exercise_id === 'number'
+          ? block.exercise_id
+          : shouldInheritPrimaryExerciseId(block.exercise_key, primaryExerciseKey)
+            ? primaryExerciseId
+            : undefined,
       })),
     ],
   }
@@ -190,6 +221,66 @@ export function normalizeEditableProgramConfig(
           source_template_key: sourceTemplateKey,
         }
       : undefined,
+  }
+}
+
+export function rewriteCustomProgramExerciseReferences(
+  config: CustomProgramConfig,
+  input: {
+    exerciseId: number
+    previousName: string
+    nextName: string
+  },
+) {
+  const previousReference = normalizeLegacyExerciseName(input.previousName)
+  let changed = false
+
+  const rewriteBlock = (block: ExerciseBlock): ExerciseBlock => {
+    const matchesExplicitId = block.exercise_id === input.exerciseId
+    const matchesLegacyName = typeof block.exercise_id !== 'number'
+      && normalizeLegacyExerciseName(block.exercise_key) === previousReference
+
+    if (!matchesExplicitId && !matchesLegacyName) {
+      return cloneExerciseBlock(block)
+    }
+
+    const nextBlock = {
+      ...cloneExerciseBlock(block),
+      exercise_id: input.exerciseId,
+      exercise_key: input.nextName,
+    }
+
+    if (nextBlock.exercise_id !== block.exercise_id || nextBlock.exercise_key !== block.exercise_key) {
+      changed = true
+    }
+
+    return nextBlock
+  }
+
+  const rewriteDay = (day: DayTemplate): DayTemplate => ({
+    ...day,
+    exercise_blocks: day.exercise_blocks.map(rewriteBlock),
+  })
+
+  const nextConfig = {
+    ...normalizeEditableProgramConfig(config, config.metadata?.source_template_key ?? 'custom'),
+    days: config.days.map(rewriteDay),
+    week_schemes: config.week_schemes
+      ? Object.fromEntries(
+          Object.entries(config.week_schemes).map(([weekNumber, scheme]) => [
+            weekNumber,
+            {
+              ...scheme,
+              days: scheme.days?.map(rewriteDay),
+            },
+          ]),
+        ) as ProgramWeekSchemes
+      : undefined,
+  }
+
+  return {
+    changed,
+    config: nextConfig,
   }
 }
 

@@ -16,7 +16,7 @@ export const smolovJr: ProgramTemplate = {
   days_per_week: 4,
   cycle_length_weeks: 3,
   uses_training_max: false,
-  required_exercises: ['squat'],
+  required_exercises: ['Squat'],
   week_schemes: {
     1: { label: 'Week 1 — Base Loading', intensity_modifier: 1.0 },
     2: { label: 'Week 2 — +5-10 lbs', intensity_modifier: 1.0 }, // Absolute adds handled by user
@@ -28,7 +28,7 @@ export const smolovJr: ProgramTemplate = {
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'squat',
+          exercise_key: 'Squat',
           sets: [
             { sets: 6, reps: 6, intensity: 0.70, intensity_type: 'percentage_1rm' },
           ],
@@ -41,7 +41,7 @@ export const smolovJr: ProgramTemplate = {
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'squat',
+          exercise_key: 'Squat',
           sets: [
             { sets: 7, reps: 5, intensity: 0.75, intensity_type: 'percentage_1rm' },
           ],
@@ -54,7 +54,7 @@ export const smolovJr: ProgramTemplate = {
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'squat',
+          exercise_key: 'Squat',
           sets: [
             { sets: 8, reps: 4, intensity: 0.80, intensity_type: 'percentage_1rm' },
           ],
@@ -67,7 +67,7 @@ export const smolovJr: ProgramTemplate = {
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'squat',
+          exercise_key: 'Squat',
           sets: [
             { sets: 10, reps: 3, intensity: 0.85, intensity_type: 'percentage_1rm' },
           ],

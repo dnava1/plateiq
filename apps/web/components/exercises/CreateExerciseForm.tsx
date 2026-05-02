@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { useForm, Controller, type FieldErrors } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createExerciseSchema, type CreateExerciseInput } from '@/lib/validations/exercise'
-import { useCreateExercise } from '@/hooks/useExercises'
+import { useCreateExercise, useUpdateExercise } from '@/hooks/useExercises'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -32,16 +32,13 @@ interface CreateExerciseFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   initialValues?: Partial<CreateExerciseInput>
+  existingExercise?: Exercise | null
   title?: string
   description?: string
   submitLabel?: string
   onCreated?: (exercise: Exercise) => void
+  onUpdated?: (exercise: Exercise) => void
 }
-
-const CATEGORY_OPTIONS = [
-  { value: 'main', label: 'Main Lift' },
-  { value: 'accessory', label: 'Accessory' },
-] as const
 
 const MOVEMENT_PATTERNS = [
   { value: 'horizontal_push', label: 'Horizontal Push' },
@@ -68,12 +65,12 @@ const ANALYTICS_TRACK_OPTIONS = [
   },
 ] as const
 
-function getDefaultValues(initialValues?: Partial<CreateExerciseInput>): CreateExerciseInput {
+function getDefaultValues(existingExercise?: Exercise | null, initialValues?: Partial<CreateExerciseInput>): CreateExerciseInput {
   return {
-    name: initialValues?.name ?? '',
-    category: initialValues?.category ?? 'accessory',
-    movement_pattern: initialValues?.movement_pattern ?? 'other',
-    analytics_track: initialValues?.analytics_track ?? 'standard',
+    name: initialValues?.name ?? existingExercise?.name ?? '',
+    category: initialValues?.category ?? (existingExercise?.category as CreateExerciseInput['category'] | undefined) ?? 'accessory',
+    movement_pattern: initialValues?.movement_pattern ?? (existingExercise?.movement_pattern as CreateExerciseInput['movement_pattern'] | undefined) ?? 'other',
+    analytics_track: initialValues?.analytics_track ?? (existingExercise?.analytics_track as CreateExerciseInput['analytics_track'] | undefined) ?? 'standard',
   }
 }
 
@@ -81,12 +78,20 @@ export function CreateExerciseForm({
   open,
   onOpenChange,
   initialValues,
-  title = 'Add Custom Exercise',
-  description = 'Create a new exercise to use in your programs.',
+  existingExercise,
+  title,
+  description,
   submitLabel,
   onCreated,
+  onUpdated,
 }: CreateExerciseFormProps) {
   const createExercise = useCreateExercise()
+  const updateExercise = useUpdateExercise()
+  const isEditing = Boolean(existingExercise)
+  const resolvedTitle = title ?? (isEditing ? 'Edit Exercise' : 'Add Exercise')
+  const resolvedDescription = description ?? (isEditing
+    ? 'Update this custom exercise in your shared library.'
+    : 'Create a new exercise to use in your programs.')
 
   const {
     control,
@@ -97,31 +102,43 @@ export function CreateExerciseForm({
     formState: { errors },
   } = useForm<CreateExerciseInput>({
     resolver: zodResolver(createExerciseSchema),
-    defaultValues: getDefaultValues(initialValues),
+    defaultValues: getDefaultValues(existingExercise, initialValues),
   })
 
   useEffect(() => {
     if (open) {
-      reset(getDefaultValues(initialValues))
+      reset(getDefaultValues(existingExercise, initialValues))
     }
-  }, [initialValues, open, reset])
+  }, [existingExercise, initialValues, open, reset])
 
   const onSubmit = (data: CreateExerciseInput) => {
-    createExercise.mutate(data, {
-      onSuccess: (exercise) => {
-        toast.success(onCreated ? 'Exercise created and selected' : 'Exercise created')
+    const onSuccess = (exercise: Exercise) => {
+      toast.success(isEditing ? 'Exercise updated' : onCreated ? 'Exercise created and selected' : 'Exercise created')
+
+      if (isEditing) {
+        onUpdated?.(exercise)
+      } else {
         onCreated?.(exercise)
-        reset(getDefaultValues(initialValues))
-        onOpenChange(false)
-      },
-      onError: (error) => {
-        toast.error(error.message)
-      },
-    })
+      }
+
+      reset(getDefaultValues(existingExercise, initialValues))
+      onOpenChange(false)
+    }
+
+    const onError = (error: Error) => {
+      toast.error(error.message)
+    }
+
+    if (existingExercise) {
+      updateExercise.mutate({ exerciseId: existingExercise.id, exercise: data }, { onError, onSuccess })
+      return
+    }
+
+    createExercise.mutate(data, { onError, onSuccess })
   }
 
   const handleInvalidSubmit = (formErrors: FieldErrors<CreateExerciseInput>) => {
-    const firstField = (['name', 'category', 'movement_pattern', 'analytics_track'] as const).find((field) => formErrors[field])
+    const firstField = (['name', 'movement_pattern', 'analytics_track'] as const).find((field) => formErrors[field])
     if (firstField) {
       setFocus(firstField)
     }
@@ -129,20 +146,21 @@ export function CreateExerciseForm({
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
-      reset(getDefaultValues(initialValues))
+      reset(getDefaultValues(existingExercise, initialValues))
     }
 
     onOpenChange(nextOpen)
   }
 
-  const submitButtonLabel = submitLabel ?? (onCreated ? 'Create and Select Exercise' : 'Create Exercise')
+  const submitButtonLabel = submitLabel ?? (isEditing ? 'Save Exercise' : onCreated ? 'Create and Select Exercise' : 'Create Exercise')
+  const isSubmitting = createExercise.isPending || updateExercise.isPending
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogTitle>{resolvedTitle}</DialogTitle>
+          <DialogDescription>{resolvedDescription}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit, handleInvalidSubmit)} className="mt-6 flex flex-col gap-4">
           <div className="flex flex-col gap-2">
@@ -156,40 +174,6 @@ export function CreateExerciseForm({
             />
             {errors.name && (
               <p id="exercise-name-error" className="text-sm text-destructive">{errors.name.message}</p>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="category">Category</Label>
-            <Controller
-              control={control}
-              name="category"
-              render={({ field }) => (
-                <Select
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  items={CATEGORY_OPTIONS}
-                >
-                  <SelectTrigger
-                    id="category"
-                    className="w-full h-9"
-                    aria-invalid={!!errors.category}
-                    aria-describedby={errors.category ? 'exercise-category-error' : undefined}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {CATEGORY_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            {errors.category && (
-              <p id="exercise-category-error" className="text-sm text-destructive">{errors.category.message}</p>
             )}
           </div>
 
@@ -274,9 +258,9 @@ export function CreateExerciseForm({
           <Button
             type="submit"
             className="w-full"
-            disabled={createExercise.isPending}
+            disabled={isSubmitting}
           >
-            {createExercise.isPending ? 'Creating…' : submitButtonLabel}
+            {isSubmitting ? (isEditing ? 'Saving…' : 'Creating…') : submitButtonLabel}
           </Button>
         </form>
       </DialogContent>

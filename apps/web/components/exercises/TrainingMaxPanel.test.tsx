@@ -119,7 +119,7 @@ describe('TrainingMaxPanel', () => {
     const user = userEvent.setup()
 
     render(
-      <TrainingMaxPanel description="Manage main-lift training maxes from the new shared surface." />,
+      <TrainingMaxPanel description="Manage max-enabled training maxes from the new shared surface." />,
     )
 
     const customLiftCard = screen.getByText('Safety Squat Bar').closest('[data-slot="card"]')
@@ -196,7 +196,7 @@ describe('TrainingMaxPanel', () => {
 
     render(
       <TrainingMaxPanel
-        description="Manage main-lift training maxes from the new shared surface."
+        description="Manage max-enabled training maxes from the new shared surface."
         targetExerciseKeys={['Safety Squat Bar']}
         badgeLabel="Selected lifts"
       />,
@@ -216,7 +216,7 @@ describe('TrainingMaxPanel', () => {
     const user = userEvent.setup()
 
     render(
-      <TrainingMaxPanel description="Manage main-lift training maxes from the new shared surface." />,
+      <TrainingMaxPanel description="Manage max-enabled training maxes from the new shared surface." />,
     )
 
     const customLiftCard = screen.getByText('Safety Squat Bar').closest('[data-slot="card"]')
@@ -245,10 +245,10 @@ describe('TrainingMaxPanel', () => {
     })
 
     render(
-      <TrainingMaxPanel description="Manage main-lift training maxes from the new shared surface." />,
+      <TrainingMaxPanel description="Manage max-enabled training maxes from the new shared surface." />,
     )
 
-    expect(screen.getByText('Create a main lift in Programs before setting a training max here.')).toBeInTheDocument()
+    expect(screen.getByText('Add a TM-backed exercise block in Programs before setting a training max here.')).toBeInTheDocument()
   })
 
   it('switches to 1RM-first actions and dialog copy when the panel scope requires it', async () => {

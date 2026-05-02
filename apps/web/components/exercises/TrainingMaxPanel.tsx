@@ -36,19 +36,19 @@ function resolvePanelActionCopy(inputMode: ExecutionMaxInputMode) {
     case '1rm':
       return {
         createActionLabel: 'Set 1RM',
-        emptyStateHint: 'Create a main lift in Programs before setting an estimated 1RM here.',
+        emptyStateHint: 'Add a 1RM-backed exercise block in Programs before setting an estimated 1RM here.',
         updateActionLabel: 'Update 1RM',
       }
     case 'mixed':
       return {
         createActionLabel: 'Set Max',
-        emptyStateHint: 'Create a main lift in Programs before setting a max input here.',
+        emptyStateHint: 'Add a TM or 1RM-backed exercise block in Programs before setting a max input here.',
         updateActionLabel: 'Update Max',
       }
     default:
       return {
         createActionLabel: 'Set TM',
-        emptyStateHint: 'Create a main lift in Programs before setting a training max here.',
+        emptyStateHint: 'Add a TM-backed exercise block in Programs before setting a training max here.',
         updateActionLabel: 'Update TM',
       }
   }
@@ -59,7 +59,7 @@ export function TrainingMaxPanel({
   description,
   className,
   emptyStateHint,
-  badgeLabel = 'Main lifts',
+  badgeLabel = 'Max inputs',
   inputMode = 'tm',
   targetExerciseIds,
   targetExerciseKeys,
@@ -100,7 +100,7 @@ export function TrainingMaxPanel({
   const scopedExercises = useMemo(() => {
     if (!scopedExerciseIds) {
       return exercises
-        .filter((exercise) => exercise.is_main_lift)
+        .filter((exercise) => exercise.is_main_lift || tmMap.has(exercise.id))
         .sort((left, right) => left.name.localeCompare(right.name))
     }
 
@@ -109,7 +109,7 @@ export function TrainingMaxPanel({
     return scopedExerciseIds
       .map((exerciseId) => exerciseById.get(exerciseId))
       .filter((exercise): exercise is Exercise => Boolean(exercise))
-  }, [exercises, scopedExerciseIds])
+  }, [exercises, scopedExerciseIds, tmMap])
 
   return (
     <>

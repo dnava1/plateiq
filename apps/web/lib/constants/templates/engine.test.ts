@@ -64,6 +64,58 @@ describe('resolveWeight', () => {
     // 300 * 0.725 = 217.5, rounded to nearest 2.5 = 217.5
     expect(resolveWeight(prescription, trainingMaxes, 'squat', 2.5)).toBe(217.5)
   })
+
+  it('prefers an exercise id lookup over a stale exercise key when both are available', () => {
+    const trainingMaxLookup = new Map([
+      ['id:10', 315],
+      ['key:safety_squat_bar', 315],
+    ])
+    const prescription = makePrescription({ intensity: 0.8, intensity_type: 'percentage_tm' })
+
+    expect(resolveWeight(prescription, trainingMaxLookup, 'old_safety_squat_bar_name', 5, 0, 10)).toBe(250)
+  })
+
+  it('does not inherit the primary exercise id for a different secondary exercise key', () => {
+    const template: ProgramTemplate = {
+      key: 'mixed-id-secondary-blocks',
+      name: 'Mixed Id Secondary Blocks',
+      level: 'intermediate',
+      description: 'Regression coverage for mixed-id blocks.',
+      days_per_week: 1,
+      cycle_length_weeks: 1,
+      uses_training_max: true,
+      required_exercises: ['Safety Squat Bar', 'Bench Press'],
+      days: [{
+        label: 'Day 1',
+        exercise_blocks: [
+          {
+            role: 'primary',
+            exercise_id: 10,
+            exercise_key: 'Safety Squat Bar',
+            sets: [{ sets: 1, reps: 5, intensity: 0.8, intensity_type: 'percentage_tm' }],
+          },
+          {
+            role: 'variation',
+            exercise_key: 'Bench Press',
+            sets: [{ sets: 1, reps: 8, intensity: 0.7, intensity_type: 'percentage_tm' }],
+          },
+        ],
+      }],
+      progression: { style: 'custom' },
+    }
+    const trainingMaxLookup = new Map([
+      ['id:10', 315],
+      ['key:safety_squat_bar', 315],
+      ['key:bench_press', 205],
+    ])
+
+    const sets = generateWorkoutPlan(template, 0, 1, trainingMaxLookup)
+
+    expect(sets[0]?.weight_lbs).toBe(250)
+    expect(sets[1]?.exercise_key).toBe('Bench Press')
+    expect(sets[1]?.exercise_id).toBeUndefined()
+    expect(sets[1]?.weight_lbs).toBe(140)
+  })
 })
 
 describe('generateWorkoutPlan', () => {
@@ -82,7 +134,7 @@ describe('generateWorkoutPlan', () => {
     expect(sets).toHaveLength(7)
 
     // Squat sets
-    const squatSets = sets.filter((s) => s.exercise_key === 'squat')
+    const squatSets = sets.filter((s) => s.exercise_key === 'Squat')
     expect(squatSets).toHaveLength(3)
     squatSets.forEach((s) => {
       expect(s.reps_prescribed).toBe(5)
@@ -90,11 +142,11 @@ describe('generateWorkoutPlan', () => {
     })
 
     // Bench sets
-    const benchSets = sets.filter((s) => s.exercise_key === 'bench')
+    const benchSets = sets.filter((s) => s.exercise_key === 'Bench Press')
     expect(benchSets).toHaveLength(3)
 
     // Deadlift sets
-    const deadliftSets = sets.filter((s) => s.exercise_key === 'deadlift')
+    const deadliftSets = sets.filter((s) => s.exercise_key === 'Deadlift')
     expect(deadliftSets).toHaveLength(1)
 
     // set_order should be sequential
@@ -162,7 +214,7 @@ describe('generateWorkoutPlan', () => {
     expect(variationSets).toHaveLength(5)
     variationSets.forEach((s) => {
       expect(s.reps_prescribed).toBe(10)
-      expect(s.exercise_key).toBe('squat')
+      expect(s.exercise_key).toBe('Squat')
       expect(s.weight_lbs).toBe(150)
     })
   })
@@ -208,7 +260,7 @@ describe('generateWorkoutPlan', () => {
 
     expect(backoffSets).toHaveLength(2)
     expect(backoffSets[0].weight_lbs).toBe(175)
-    expect(backoffSets[0].exercise_key).toBe('squat')
+    expect(backoffSets[0].exercise_key).toBe('Squat')
     expect(backoffSets[0].display_type).toBe('backoff')
   })
 
@@ -365,8 +417,8 @@ describe('generateWorkoutPlan', () => {
   it('creates stable fallback block ids when the template omits them', () => {
     const template = TEMPLATE_REGISTRY['starting_strength']
     const sets = generateWorkoutPlan(template, 0, 1, trainingMaxes)
-    const squatSets = sets.filter((set) => set.exercise_key === 'squat')
-    const benchSets = sets.filter((set) => set.exercise_key === 'bench')
+    const squatSets = sets.filter((set) => set.exercise_key === 'Squat')
+    const benchSets = sets.filter((set) => set.exercise_key === 'Bench Press')
 
     expect(new Set(squatSets.map((set) => set.block_id)).size).toBe(1)
     expect(new Set(benchSets.map((set) => set.block_id)).size).toBe(1)
@@ -389,7 +441,7 @@ describe('generateWorkoutPlan', () => {
     const sets = generateWorkoutPlan(template, 0, 4, trainingMaxes)
 
     expect(sets).toHaveLength(3)
-    expect(sets.map((set) => set.exercise_key)).toEqual(['squat', 'bench', 'bench'])
+    expect(sets.map((set) => set.exercise_key)).toEqual(['Squat', 'Bench Press', 'Bench Press'])
     expect(sets.map((set) => set.weight_lbs)).toEqual([275, 180, 180])
     expect(sets.map((set) => set.reps_prescribed)).toEqual([2, 3, 3])
   })
@@ -399,11 +451,11 @@ describe('generateWorkoutPlan', () => {
     const sets = generateWorkoutPlan(template, 0, 2, trainingMaxes)
 
     expect(sets).toHaveLength(19)
-    expect(sets[0]).toMatchObject({ exercise_key: 'bench', reps_prescribed: 3, weight_lbs: 170 })
-    expect(sets[3]).toMatchObject({ exercise_key: 'bench', reps_prescribed: 3, is_amrap: true, weight_lbs: 170 })
-    expect(sets.filter((set) => set.exercise_key === 'incline_bench').every((set) => set.weight_lbs === 0)).toBe(true)
-    expect(sets.filter((set) => set.exercise_key === 'lateral_raise').length).toBe(5)
-    expect(sets.filter((set) => set.exercise_key === 'tricep_pushdown').length).toBe(5)
+    expect(sets[0]).toMatchObject({ exercise_key: 'Bench Press', reps_prescribed: 3, weight_lbs: 170 })
+    expect(sets[3]).toMatchObject({ exercise_key: 'Bench Press', reps_prescribed: 3, is_amrap: true, weight_lbs: 170 })
+    expect(sets.filter((set) => set.exercise_key === 'Incline Bench Press').every((set) => set.weight_lbs === 0)).toBe(true)
+    expect(sets.filter((set) => set.exercise_key === 'Lateral Raise').length).toBe(5)
+    expect(sets.filter((set) => set.exercise_key === 'Tricep Pushdown').length).toBe(5)
   })
 
   it('uses explicit Sheiko week schemes when generating plans', () => {
@@ -411,12 +463,12 @@ describe('generateWorkoutPlan', () => {
     const sets = generateWorkoutPlan(template, 0, 3, trainingMaxes)
 
     expect(sets).toHaveLength(21)
-    expect(sets[0]).toMatchObject({ exercise_key: 'squat', reps_prescribed: 5, weight_lbs: 150 })
-    expect(sets[6]).toMatchObject({ exercise_key: 'squat', reps_prescribed: 3, weight_lbs: 240 })
-    expect(sets[7]).toMatchObject({ exercise_key: 'bench', reps_prescribed: 5, weight_lbs: 100 })
-    expect(sets[14]).toMatchObject({ exercise_key: 'bench', reps_prescribed: 2, weight_lbs: 150 })
-    expect(sets[15]).toMatchObject({ exercise_key: 'squat', reps_prescribed: 5, weight_lbs: 150 })
-    expect(sets[20]).toMatchObject({ exercise_key: 'squat', reps_prescribed: 4, weight_lbs: 210 })
+    expect(sets[0]).toMatchObject({ exercise_key: 'Squat', reps_prescribed: 5, weight_lbs: 150 })
+    expect(sets[6]).toMatchObject({ exercise_key: 'Squat', reps_prescribed: 3, weight_lbs: 240 })
+    expect(sets[7]).toMatchObject({ exercise_key: 'Bench Press', reps_prescribed: 5, weight_lbs: 100 })
+    expect(sets[14]).toMatchObject({ exercise_key: 'Bench Press', reps_prescribed: 2, weight_lbs: 150 })
+    expect(sets[15]).toMatchObject({ exercise_key: 'Squat', reps_prescribed: 5, weight_lbs: 150 })
+    expect(sets[20]).toMatchObject({ exercise_key: 'Squat', reps_prescribed: 4, weight_lbs: 210 })
   })
 
   // Test plan generation for all 19 templates

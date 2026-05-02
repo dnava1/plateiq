@@ -13,14 +13,14 @@ export const nsunsLp: ProgramTemplate = {
   cycle_length_weeks: 1,
   uses_training_max: true,
   default_tm_percentage: 0.9,
-  required_exercises: ['squat', 'bench', 'ohp', 'deadlift', 'sumo_deadlift', 'incline_bench', 'front_squat', 'close_grip_bench'],
+  required_exercises: ['Squat', 'Bench Press', 'Overhead Press', 'Deadlift', 'Sumo Deadlift', 'Incline Bench Press', 'Front Squat', 'Close-Grip Bench Press'],
   days: [
     {
       label: 'Day 1 — Bench + OHP',
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'bench',
+          exercise_key: 'Bench Press',
           sets: [
             { sets: 1, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' },
             { sets: 1, reps: 3, intensity: 0.85, intensity_type: 'percentage_tm' },
@@ -36,7 +36,7 @@ export const nsunsLp: ProgramTemplate = {
         },
         {
           role: 'variation',
-          exercise_key: 'ohp',
+          exercise_key: 'Overhead Press',
           sets: [
             { sets: 1, reps: 6, intensity: 0.6, intensity_type: 'percentage_tm' },
             { sets: 1, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' },
@@ -56,7 +56,7 @@ export const nsunsLp: ProgramTemplate = {
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'squat',
+          exercise_key: 'Squat',
           sets: [
             { sets: 1, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' },
             { sets: 1, reps: 3, intensity: 0.85, intensity_type: 'percentage_tm' },
@@ -72,7 +72,7 @@ export const nsunsLp: ProgramTemplate = {
         },
         {
           role: 'variation',
-          exercise_key: 'sumo_deadlift',
+          exercise_key: 'Sumo Deadlift',
           sets: [
             { sets: 1, reps: 5, intensity: 0.6, intensity_type: 'percentage_tm' },
             { sets: 1, reps: 4, intensity: 0.65, intensity_type: 'percentage_tm' },
@@ -92,7 +92,7 @@ export const nsunsLp: ProgramTemplate = {
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'ohp',
+          exercise_key: 'Overhead Press',
           sets: [
             { sets: 1, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' },
             { sets: 1, reps: 3, intensity: 0.85, intensity_type: 'percentage_tm' },
@@ -108,7 +108,7 @@ export const nsunsLp: ProgramTemplate = {
         },
         {
           role: 'variation',
-          exercise_key: 'incline_bench',
+          exercise_key: 'Incline Bench Press',
           sets: [
             { sets: 1, reps: 6, intensity: 0.6, intensity_type: 'percentage_tm' },
             { sets: 1, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' },
@@ -128,7 +128,7 @@ export const nsunsLp: ProgramTemplate = {
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'deadlift',
+          exercise_key: 'Deadlift',
           sets: [
             { sets: 1, reps: 5, intensity: 0.75, intensity_type: 'percentage_tm' },
             { sets: 1, reps: 3, intensity: 0.85, intensity_type: 'percentage_tm' },
@@ -144,7 +144,7 @@ export const nsunsLp: ProgramTemplate = {
         },
         {
           role: 'variation',
-          exercise_key: 'front_squat',
+          exercise_key: 'Front Squat',
           sets: [
             { sets: 1, reps: 5, intensity: 0.5, intensity_type: 'percentage_tm' },
             { sets: 1, reps: 4, intensity: 0.55, intensity_type: 'percentage_tm' },
@@ -164,7 +164,7 @@ export const nsunsLp: ProgramTemplate = {
       exercise_blocks: [
         {
           role: 'primary',
-          exercise_key: 'bench',
+          exercise_key: 'Bench Press',
           sets: [
             { sets: 1, reps: 5, intensity: 0.65, intensity_type: 'percentage_tm' },
             { sets: 1, reps: 3, intensity: 0.75, intensity_type: 'percentage_tm' },
@@ -180,7 +180,7 @@ export const nsunsLp: ProgramTemplate = {
         },
         {
           role: 'variation',
-          exercise_key: 'close_grip_bench',
+          exercise_key: 'Close-Grip Bench Press',
           sets: [
             { sets: 1, reps: 6, intensity: 0.55, intensity_type: 'percentage_tm' },
             { sets: 1, reps: 5, intensity: 0.6, intensity_type: 'percentage_tm' },

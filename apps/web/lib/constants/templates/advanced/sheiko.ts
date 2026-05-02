@@ -27,7 +27,7 @@ function createSheikoSets(targets: SheikoTarget[]): SetPrescription[] {
 
 function createSheikoBlock(
   role: ExerciseBlock['role'],
-  exerciseKey: 'squat' | 'bench' | 'deadlift',
+  exerciseKey: 'Squat' | 'Bench Press' | 'Deadlift',
   targets: SheikoTarget[],
   notes: string,
 ): ExerciseBlock {
@@ -45,7 +45,7 @@ const SHEIKO_WEEK_1_DAYS: DayTemplate[] = [
     exercise_blocks: [
       createSheikoBlock(
         'primary',
-        'squat',
+        'Squat',
         [
           { intensity: 0.5, reps: 4, sets: 1 },
           { intensity: 0.6, reps: 4, sets: 1 },
@@ -55,7 +55,7 @@ const SHEIKO_WEEK_1_DAYS: DayTemplate[] = [
       ),
       createSheikoBlock(
         'primary',
-        'bench',
+        'Bench Press',
         [
           { intensity: 0.5, reps: 5, sets: 1 },
           { intensity: 0.6, reps: 4, sets: 1 },
@@ -71,7 +71,7 @@ const SHEIKO_WEEK_1_DAYS: DayTemplate[] = [
     exercise_blocks: [
       createSheikoBlock(
         'primary',
-        'deadlift',
+        'Deadlift',
         [
           { intensity: 0.5, reps: 3, sets: 1 },
           { intensity: 0.6, reps: 3, sets: 1 },
@@ -81,7 +81,7 @@ const SHEIKO_WEEK_1_DAYS: DayTemplate[] = [
       ),
       createSheikoBlock(
         'primary',
-        'bench',
+        'Bench Press',
         [
           { intensity: 0.5, reps: 3, sets: 1 },
           { intensity: 0.6, reps: 3, sets: 1 },
@@ -91,7 +91,7 @@ const SHEIKO_WEEK_1_DAYS: DayTemplate[] = [
       ),
       createSheikoBlock(
         'variation',
-        'deadlift',
+        'Deadlift',
         [
           { intensity: 0.6, reps: 3, sets: 1 },
           { intensity: 0.7, reps: 3, sets: 1 },
@@ -106,7 +106,7 @@ const SHEIKO_WEEK_1_DAYS: DayTemplate[] = [
     exercise_blocks: [
       createSheikoBlock(
         'primary',
-        'squat',
+        'Squat',
         [
           { intensity: 0.5, reps: 5, sets: 1 },
           { intensity: 0.6, reps: 4, sets: 1 },
@@ -117,7 +117,7 @@ const SHEIKO_WEEK_1_DAYS: DayTemplate[] = [
       ),
       createSheikoBlock(
         'primary',
-        'bench',
+        'Bench Press',
         [
           { intensity: 0.5, reps: 5, sets: 1 },
           { intensity: 0.6, reps: 4, sets: 1 },
@@ -134,7 +134,7 @@ const SHEIKO_WEEK_1_DAYS: DayTemplate[] = [
     exercise_blocks: [
       createSheikoBlock(
         'primary',
-        'deadlift',
+        'Deadlift',
         [
           { intensity: 0.5, reps: 3, sets: 1 },
           { intensity: 0.6, reps: 3, sets: 1 },
@@ -145,7 +145,7 @@ const SHEIKO_WEEK_1_DAYS: DayTemplate[] = [
       ),
       createSheikoBlock(
         'primary',
-        'bench',
+        'Bench Press',
         [
           { intensity: 0.5, reps: 4, sets: 1 },
           { intensity: 0.6, reps: 4, sets: 1 },
@@ -163,7 +163,7 @@ const SHEIKO_WEEK_2_DAYS: DayTemplate[] = [
     exercise_blocks: [
       createSheikoBlock(
         'primary',
-        'bench',
+        'Bench Press',
         [
           { intensity: 0.5, reps: 5, sets: 1 },
           { intensity: 0.6, reps: 4, sets: 1 },
@@ -174,7 +174,7 @@ const SHEIKO_WEEK_2_DAYS: DayTemplate[] = [
       ),
       createSheikoBlock(
         'primary',
-        'squat',
+        'Squat',
         [
           { intensity: 0.5, reps: 5, sets: 1 },
           { intensity: 0.6, reps: 4, sets: 1 },
@@ -185,7 +185,7 @@ const SHEIKO_WEEK_2_DAYS: DayTemplate[] = [
       ),
       createSheikoBlock(
         'variation',
-        'bench',
+        'Bench Press',
         [
           { intensity: 0.5, reps: 3, sets: 1 },
           { intensity: 0.6, reps: 3, sets: 1 },
@@ -201,7 +201,7 @@ const SHEIKO_WEEK_2_DAYS: DayTemplate[] = [
     exercise_blocks: [
       createSheikoBlock(
         'primary',
-        'bench',
+        'Bench Press',
         [
           { intensity: 0.5, reps: 5, sets: 1 },
           { intensity: 0.6, reps: 4, sets: 1 },
@@ -215,7 +215,7 @@ const SHEIKO_WEEK_2_DAYS: DayTemplate[] = [
       ),
       createSheikoBlock(
         'primary',
-        'deadlift',
+        'Deadlift',
         [
           { intensity: 0.5, reps: 3, sets: 1 },
           { intensity: 0.6, reps: 3, sets: 1 },
@@ -231,7 +231,7 @@ const SHEIKO_WEEK_2_DAYS: DayTemplate[] = [
     exercise_blocks: [
       createSheikoBlock(
         'primary',
-        'squat',
+        'Squat',
         [
           { intensity: 0.5, reps: 5, sets: 1 },
           { intensity: 0.6, reps: 5, sets: 1 },
@@ -246,7 +246,7 @@ const SHEIKO_WEEK_2_DAYS: DayTemplate[] = [
       ),
       createSheikoBlock(
         'primary',
-        'bench',
+        'Bench Press',
         [
           { intensity: 0.5, reps: 3, sets: 1 },
           { intensity: 0.6, reps: 3, sets: 1 },
@@ -262,7 +262,7 @@ const SHEIKO_WEEK_2_DAYS: DayTemplate[] = [
     exercise_blocks: [
       createSheikoBlock(
         'primary',
-        'deadlift',
+        'Deadlift',
         [
           { intensity: 0.5, reps: 3, sets: 1 },
           { intensity: 0.6, reps: 3, sets: 1 },
@@ -272,7 +272,7 @@ const SHEIKO_WEEK_2_DAYS: DayTemplate[] = [
       ),
       createSheikoBlock(
         'variation',
-        'deadlift',
+        'Deadlift',
         [
           { intensity: 0.65, reps: 4, sets: 1 },
           { intensity: 0.75, reps: 4, sets: 1 },
@@ -290,7 +290,7 @@ const SHEIKO_WEEK_3_DAYS: DayTemplate[] = [
     exercise_blocks: [
       createSheikoBlock(
         'primary',
-        'squat',
+        'Squat',
         [
           { intensity: 0.5, reps: 5, sets: 1 },
           { intensity: 0.6, reps: 4, sets: 1 },
@@ -301,7 +301,7 @@ const SHEIKO_WEEK_3_DAYS: DayTemplate[] = [
       ),
       createSheikoBlock(
         'primary',
-        'bench',
+        'Bench Press',
         [
           { intensity: 0.5, reps: 5, sets: 1 },
           { intensity: 0.6, reps: 4, sets: 1 },
@@ -312,7 +312,7 @@ const SHEIKO_WEEK_3_DAYS: DayTemplate[] = [
       ),
       createSheikoBlock(
         'variation',
-        'squat',
+        'Squat',
         [
           { intensity: 0.5, reps: 5, sets: 1 },
           { intensity: 0.6, reps: 5, sets: 1 },
@@ -327,7 +327,7 @@ const SHEIKO_WEEK_3_DAYS: DayTemplate[] = [
     exercise_blocks: [
       createSheikoBlock(
         'primary',
-        'deadlift',
+        'Deadlift',
         [
           { intensity: 0.5, reps: 3, sets: 1 },
           { intensity: 0.6, reps: 3, sets: 1 },
@@ -339,7 +339,7 @@ const SHEIKO_WEEK_3_DAYS: DayTemplate[] = [
       ),
       createSheikoBlock(
         'primary',
-        'bench',
+        'Bench Press',
         [
           { intensity: 0.5, reps: 5, sets: 1 },
           { intensity: 0.6, reps: 4, sets: 1 },
@@ -359,7 +359,7 @@ const SHEIKO_WEEK_3_DAYS: DayTemplate[] = [
     exercise_blocks: [
       createSheikoBlock(
         'primary',
-        'bench',
+        'Bench Press',
         [
           { intensity: 0.5, reps: 5, sets: 1 },
           { intensity: 0.6, reps: 4, sets: 1 },
@@ -370,7 +370,7 @@ const SHEIKO_WEEK_3_DAYS: DayTemplate[] = [
       ),
       createSheikoBlock(
         'primary',
-        'squat',
+        'Squat',
         [
           { intensity: 0.5, reps: 5, sets: 1 },
           { intensity: 0.6, reps: 4, sets: 1 },
@@ -381,7 +381,7 @@ const SHEIKO_WEEK_3_DAYS: DayTemplate[] = [
       ),
       createSheikoBlock(
         'variation',
-        'bench',
+        'Bench Press',
         [
           { intensity: 0.5, reps: 4, sets: 1 },
           { intensity: 0.6, reps: 4, sets: 1 },
@@ -396,7 +396,7 @@ const SHEIKO_WEEK_3_DAYS: DayTemplate[] = [
     exercise_blocks: [
       createSheikoBlock(
         'primary',
-        'deadlift',
+        'Deadlift',
         [
           { intensity: 0.5, reps: 3, sets: 1 },
           { intensity: 0.6, reps: 3, sets: 1 },
@@ -406,7 +406,7 @@ const SHEIKO_WEEK_3_DAYS: DayTemplate[] = [
       ),
       createSheikoBlock(
         'primary',
-        'bench',
+        'Bench Press',
         [
           { intensity: 0.5, reps: 6, sets: 1 },
           { intensity: 0.6, reps: 6, sets: 1 },
@@ -416,7 +416,7 @@ const SHEIKO_WEEK_3_DAYS: DayTemplate[] = [
       ),
       createSheikoBlock(
         'variation',
-        'deadlift',
+        'Deadlift',
         [
           { intensity: 0.6, reps: 3, sets: 1 },
           { intensity: 0.7, reps: 3, sets: 1 },
@@ -435,7 +435,7 @@ const SHEIKO_WEEK_4_DAYS: DayTemplate[] = [
     exercise_blocks: [
       createSheikoBlock(
         'primary',
-        'bench',
+        'Bench Press',
         [
           { intensity: 0.5, reps: 5, sets: 1 },
           { intensity: 0.6, reps: 4, sets: 1 },
@@ -447,7 +447,7 @@ const SHEIKO_WEEK_4_DAYS: DayTemplate[] = [
       ),
       createSheikoBlock(
         'primary',
-        'squat',
+        'Squat',
         [
           { intensity: 0.5, reps: 5, sets: 1 },
           { intensity: 0.6, reps: 4, sets: 1 },
@@ -465,7 +465,7 @@ const SHEIKO_WEEK_4_DAYS: DayTemplate[] = [
     exercise_blocks: [
       createSheikoBlock(
         'primary',
-        'deadlift',
+        'Deadlift',
         [
           { intensity: 0.5, reps: 3, sets: 1 },
           { intensity: 0.6, reps: 3, sets: 1 },
@@ -478,7 +478,7 @@ const SHEIKO_WEEK_4_DAYS: DayTemplate[] = [
       ),
       createSheikoBlock(
         'primary',
-        'bench',
+        'Bench Press',
         [
           { intensity: 0.5, reps: 5, sets: 1 },
           { intensity: 0.6, reps: 4, sets: 1 },
@@ -489,7 +489,7 @@ const SHEIKO_WEEK_4_DAYS: DayTemplate[] = [
       ),
       createSheikoBlock(
         'variation',
-        'deadlift',
+        'Deadlift',
         [
           { intensity: 0.6, reps: 4, sets: 1 },
           { intensity: 0.7, reps: 4, sets: 1 },
@@ -504,7 +504,7 @@ const SHEIKO_WEEK_4_DAYS: DayTemplate[] = [
     exercise_blocks: [
       createSheikoBlock(
         'primary',
-        'squat',
+        'Squat',
         [
           { intensity: 0.5, reps: 5, sets: 1 },
           { intensity: 0.6, reps: 4, sets: 1 },
@@ -515,7 +515,7 @@ const SHEIKO_WEEK_4_DAYS: DayTemplate[] = [
       ),
       createSheikoBlock(
         'primary',
-        'bench',
+        'Bench Press',
         [
           { intensity: 0.5, reps: 3, sets: 1 },
           { intensity: 0.6, reps: 3, sets: 1 },
@@ -525,7 +525,7 @@ const SHEIKO_WEEK_4_DAYS: DayTemplate[] = [
       ),
       createSheikoBlock(
         'variation',
-        'squat',
+        'Squat',
         [
           { intensity: 0.55, reps: 3, sets: 1 },
           { intensity: 0.65, reps: 3, sets: 1 },
@@ -540,7 +540,7 @@ const SHEIKO_WEEK_4_DAYS: DayTemplate[] = [
     exercise_blocks: [
       createSheikoBlock(
         'primary',
-        'deadlift',
+        'Deadlift',
         [
           { intensity: 0.5, reps: 3, sets: 1 },
           { intensity: 0.6, reps: 3, sets: 1 },
@@ -550,7 +550,7 @@ const SHEIKO_WEEK_4_DAYS: DayTemplate[] = [
       ),
       createSheikoBlock(
         'primary',
-        'bench',
+        'Bench Press',
         [
           { intensity: 0.5, reps: 6, sets: 1 },
           { intensity: 0.6, reps: 6, sets: 1 },
@@ -571,7 +571,7 @@ export const sheiko: ProgramTemplate = {
   days_per_week: 4,
   cycle_length_weeks: 4,
   uses_training_max: false,
-  required_exercises: ['squat', 'bench', 'deadlift'],
+  required_exercises: ['Squat', 'Bench Press', 'Deadlift'],
   week_schemes: {
     1: { label: 'Week 1' },
     2: { label: 'Week 2', days: SHEIKO_WEEK_2_DAYS },

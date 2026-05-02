@@ -6,7 +6,7 @@ function createMaxEffortUpperDay(): DayTemplate {
     exercise_blocks: [
       {
         role: 'primary',
-        exercise_key: 'board_press',
+        exercise_key: 'Board Press',
         sets: [
           { sets: 1, reps: 5, intensity: 6.0, intensity_type: 'rpe' },
           { sets: 1, reps: 3, intensity: 8.0, intensity_type: 'rpe' },
@@ -17,19 +17,19 @@ function createMaxEffortUpperDay(): DayTemplate {
       },
       {
         role: 'variation',
-        exercise_key: 'row',
+        exercise_key: 'Barbell Row',
         sets: [{ sets: 4, reps: '8-12', intensity: 7.5, intensity_type: 'rpe' }],
         notes: 'Secondary upper back work — DB rows, cable rows, or face pulls',
       },
       {
         role: 'accessory',
-        exercise_key: 'tricep_extension',
+        exercise_key: 'Tricep Extension',
         sets: [{ sets: 4, reps: '10-15', intensity: 7.0, intensity_type: 'rpe' }],
         notes: 'Tricep accessory — JM press, extensions, pushdowns',
       },
       {
         role: 'accessory',
-        exercise_key: 'delt_raise',
+        exercise_key: 'Lateral Raise',
         sets: [{ sets: 3, reps: '15-20', intensity: 6.5, intensity_type: 'rpe' }],
         notes: 'Shoulder health work — raises, face pulls',
       },
@@ -43,7 +43,7 @@ function createMaxEffortLowerDay(): DayTemplate {
     exercise_blocks: [
       {
         role: 'primary',
-        exercise_key: 'good_morning',
+        exercise_key: 'Good Morning',
         sets: [
           { sets: 1, reps: 5, intensity: 6.0, intensity_type: 'rpe' },
           { sets: 1, reps: 3, intensity: 8.0, intensity_type: 'rpe' },
@@ -54,13 +54,13 @@ function createMaxEffortLowerDay(): DayTemplate {
       },
       {
         role: 'variation',
-        exercise_key: 'rdl',
+        exercise_key: 'Romanian Deadlift',
         sets: [{ sets: 4, reps: '6-10', intensity: 7.5, intensity_type: 'rpe' }],
         notes: 'Posterior chain accessory — RDLs, GHR, hyperextensions',
       },
       {
         role: 'accessory',
-        exercise_key: 'ab_work',
+        exercise_key: 'Ab Wheel Rollout',
         sets: [{ sets: 4, reps: '10-15', intensity: 7.0, intensity_type: 'rpe' }],
         notes: 'Core work — ab wheel, leg raises, reverse hypers',
       },
@@ -74,25 +74,25 @@ function createDynamicEffortUpperDay(intensity: number, waveLabel: string): DayT
     exercise_blocks: [
       {
         role: 'primary',
-        exercise_key: 'bench',
+        exercise_key: 'Bench Press',
         sets: [{ sets: 9, reps: 3, intensity, intensity_type: 'percentage_1rm' }],
         notes: `DE Bench — 9×3 @ ${Math.round(intensity * 100)}% 1RM + optional accommodating resistance (bands/chains). ${waveLabel}`,
       },
       {
         role: 'variation',
-        exercise_key: 'ohp',
+        exercise_key: 'Overhead Press',
         sets: [{ sets: 4, reps: '8-10', intensity: 7.0, intensity_type: 'rpe' }],
         notes: 'Overhead pressing accessory',
       },
       {
         role: 'accessory',
-        exercise_key: 'row',
+        exercise_key: 'Barbell Row',
         sets: [{ sets: 5, reps: '10-15', intensity: 7.0, intensity_type: 'rpe' }],
         notes: 'Upper back volume — lat work, rows',
       },
       {
         role: 'accessory',
-        exercise_key: 'tricep_extension',
+        exercise_key: 'Tricep Extension',
         sets: [{ sets: 4, reps: '10-15', intensity: 7.0, intensity_type: 'rpe' }],
         notes: 'Tricep volume work',
       },
@@ -106,25 +106,25 @@ function createDynamicEffortLowerDay(intensity: number, waveLabel: string): DayT
     exercise_blocks: [
       {
         role: 'primary',
-        exercise_key: 'box_squat',
+        exercise_key: 'Box Squat',
         sets: [{ sets: 10, reps: 2, intensity, intensity_type: 'percentage_1rm' }],
         notes: `DE Box Squat — 10-12×2 @ ${Math.round(intensity * 100)}% 1RM + accommodating resistance. ${waveLabel}`,
       },
       {
         role: 'variation',
-        exercise_key: 'deadlift',
+        exercise_key: 'Deadlift',
         sets: [{ sets: 6, reps: 1, intensity: 0.6, intensity_type: 'percentage_1rm' }],
         notes: 'DE Deadlifts — 6-10 singles from floor or elevated (rack pulls, blocks)',
       },
       {
         role: 'accessory',
-        exercise_key: 'rdl',
+        exercise_key: 'Romanian Deadlift',
         sets: [{ sets: 4, reps: '6-8', intensity: 7.5, intensity_type: 'rpe' }],
         notes: 'Posterior chain volume — RDL, GHR, or reverse hyper',
       },
       {
         role: 'accessory',
-        exercise_key: 'ab_work',
+        exercise_key: 'Ab Wheel Rollout',
         sets: [{ sets: 4, reps: '10-15', intensity: 7.0, intensity_type: 'rpe' }],
         notes: 'Core strength work',
       },
@@ -150,7 +150,7 @@ export const conjugate: ProgramTemplate = {
   days_per_week: 4,
   cycle_length_weeks: 3,
   uses_training_max: false,
-  required_exercises: ['squat', 'bench', 'ohp', 'deadlift', 'row', 'good_morning', 'box_squat', 'board_press'],
+  required_exercises: ['Squat', 'Bench Press', 'Overhead Press', 'Deadlift', 'Barbell Row', 'Good Morning', 'Box Squat', 'Board Press'],
   week_schemes: {
     1: { label: 'Wave 1 — 50%' },
     2: {
