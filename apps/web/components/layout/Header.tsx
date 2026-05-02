@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { isAnonymousUser } from '@/lib/auth/auth-state'
 import { resolveUserDisplayProfile } from '@/lib/auth/user-display'
 import { useUser } from '@/hooks/useUser'
@@ -12,18 +12,31 @@ import { APP_NAV_ITEMS, isActiveNavPath } from '@/components/layout/navigation'
 
 export function Header() {
   const pathname = usePathname()
+  const router = useRouter()
   const { data: user } = useUser()
   const isGuest = isAnonymousUser(user)
   const { avatarUrl, displayName, initials } = resolveUserDisplayProfile(user, {
     anonymousDisplayName: 'Guest',
   })
   const isSettingsActive = isActiveNavPath(pathname, '/settings')
+  const prefetchRoute = (href: string) => {
+    if (!isActiveNavPath(pathname, href)) {
+      router.prefetch(href)
+    }
+  }
 
   return (
     <header className="pt-safe-header relative z-50 md:sticky md:top-0 md:pt-4">
       <div className="app-shell">
         <div className="flex w-full items-center gap-2 rounded-[22px] border border-border/70 bg-background/72 px-2.5 py-1.5 shadow-[0_20px_60px_-38px_rgba(0,0,0,0.8)] backdrop-blur-xl sm:gap-3 sm:px-4 md:rounded-[28px] md:px-3 md:py-3">
-          <Link href="/dashboard" aria-label="Open dashboard" className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <Link
+            href="/dashboard"
+            prefetch={false}
+            aria-label="Open dashboard"
+            className="flex min-w-0 items-center gap-2 sm:gap-3"
+            onFocus={() => prefetchRoute('/dashboard')}
+            onPointerEnter={() => prefetchRoute('/dashboard')}
+          >
             <PlateIqMark className="size-9 md:size-10" />
             <span className="min-w-0">
               <span className="block whitespace-nowrap text-[0.58rem] uppercase tracking-[0.18em] text-muted-foreground sm:text-[0.68rem] sm:tracking-[0.24em]">
@@ -42,7 +55,10 @@ export function Header() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={false}
                   aria-current={isActive ? 'page' : undefined}
+                  onFocus={() => prefetchRoute(item.href)}
+                  onPointerEnter={() => prefetchRoute(item.href)}
                   className={cn(
                     'rounded-full px-3 py-2 text-sm font-medium transition-all',
                     isActive
@@ -59,12 +75,15 @@ export function Header() {
           <div className="ml-auto flex items-center gap-2 md:gap-3">
             <Link
               href="/settings"
+              prefetch={false}
               className={cn(
                 'group flex items-center gap-2 rounded-full p-1 transition-colors',
                 isSettingsActive ? 'bg-muted/50 ring-1 ring-border/70' : 'hover:bg-muted/40'
               )}
               aria-label="Open settings"
               title="Open settings"
+              onFocus={() => prefetchRoute('/settings')}
+              onPointerEnter={() => prefetchRoute('/settings')}
             >
               <div className="hidden flex-col items-end lg:flex">
                 <span className="max-w-32 truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">

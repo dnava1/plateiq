@@ -4,8 +4,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
 import { Providers } from './providers'
-import { PwaSupport } from '@/components/pwa/PwaSupport'
-import { Toaster } from '@/components/ui/sonner'
+import { DeferredClientChrome } from '@/components/layout/DeferredClientChrome'
 
 const manrope = Manrope({
   variable: '--font-manrope',
@@ -116,8 +115,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-dvh font-sans antialiased">
         <Providers>{children}</Providers>
-        <PwaSupport />
-        <Toaster />
+        <DeferredClientChrome />
         {isVercelProduction ? (
           <>
             <Analytics />

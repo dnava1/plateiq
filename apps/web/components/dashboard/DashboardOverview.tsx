@@ -41,8 +41,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { ChartCard } from '@/components/charts/ChartCard'
 import { ConsistencyHeatmap } from '@/components/charts/ConsistencyHeatmap'
-import { E1rmTrendChart } from '@/components/charts/E1rmTrendChart'
-import { VolumeTrendChart } from '@/components/charts/VolumeTrendChart'
+import { LazyE1rmTrendChart, LazyVolumeTrendChart } from '@/components/charts/LazyRecharts'
 import { formatDisplayLoad } from '@/components/charts/chart-utils'
 import { formatDate, formatDaysPerWeek, formatWeight, formatWeekCycle } from '@/lib/utils'
 import type { Json } from '@/types/database'
@@ -405,7 +404,7 @@ export function DashboardOverview() {
               isLoading={isAnalyticsLoading}
               heightClassName="h-28"
             >
-              <E1rmTrendChart compact data={analyticsSnapshot?.e1rmTrend ?? []} />
+              <LazyE1rmTrendChart compact data={analyticsSnapshot?.e1rmTrend ?? []} />
             </ChartCard>
 
             <ChartCard
@@ -420,7 +419,7 @@ export function DashboardOverview() {
               isLoading={isAnalyticsLoading}
               heightClassName="h-28"
             >
-              <VolumeTrendChart compact data={analyticsSnapshot?.volumeTrend ?? []} />
+              <LazyVolumeTrendChart compact data={analyticsSnapshot?.volumeTrend ?? []} />
             </ChartCard>
 
             <ChartCard

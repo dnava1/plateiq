@@ -21,14 +21,16 @@ import {
   hasRenderableAnalyticsData,
 } from '@/lib/analytics'
 import { ChartCard } from '@/components/charts/ChartCard'
-import { BodyweightRepTrendChart } from '@/components/charts/BodyweightRepTrendChart'
-import { BodyweightWeeklyVolumeChart } from '@/components/charts/BodyweightWeeklyVolumeChart'
 import { ConsistencyHeatmap } from '@/components/charts/ConsistencyHeatmap'
-import { E1rmTrendChart } from '@/components/charts/E1rmTrendChart'
-import { MuscleBalanceChart } from '@/components/charts/MuscleBalanceChart'
+import {
+  LazyBodyweightRepTrendChart,
+  LazyBodyweightWeeklyVolumeChart,
+  LazyE1rmTrendChart,
+  LazyMuscleBalanceChart,
+  LazyVolumeTrendChart,
+} from '@/components/charts/LazyRecharts'
 import { MovementPatternSetRatioPanel } from '@/components/charts/MovementPatternSetRatioPanel'
 import { MovementPatternSetVolumeHeatmap } from '@/components/charts/MovementPatternSetVolumeHeatmap'
-import { VolumeTrendChart } from '@/components/charts/VolumeTrendChart'
 import { formatDisplayLoad } from '@/components/charts/chart-utils'
 import { AiInsightsPanel } from './AiInsightsPanel'
 import { StrengthProfilePanel } from './StrengthProfilePanel'
@@ -348,7 +350,7 @@ export function AnalyticsDashboard() {
                   isEmpty={analytics.e1rmTrend.length === 0}
                   isLoading={isLoading}
                 >
-                  <E1rmTrendChart data={analytics.e1rmTrend} exerciseId={selectedExerciseId} />
+                  <LazyE1rmTrendChart data={analytics.e1rmTrend} exerciseId={selectedExerciseId} />
                 </ChartCard>
 
                 <ChartCard
@@ -360,7 +362,7 @@ export function AnalyticsDashboard() {
                   isEmpty={movementPatternSetBalance.length === 0}
                   isLoading={isAnalyticsLoading}
                 >
-                  <MuscleBalanceChart data={movementPatternSetBalance} />
+                  <LazyMuscleBalanceChart data={movementPatternSetBalance} />
                 </ChartCard>
 
                 {shouldRenderBodyweightLane ? (
@@ -416,7 +418,7 @@ export function AnalyticsDashboard() {
                         </p>
                       </div>
                       <div className="mt-4 min-w-0">
-                        <BodyweightRepTrendChart
+                        <LazyBodyweightRepTrendChart
                           data={analytics.bodyweightLane.repTrend}
                           exerciseId={selectedExerciseId}
                         />
@@ -431,7 +433,7 @@ export function AnalyticsDashboard() {
                         </p>
                       </div>
                       <div className="mt-4 min-w-0">
-                        <BodyweightWeeklyVolumeChart data={analytics.bodyweightLane.weeklyVolumeTrend} />
+                        <LazyBodyweightWeeklyVolumeChart data={analytics.bodyweightLane.weeklyVolumeTrend} />
                       </div>
                     </div>
                     </div>
@@ -484,7 +486,7 @@ export function AnalyticsDashboard() {
                   isLoading={isLoading}
                   className="xl:col-span-2"
                 >
-                  <E1rmTrendChart data={analytics.e1rmTrend} exerciseId={selectedExerciseId} />
+                  <LazyE1rmTrendChart data={analytics.e1rmTrend} exerciseId={selectedExerciseId} />
                 </ChartCard>
 
                 <ChartCard
@@ -526,7 +528,7 @@ export function AnalyticsDashboard() {
                   isLoading={isLoading}
                   className="xl:col-span-2"
                 >
-                  <VolumeTrendChart data={analytics.volumeTrend} exerciseId={selectedExerciseId} />
+                  <LazyVolumeTrendChart data={analytics.volumeTrend} exerciseId={selectedExerciseId} />
                 </ChartCard>
 
                 <ChartCard
@@ -559,7 +561,7 @@ export function AnalyticsDashboard() {
                   isEmpty={movementPatternSetBalance.length === 0}
                   isLoading={isAnalyticsLoading}
                 >
-                  <MuscleBalanceChart data={movementPatternSetBalance} />
+                  <LazyMuscleBalanceChart data={movementPatternSetBalance} />
                 </ChartCard>
 
                 <ChartCard

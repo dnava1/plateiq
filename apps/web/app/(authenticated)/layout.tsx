@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { Header } from '@/components/layout/Header'
 import { MobileNav } from '@/components/layout/MobileNav'
 import { PreferenceSync } from '@/components/layout/PreferenceSync'
+import { AppRoutePrefetcher } from '@/components/layout/AppRoutePrefetcher'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,6 +26,7 @@ export default async function AppLayout({
       <div className="pointer-events-none absolute -left-16 top-0 size-80 rounded-full bg-primary/10 blur-3xl" />
       <div className="pointer-events-none absolute -right-32 top-[22%] size-96 rounded-full bg-secondary blur-3xl" />
       <PreferenceSync />
+      <AppRoutePrefetcher />
       <Header />
       <main className="app-shell pb-safe-content relative flex flex-1 flex-col pt-6 md:pb-10 md:pt-8">
         {children}

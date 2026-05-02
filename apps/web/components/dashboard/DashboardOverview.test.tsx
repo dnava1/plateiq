@@ -60,6 +60,11 @@ vi.mock('@/components/charts/VolumeTrendChart', () => ({
   VolumeTrendChart: () => <div>volume-chart</div>,
 }))
 
+vi.mock('@/components/charts/LazyRecharts', () => ({
+  LazyE1rmTrendChart: () => <div>e1rm-chart</div>,
+  LazyVolumeTrendChart: () => <div>volume-chart</div>,
+}))
+
 vi.mock('@/components/charts/ConsistencyHeatmap', () => ({
   ConsistencyHeatmap: () => <div>consistency-heatmap</div>,
 }))

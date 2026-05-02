@@ -12,7 +12,7 @@ export function LegalBackButton() {
       type="button"
       variant="outline"
       size="default"
-      className="w-fit rounded-full border-border/70 bg-background px-4 text-foreground shadow-sm hover:bg-muted"
+      className="h-11 w-fit rounded-full border-border/70 bg-background px-4 text-foreground shadow-sm hover:bg-muted"
       onClick={() => {
         if (window.history.length > 1) {
           router.back()

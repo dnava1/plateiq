@@ -18,4 +18,12 @@ describe('LegalPage', () => {
     expect(screen.getByText(/provided as-is and as-available/i)).toBeInTheDocument()
     expect(screen.getByText(/Google and Supabase/i)).toBeInTheDocument()
   })
+
+  it('keeps the public legal controls clear of iOS safe areas', () => {
+    render(<LegalPage />)
+
+    expect(screen.getByRole('main')).toHaveClass('pt-[calc(env(safe-area-inset-top)+1rem)]')
+    expect(screen.getByRole('main')).toHaveClass('pb-[calc(env(safe-area-inset-bottom)+2rem)]')
+    expect(screen.getByRole('button', { name: 'Back' })).toHaveClass('h-11')
+  })
 })

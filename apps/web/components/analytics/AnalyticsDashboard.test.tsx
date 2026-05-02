@@ -42,6 +42,14 @@ vi.mock('@/components/charts/MuscleBalanceChart', () => ({
   MuscleBalanceChart: () => <div>muscle-balance-chart</div>,
 }))
 
+vi.mock('@/components/charts/LazyRecharts', () => ({
+  LazyBodyweightRepTrendChart: () => <div>bodyweight-rep-chart</div>,
+  LazyBodyweightWeeklyVolumeChart: () => <div>bodyweight-weekly-volume-chart</div>,
+  LazyE1rmTrendChart: () => <div>e1rm-chart</div>,
+  LazyMuscleBalanceChart: () => <div>muscle-balance-chart</div>,
+  LazyVolumeTrendChart: () => <div>volume-chart</div>,
+}))
+
 vi.mock('@/components/charts/ConsistencyHeatmap', () => ({
   ConsistencyHeatmap: () => <div>consistency-heatmap</div>,
 }))

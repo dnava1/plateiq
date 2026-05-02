@@ -39,7 +39,7 @@ const sections = [
 
 export function LegalPolicyPage() {
   return (
-    <div className="page-shell max-w-4xl">
+    <main className="page-shell min-h-dvh max-w-4xl px-4 pb-[calc(env(safe-area-inset-bottom)+2rem)] pt-[calc(env(safe-area-inset-top)+1rem)] sm:px-6 md:pb-[calc(env(safe-area-inset-bottom)+2.5rem)] md:pt-[calc(env(safe-area-inset-top)+2.5rem)]">
       <section className="page-header">
         <div className="flex w-full flex-col gap-3">
           <span className="eyebrow">Legal</span>
@@ -62,6 +62,6 @@ export function LegalPolicyPage() {
           </section>
         ))}
       </div>
-    </div>
+    </main>
   )
 }

@@ -1,12 +1,19 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { APP_NAV_ITEMS, isActiveNavPath } from '@/components/layout/navigation'
 
 export function MobileNav() {
   const pathname = usePathname()
+  const router = useRouter()
+
+  const prefetchRoute = (href: string) => {
+    if (!isActiveNavPath(pathname, href)) {
+      router.prefetch(href)
+    }
+  }
 
   return (
     <nav aria-label="App tabs" className="pb-safe-nav fixed inset-x-0 bottom-0 z-50 md:hidden">
@@ -18,7 +25,11 @@ export function MobileNav() {
               <Link
                 key={href}
                 href={href}
+                prefetch={false}
                 aria-current={isActive ? 'page' : undefined}
+                onFocus={() => prefetchRoute(href)}
+                onPointerEnter={() => prefetchRoute(href)}
+                onTouchStart={() => prefetchRoute(href)}
                 className={cn(
                   'flex min-w-0 flex-col items-center gap-1 rounded-2xl px-1 py-2 text-[0.64rem] font-medium leading-none transition-all',
                   isActive

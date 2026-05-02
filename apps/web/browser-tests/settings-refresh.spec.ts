@@ -75,7 +75,8 @@ test.describe('settings refresh persistence', () => {
     await page.getByRole('tab', { name: 'Strength' }).click()
     await expect(page.getByText('Strength Profile', { exact: true })).toBeVisible()
     await expect(page.getByText('Total Score', { exact: true })).toBeVisible()
-    await expect(page.getByText('Muscle-Group Profile', { exact: true })).toBeVisible()
+    await expect(page.getByText('Category Scores', { exact: true })).toBeVisible()
+    await expect(page.getByText('Muscle-Group Profile', { exact: true })).toHaveCount(0)
 
     expect(consoleMessages.filter(isHydrationWarning)).toEqual([])
   })
