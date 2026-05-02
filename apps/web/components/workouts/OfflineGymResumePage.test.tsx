@@ -8,8 +8,15 @@ const mocks = vi.hoisted(() => ({
   getActiveWorkoutSnapshot: vi.fn(),
   getLastSnapshotUserId: vi.fn(),
   getOfflineWorkoutPack: vi.fn(),
+  replace: vi.fn(),
   saveActiveWorkoutSnapshot: vi.fn(),
   snapshotFromPack: null as unknown,
+}))
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    replace: mocks.replace,
+  }),
 }))
 
 vi.mock('@/lib/supabase/client', () => ({
@@ -158,6 +165,7 @@ describe('OfflineGymResumePage', () => {
     mocks.getLastSnapshotUserId.mockReset()
     mocks.getLastSnapshotUserId.mockReturnValue(null)
     mocks.getOfflineWorkoutPack.mockReset()
+    mocks.replace.mockReset()
     mocks.saveActiveWorkoutSnapshot.mockReset()
     mocks.saveActiveWorkoutSnapshot.mockResolvedValue(undefined)
     mocks.snapshotFromPack = {
@@ -173,10 +181,21 @@ describe('OfflineGymResumePage', () => {
 
     render(<OfflineGymResumePage />)
 
-    await screen.findByText('Saved workout pack')
+    await screen.findByRole('heading', { level: 1, name: 'Saved workout pack' })
     await user.click(screen.getByRole('button', { name: /resume/i }))
 
     expect(mocks.saveActiveWorkoutSnapshot).toHaveBeenCalledWith(mocks.snapshotFromPack)
+  })
+
+  it('redirects online empty gym launches back to the dashboard', async () => {
+    mocks.getActiveWorkoutSnapshot.mockResolvedValue(null)
+    mocks.getOfflineWorkoutPack.mockResolvedValue(null)
+
+    render(<OfflineGymResumePage />)
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/dashboard')
+    })
   })
 
   it('offers completion from the offline surface once every set is logged', async () => {

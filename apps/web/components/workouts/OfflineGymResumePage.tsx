@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { Activity, CloudOff, Dumbbell, Play, RefreshCw } from 'lucide-react'
 import { useOfflineWorkoutSync } from '@/hooks/useOfflineWorkoutSync'
@@ -98,6 +99,7 @@ function updateSnapshotSet(
 }
 
 export function OfflineGymResumePage() {
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [isOnline, setIsOnline] = useState(true)
   const [pack, setPack] = useState<OfflineWorkoutPack | null>(null)
@@ -176,6 +178,14 @@ export function OfflineGymResumePage() {
     return () => window.clearInterval(intervalId)
   }, [])
 
+  useEffect(() => {
+    if (isLoading || !isOnline || snapshot || pack || !navigator.onLine) {
+      return
+    }
+
+    router.replace('/dashboard')
+  }, [isLoading, isOnline, pack, router, snapshot])
+
   const execution = useMemo(
     () => buildWorkoutExecutionSnapshot(snapshot?.sets ?? []),
     [snapshot?.sets],
@@ -190,6 +200,30 @@ export function OfflineGymResumePage() {
     ? Math.max(0, Math.ceil((restTimer.endsAt - timerNowMs) / 1000))
     : null
   const isWorkoutFullyLogged = Boolean(snapshot && snapshot.sets.length > 0 && execution.completedSets === execution.totalSets)
+  const pageTitle = snapshot ? 'Resume workout' : pack ? 'Saved workout pack' : 'Gym Mode'
+  const pageCopy = (() => {
+    if (isLoading) {
+      return 'Checking this device for saved workout data.'
+    }
+
+    if (pendingCount > 0) {
+      return `${isOnline ? 'Connected' : 'Offline'} - ${pendingCount} pending ${pendingCount === 1 ? 'change' : 'changes'}`
+    }
+
+    if (snapshot) {
+      return `${isOnline ? 'Connected' : 'Offline'} - no pending changes`
+    }
+
+    if (pack) {
+      return isOnline
+        ? 'Connected - choose a saved workout to resume.'
+        : 'Offline - choose a saved workout from this device.'
+    }
+
+    return isOnline
+      ? 'Opening your dashboard.'
+      : 'No offline workout is available on this device yet.'
+  })()
 
   const persistSnapshot = (nextSnapshot: OfflineWorkoutSnapshot) => {
     setSnapshot(nextSnapshot)
@@ -313,29 +347,28 @@ export function OfflineGymResumePage() {
   }
 
   return (
-    <main className="page-shell max-w-5xl">
-      <section className="page-header">
-        <div className="flex flex-col gap-3">
-          <span className="eyebrow">Gym Mode</span>
-          <div className="flex flex-col gap-2">
-            <h1 className="page-title">Resume workout</h1>
-            <p className="page-copy">
-              {isOnline ? 'Connected' : 'Offline'} - {pendingCount} pending {pendingCount === 1 ? 'change' : 'changes'}
-            </p>
+    <main className="min-h-dvh px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-[calc(env(safe-area-inset-top)+1.25rem)] md:px-6 md:pb-10 md:pt-8">
+      <div className="page-shell max-w-5xl">
+        <section className="page-header">
+          <div className="flex flex-col gap-3">
+            <span className="eyebrow">Offline Gym Mode</span>
+            <div className="flex flex-col gap-2">
+              <h1 className="page-title">{pageTitle}</h1>
+              <p className="page-copy">{pageCopy}</p>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {isLoading ? (
-        <Card className="surface-panel">
+        {isLoading ? (
+          <Card className="surface-panel">
           <CardContent className="flex flex-col gap-4 pt-4">
             <Skeleton className="h-6 w-40" />
             <Skeleton className="h-5 w-full" />
             <Skeleton className="h-48 w-full rounded-[24px]" />
           </CardContent>
-        </Card>
-      ) : !userId ? (
-        <Card className="surface-panel">
+          </Card>
+        ) : !userId ? (
+          <Card className="surface-panel">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <CloudOff className="size-5" />
@@ -348,9 +381,9 @@ export function OfflineGymResumePage() {
               Open sign-in
             </Link>
           </CardContent>
-        </Card>
-      ) : !snapshot && pack ? (
-        <Card className="surface-panel">
+          </Card>
+        ) : !snapshot && pack ? (
+          <Card className="surface-panel">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Activity className="size-5" />
@@ -390,9 +423,9 @@ export function OfflineGymResumePage() {
               )
             })}
           </CardContent>
-        </Card>
-      ) : !snapshot ? (
-        <Card className="surface-panel">
+          </Card>
+        ) : !snapshot ? (
+          <Card className="surface-panel">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Activity className="size-5" />
@@ -405,9 +438,9 @@ export function OfflineGymResumePage() {
               Open workouts
             </Link>
           </CardContent>
-        </Card>
-      ) : (
-        <div className="flex flex-col gap-4">
+          </Card>
+        ) : (
+          <div className="flex flex-col gap-4">
           <Card className="surface-panel">
             <CardHeader className="gap-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -547,8 +580,9 @@ export function OfflineGymResumePage() {
               onQueued={markSnapshotCompletionQueued}
             />
           ) : null}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </main>
   )
 }

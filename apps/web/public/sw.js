@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'plateiq-shell-v2';
+const CACHE_VERSION = 'plateiq-shell-v3';
 const OFFLINE_URL = '/offline.html';
 const PRECACHE_URLS = [
   OFFLINE_URL,
@@ -79,9 +79,19 @@ async function handleNavigation(request, url) {
     return networkFirst(request, true, publicDocumentPath);
   }
 
+  const offlineGymFallbackPath = getOfflineGymFallbackPath(url.pathname);
+
   try {
     return await fetch(request);
   } catch {
+    if (offlineGymFallbackPath) {
+      const fallbackResponse = await caches.match(offlineGymFallbackPath);
+
+      if (fallbackResponse) {
+        return fallbackResponse;
+      }
+    }
+
     return caches.match(OFFLINE_URL);
   }
 }
@@ -97,6 +107,18 @@ function getPublicDocumentPath(pathname) {
     if (PUBLIC_DOCUMENTS.has(normalizedPathname)) {
       return normalizedPathname;
     }
+  }
+
+  return null;
+}
+
+function getOfflineGymFallbackPath(pathname) {
+  if (pathname === '/dashboard' || pathname === '/workouts') {
+    return '/gym';
+  }
+
+  if (pathname !== '/' && pathname.endsWith('/')) {
+    return getOfflineGymFallbackPath(pathname.slice(0, -1));
   }
 
   return null;

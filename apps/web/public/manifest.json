@@ -1,16 +1,16 @@
 {
-  "id": "/gym",
+  "id": "/",
   "name": "PlateIQ",
   "short_name": "PlateIQ",
   "description": "Track workouts, strength programs, analytics, and AI insights in one installable app.",
   "lang": "en-US",
   "dir": "ltr",
-  "start_url": "/gym",
+  "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "browser"],
-  "background_color": "#111318",
-  "theme_color": "#111318",
+  "background_color": "#fafafc",
+  "theme_color": "#fafafc",
   "categories": ["health", "fitness", "productivity", "sports"],
   "prefer_related_applications": false,
   "icons": [
@@ -66,7 +66,7 @@
       "name": "Workouts",
       "short_name": "Workouts",
       "description": "Jump straight into your current workouts.",
-      "url": "/gym"
+      "url": "/workouts"
     },
     {
       "name": "Analytics",

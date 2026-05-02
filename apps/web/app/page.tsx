@@ -1,12 +1,12 @@
 import Link from 'next/link'
-import { ArrowRight, BarChart3, Dumbbell, Sparkles } from 'lucide-react'
+import { ArrowRight, BarChart3, Dumbbell, Smartphone, Sparkles } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 
 export default function HomePage() {
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-6xl items-center px-4 py-10 md:px-6">
-      <div className="grid w-full gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+    <main className="mx-auto flex min-h-dvh w-full max-w-7xl items-center px-4 py-10 md:px-6">
+      <div className="grid w-full gap-6 xl:grid-cols-[minmax(0,1fr)_47rem] xl:items-center">
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
@@ -32,7 +32,7 @@ export default function HomePage() {
 
         <div className="grid gap-3">
           <Card className="surface-panel">
-            <CardContent className="grid gap-3 pt-4 sm:grid-cols-2">
+            <CardContent className="grid gap-3 pt-4 sm:grid-cols-2 xl:grid-cols-3">
               <div className="rounded-2xl border border-border/70 bg-background/60 p-4">
                 <div className="mb-3 flex size-10 items-center justify-center rounded-2xl bg-primary/12 text-primary">
                   <BarChart3 />
@@ -49,6 +49,15 @@ export default function HomePage() {
                 <p className="text-sm font-medium">Built for repeat use</p>
                 <p className="mt-1 text-sm leading-6 text-muted-foreground">
                   Clean visuals, quick program edits, and a layout that stays readable between sessions.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-border/70 bg-background/60 p-4 sm:col-span-2 xl:col-span-1">
+                <div className="mb-3 flex size-10 items-center justify-center rounded-2xl bg-primary/12 text-primary">
+                  <Smartphone />
+                </div>
+                <p className="text-sm font-medium">Mobile-first app</p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  Add PlateIQ to your Home Screen for a full-screen workout app with offline-ready gym mode.
                 </p>
               </div>
             </CardContent>
