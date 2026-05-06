@@ -68,7 +68,6 @@ const ANALYTICS_TRACK_OPTIONS = [
 function getDefaultValues(existingExercise?: Exercise | null, initialValues?: Partial<CreateExerciseInput>): CreateExerciseInput {
   return {
     name: initialValues?.name ?? existingExercise?.name ?? '',
-    category: initialValues?.category ?? (existingExercise?.category as CreateExerciseInput['category'] | undefined) ?? 'accessory',
     movement_pattern: initialValues?.movement_pattern ?? (existingExercise?.movement_pattern as CreateExerciseInput['movement_pattern'] | undefined) ?? 'other',
     analytics_track: initialValues?.analytics_track ?? (existingExercise?.analytics_track as CreateExerciseInput['analytics_track'] | undefined) ?? 'standard',
   }

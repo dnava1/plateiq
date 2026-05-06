@@ -100,7 +100,7 @@ export function TrainingMaxPanel({
   const scopedExercises = useMemo(() => {
     if (!scopedExerciseIds) {
       return exercises
-        .filter((exercise) => exercise.is_main_lift || tmMap.has(exercise.id))
+        .filter((exercise) => exercise.analytics_track === 'standard' || tmMap.has(exercise.id))
         .sort((left, right) => left.name.localeCompare(right.name))
     }
 

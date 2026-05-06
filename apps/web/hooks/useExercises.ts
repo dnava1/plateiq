@@ -243,14 +243,8 @@ function upsertExercise(current: Exercise[] | undefined, exercise: Exercise) {
   return next.sort((left, right) => left.name.localeCompare(right.name))
 }
 
-function removeExercise(current: Exercise[] | undefined, exerciseId: number) {
-  return [...(current ?? []).filter((item) => item.id !== exerciseId)]
-    .sort((left, right) => left.name.localeCompare(right.name))
-}
-
-function buildExerciseCompatibilityFields(exercise: CreateExerciseInput) {
+function buildExercisePersistenceFields(exercise: CreateExerciseInput) {
   return {
-    is_main_lift: exercise.category === 'main' && exercise.analytics_track === 'standard',
     strength_lift_slug: exercise.analytics_track === 'standard' ? resolveStrengthLiftSlug(exercise.name) : null,
   }
 }
@@ -261,28 +255,18 @@ function syncExerciseQueryCaches(queryClient: ReturnType<typeof useQueryClient>,
       continue
     }
 
-    const categoryFilter = typeof queryKey[1] === 'string' ? queryKey[1] : undefined
-
-    if (categoryFilter && categoryFilter !== exercise.category) {
-      queryClient.setQueryData<Exercise[]>(queryKey, removeExercise(current, exercise.id))
-      continue
-    }
-
     queryClient.setQueryData<Exercise[]>(queryKey, upsertExercise(current, exercise))
   }
 
   queryClient.setQueryData<Exercise[]>(['exercises'], (current) => upsertExercise(current, exercise))
-  queryClient.setQueryData<Exercise[]>(['exercises', exercise.category], (current) => upsertExercise(current, exercise))
 }
 
-export function useExercises(category?: string) {
+export function useExercises() {
   const supabase = useSupabase()
   return useQuery({
-    queryKey: ['exercises', category],
+    queryKey: ['exercises'],
     queryFn: async () => {
-      let query = supabase.from('exercises').select('*').order('name')
-      if (category) query = query.eq('category', category)
-      const { data, error } = await query
+      const { data, error } = await supabase.from('exercises').select('*').order('name')
       if (error) throw error
       return data as Exercise[]
     },
@@ -312,7 +296,7 @@ export function useCreateExercise() {
         .insert({
           ...exercise,
           created_by_user_id: user.id,
-          ...buildExerciseCompatibilityFields(exercise),
+          ...buildExercisePersistenceFields(exercise),
         })
         .select()
         .single()
@@ -334,15 +318,13 @@ export function useUpdateExercise() {
 
   return useMutation({
     mutationFn: async ({ exerciseId, exercise }: { exerciseId: number; exercise: CreateExerciseInput }) => {
-      const compatibilityFields = buildExerciseCompatibilityFields(exercise)
+      const persistenceFields = buildExercisePersistenceFields(exercise)
       const { data, error } = await supabase.rpc('update_exercise_definition', {
         p_exercise_id: exerciseId,
         p_name: exercise.name,
-        p_category: exercise.category,
         p_movement_pattern: exercise.movement_pattern,
         p_analytics_track: exercise.analytics_track,
-        p_is_main_lift: compatibilityFields.is_main_lift,
-        p_strength_lift_slug: compatibilityFields.strength_lift_slug,
+        p_strength_lift_slug: persistenceFields.strength_lift_slug,
       })
 
       if (error) throw error

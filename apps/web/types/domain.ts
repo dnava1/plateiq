@@ -1,5 +1,4 @@
 export type SetType = 'warmup' | 'main' | 'amrap' | 'variation' | 'accessory'
-export type ExerciseCategory = 'main' | 'accessory'
 export type MovementPattern = 'horizontal_push' | 'vertical_push' | 'horizontal_pull' | 'vertical_pull' | 'hinge' | 'squat' | 'lunge' | 'core' | 'other'
 export type ExerciseAnalyticsTrack = 'standard' | 'bodyweight_review'
 export type IntensityType = 'percentage_tm' | 'percentage_1rm' | 'rpe' | 'fixed_weight' | 'bodyweight' | 'percentage_work_set'

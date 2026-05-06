@@ -4,9 +4,8 @@ import { loginAsVerificationUser } from './helpers/auth'
 type MockExercise = {
   id: number
   name: string
-  category: string
+  analytics_track: string
   movement_pattern: string
-  is_main_lift: boolean
   strength_lift_slug: string | null
   created_at?: string
   created_by_user_id?: string
@@ -14,10 +13,10 @@ type MockExercise = {
 
 async function installBuilderNetworkRoutes(page: Page) {
   let exercises: MockExercise[] = [
-    { id: 1, name: 'Squat', category: 'main', movement_pattern: 'squat', is_main_lift: true, strength_lift_slug: 'back_squat' },
-    { id: 2, name: 'Bench Press', category: 'main', movement_pattern: 'push', is_main_lift: true, strength_lift_slug: 'bench_press' },
-    { id: 3, name: 'Deadlift', category: 'main', movement_pattern: 'hinge', is_main_lift: true, strength_lift_slug: 'deadlift' },
-    { id: 4, name: 'Overhead Press', category: 'main', movement_pattern: 'push', is_main_lift: true, strength_lift_slug: 'overhead_press' },
+    { id: 1, name: 'Squat', analytics_track: 'standard', movement_pattern: 'squat', strength_lift_slug: 'back_squat' },
+    { id: 2, name: 'Bench Press', analytics_track: 'standard', movement_pattern: 'horizontal_push', strength_lift_slug: 'bench_press' },
+    { id: 3, name: 'Deadlift', analytics_track: 'standard', movement_pattern: 'hinge', strength_lift_slug: 'deadlift' },
+    { id: 4, name: 'Overhead Press', analytics_track: 'standard', movement_pattern: 'vertical_push', strength_lift_slug: 'overhead_press' },
   ]
   let trainingMaxes: Array<{
     id: number
@@ -59,15 +58,14 @@ async function installBuilderNetworkRoutes(page: Page) {
     if (route.request().method() === 'POST') {
       const requestBody = route.request().postDataJSON() as {
         name: string
-        category: 'main' | 'accessory'
+        analytics_track: string
         movement_pattern: string
       }
       const createdExercise = {
         id: 900 + exercises.length,
         name: requestBody.name,
-        category: requestBody.category,
+        analytics_track: requestBody.analytics_track,
         movement_pattern: requestBody.movement_pattern,
-        is_main_lift: requestBody.category === 'main',
         strength_lift_slug: null,
         created_at: '2026-04-01T00:00:00.000Z',
         created_by_user_id: 'playwright-user-1',
@@ -99,8 +97,7 @@ async function installBuilderNetworkRoutes(page: Page) {
           exercises: exercises.find((exercise) => exercise.id === trainingMax.exercise_id)
             ? {
                 name: exercises.find((exercise) => exercise.id === trainingMax.exercise_id)?.name,
-                category: exercises.find((exercise) => exercise.id === trainingMax.exercise_id)?.category,
-                is_main_lift: exercises.find((exercise) => exercise.id === trainingMax.exercise_id)?.is_main_lift,
+                analytics_track: exercises.find((exercise) => exercise.id === trainingMax.exercise_id)?.analytics_track,
               }
             : null,
         }))),

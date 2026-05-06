@@ -5,23 +5,10 @@ describe('createExerciseSchema', () => {
   it('accepts valid exercise input', () => {
     const result = createExerciseSchema.safeParse({
       name: 'Barbell Row',
-      category: 'accessory',
       movement_pattern: 'horizontal_pull',
       analytics_track: 'standard',
     })
     expect(result.success).toBe(true)
-  })
-
-  it('accepts all valid categories', () => {
-    for (const category of ['main', 'accessory']) {
-      const result = createExerciseSchema.safeParse({
-        name: 'Test',
-        category,
-        movement_pattern: 'horizontal_push',
-        analytics_track: 'standard',
-      })
-      expect(result.success).toBe(true)
-    }
   })
 
   it('accepts all valid movement patterns', () => {
@@ -29,7 +16,6 @@ describe('createExerciseSchema', () => {
     for (const movement_pattern of patterns) {
       const result = createExerciseSchema.safeParse({
         name: 'Test Exercise',
-        category: 'accessory',
         movement_pattern,
         analytics_track: 'standard',
       })
@@ -41,7 +27,6 @@ describe('createExerciseSchema', () => {
     for (const analytics_track of ['standard', 'bodyweight_review']) {
       const result = createExerciseSchema.safeParse({
         name: 'Test Exercise',
-        category: 'accessory',
         movement_pattern: 'squat',
         analytics_track,
       })
@@ -52,7 +37,6 @@ describe('createExerciseSchema', () => {
   it('rejects name shorter than 2 characters', () => {
     const result = createExerciseSchema.safeParse({
       name: 'A',
-      category: 'main',
       movement_pattern: 'horizontal_push',
       analytics_track: 'standard',
     })
@@ -62,7 +46,6 @@ describe('createExerciseSchema', () => {
   it('rejects empty name', () => {
     const result = createExerciseSchema.safeParse({
       name: '',
-      category: 'main',
       movement_pattern: 'horizontal_push',
       analytics_track: 'standard',
     })
@@ -72,17 +55,6 @@ describe('createExerciseSchema', () => {
   it('rejects name longer than 100 characters', () => {
     const result = createExerciseSchema.safeParse({
       name: 'A'.repeat(101),
-      category: 'main',
-      movement_pattern: 'horizontal_push',
-      analytics_track: 'standard',
-    })
-    expect(result.success).toBe(false)
-  })
-
-  it('rejects unknown category', () => {
-    const result = createExerciseSchema.safeParse({
-      name: 'Test',
-      category: 'cardio',
       movement_pattern: 'horizontal_push',
       analytics_track: 'standard',
     })
@@ -92,7 +64,6 @@ describe('createExerciseSchema', () => {
   it('rejects unknown movement pattern', () => {
     const result = createExerciseSchema.safeParse({
       name: 'Test',
-      category: 'main',
       movement_pattern: 'cardio',
       analytics_track: 'standard',
     })
@@ -102,7 +73,6 @@ describe('createExerciseSchema', () => {
   it('rejects unknown analytics track', () => {
     const result = createExerciseSchema.safeParse({
       name: 'Test',
-      category: 'main',
       movement_pattern: 'squat',
       analytics_track: 'hybrid',
     })

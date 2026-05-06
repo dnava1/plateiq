@@ -7,9 +7,7 @@ const exerciseCatalog = [
   {
     id: 1,
     name: 'Overhead Press',
-    category: 'main',
     analytics_track: 'standard',
-    is_main_lift: true,
     movement_pattern: 'vertical_push',
     progression_increment_lbs: 5,
     strength_lift_slug: 'overhead_press',
@@ -19,9 +17,7 @@ const exerciseCatalog = [
   {
     id: 2,
     name: 'Overhead Press',
-    category: 'accessory',
     analytics_track: 'standard',
-    is_main_lift: false,
     movement_pattern: 'vertical_push',
     progression_increment_lbs: null,
     strength_lift_slug: null,
@@ -31,9 +27,7 @@ const exerciseCatalog = [
   {
     id: 3,
     name: 'Bench',
-    category: 'accessory',
     analytics_track: 'standard',
-    is_main_lift: false,
     movement_pattern: 'horizontal_push',
     progression_increment_lbs: null,
     strength_lift_slug: null,

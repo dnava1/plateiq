@@ -72,7 +72,7 @@ export function ExerciseList({ exercises, trainingMaxes, unit, onSetTm }: Exerci
           {filtered.map((exercise) => {
             const trainingMax = trainingMaxes?.get(exercise.id)
             const hasTrainingMax = typeof trainingMax === 'number'
-            const canSetTrainingMax = exercise.is_main_lift || hasTrainingMax
+            const canSetTrainingMax = exercise.analytics_track === 'standard' || hasTrainingMax
 
             return (
               <Card

@@ -123,7 +123,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null)
   const [editingPercentageValue, setEditingPercentageValue] = useState('')
   const [manualRestDurationSeconds, setManualRestDurationSeconds] = useState<number | null>(DEFAULT_MANUAL_REST_SECONDS)
-  const wakeLockStatus = useScreenWakeLock(Boolean(activeWorkoutId))
+  useScreenWakeLock(Boolean(activeWorkoutId))
   const offlineSync = useOfflineWorkoutSync(userId)
 
   const trainingMaxMap = useMemo(() => buildTrainingMaxMap(trainingMaxes), [trainingMaxes])
@@ -292,7 +292,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
     [execution.groups, nextBlock?.blockId],
   )
   const executionCue = useMemo(() => buildWorkoutExecutionCue(execution), [execution])
-  const nextSetTypeLabel = nextSet ? formatSetTypeLabel(nextSet.set_type, nextSet.display_type) : null
+  const nextSetTypeLabel = nextSet ? formatSetTypeLabel(nextSet.set_type, nextSet.display_type, nextSet.is_amrap) : null
   const nextSetIsBackoff = nextSet ? isBackoffDisplayType(nextSet.display_type) : false
   const nextSetIsDrop = nextSet ? isDropDisplayType(nextSet.display_type) : false
   const nextBlockRoleLabel = nextBlock ? formatBlockRoleLabel(nextBlock.role) : null
@@ -429,17 +429,6 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
       label: nextSet?.exerciseName ?? selectedDay.label ?? 'Workout rest',
       sourceSetOrder: restTimer.sourceSetOrder,
       workoutId: activeWorkoutId,
-    })
-  }
-
-  const scrollToNextSet = () => {
-    if (!nextSet) {
-      return
-    }
-
-    document.getElementById(`workout-set-${nextSet.set_order}`)?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center',
     })
   }
 
@@ -627,11 +616,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
                 <Badge variant="outline">
                   {execution.completedBlocks}/{execution.totalBlocks} blocks
                 </Badge>
-                {wakeLockStatus === 'active' ? <Badge variant="outline">Screen awake</Badge> : null}
               </div>
-              <CardDescription>
-                {completedCount} of {displaySets.length} planned sets logged.
-              </CardDescription>
             </div>
             <Button type="button" size="sm" variant="ghost" onClick={exitActiveWorkout}>
               <ArrowLeft data-icon="inline-start" />
@@ -646,10 +631,10 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
           <CardHeader className="gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <Badge>Next up</Badge>
-              {nextBlockRoleLabel && nextBlockRoleLabel !== nextSetTypeLabel ? <Badge variant="outline">{nextBlockRoleLabel}</Badge> : null}
+              {nextBlockRoleLabel ? <Badge variant="outline">{nextBlockRoleLabel}</Badge> : null}
               {nextSetTypeLabel ? (
                 <Badge
-                  variant={nextSet.set_type === 'main' ? 'secondary' : nextSet.is_amrap ? 'default' : 'outline'}
+                  variant={nextSet.is_amrap ? 'default' : 'outline'}
                   className={cn(
                     nextSetIsBackoff ? 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200' : null,
                     nextSetIsDrop ? 'border-rose-500/40 bg-rose-500/10 text-rose-900 dark:text-rose-200' : null,
@@ -664,22 +649,25 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
             </div>
             <div className="flex flex-col gap-1">
               <CardTitle className="text-xl">{executionCue?.currentSetLabel ?? nextSet.exerciseName}</CardTitle>
-              <CardDescription>{executionCue?.workoutProgressLabel ?? `Workout ${execution.completedSets}/${execution.totalSets} complete.`}</CardDescription>
             </div>
           </CardHeader>
           <CardContent className="grid gap-4 pt-0 xl:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
-            <div className="rounded-[22px] border border-border/70 bg-background/70 p-4">
-              <div className="flex flex-col gap-3">
-                <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Execution cue</span>
-                <p className="text-sm font-medium text-foreground">{executionCue?.blockProgressLabel ?? `Set ${nextSet.set_order} is next.`}</p>
-                {executionCue?.groupProgressLabel ? <p className="text-sm text-muted-foreground">{executionCue.groupProgressLabel}</p> : null}
-                {executionCue?.followUpLabel ? <p className="text-sm text-muted-foreground">{executionCue.followUpLabel}</p> : null}
-                <div className="flex flex-wrap gap-2 pt-1">
-                  <Button type="button" size="sm" variant="outline" onClick={scrollToNextSet}>
-                    Jump to next set
-                  </Button>
-                </div>
-              </div>
+            <div>
+              <SetRow
+                autoStartRestTimer={shouldAutoStartRestTimer(execution, nextSet.set_order)}
+                hasRemainingWorkAfterSet={hasRemainingPendingWork(execution, nextSet.set_order)}
+                layout="focus"
+                set={nextSet}
+                syncError={outboxEntryBySetOrder.get(nextSet.set_order)?.lastError}
+                syncRetryCount={outboxEntryBySetOrder.get(nextSet.set_order)?.retryCount}
+                syncState={getEffectiveSetSyncState(nextSet.set_order)}
+                onRetrySync={outboxEntryBySetOrder.has(nextSet.set_order) ? offlineSync.retrySync : undefined}
+                onSyncStateChange={(state) => {
+                  setSyncState(nextSet.set_order, state)
+                  window.setTimeout(offlineSync.refresh, 0)
+                }}
+                userId={userId ?? ''}
+              />
             </div>
 
             <div className="flex flex-col gap-4">
@@ -761,23 +749,6 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
               </div>
             </div>
 
-            <div className="xl:col-span-2">
-              <SetRow
-                autoStartRestTimer={shouldAutoStartRestTimer(execution, nextSet.set_order)}
-                hasRemainingWorkAfterSet={hasRemainingPendingWork(execution, nextSet.set_order)}
-                layout="focus"
-                set={nextSet}
-                syncError={outboxEntryBySetOrder.get(nextSet.set_order)?.lastError}
-                syncRetryCount={outboxEntryBySetOrder.get(nextSet.set_order)?.retryCount}
-                syncState={getEffectiveSetSyncState(nextSet.set_order)}
-                onRetrySync={outboxEntryBySetOrder.has(nextSet.set_order) ? offlineSync.retrySync : undefined}
-                onSyncStateChange={(state) => {
-                  setSyncState(nextSet.set_order, state)
-                  window.setTimeout(offlineSync.refresh, 0)
-                }}
-                userId={userId ?? ''}
-              />
-            </div>
           </CardContent>
         </Card>
       ) : null}

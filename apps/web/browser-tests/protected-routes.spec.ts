@@ -206,7 +206,7 @@ test.describe('authenticated dashboard and analytics flows', () => {
     await expect(page.getByText('Bench Day', { exact: true }).first()).toBeVisible()
     await expect(page.getByRole('button', { name: 'Back to workouts' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Complete Workout' })).toBeVisible()
-    await expect(page.getByText('4 of 8 planned sets logged.', { exact: true })).toBeVisible()
+    await expect(page.getByText('4 of 8 planned sets logged.', { exact: true })).toHaveCount(0)
   })
 
   test('supports analytics filter changes and AI insight generation', async ({ page }) => {

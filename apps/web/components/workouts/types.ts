@@ -71,12 +71,8 @@ export interface WorkoutExecutionSnapshot {
 }
 
 export interface WorkoutExecutionCue {
-  blockProgressLabel: string
   currentSetLabel: string
-  followUpLabel: string | null
-  groupProgressLabel: string | null
   roundLabel: string | null
-  workoutProgressLabel: string
 }
 
 export function isSetLogged(set: Pick<WorkoutDisplaySet, 'repsActual'>) {
@@ -170,26 +166,27 @@ export function isDropDisplayType(displayType: WorkoutDisplaySet['display_type']
 export function formatSetTypeLabel(
   setType: WorkoutDisplaySet['set_type'],
   displayType?: WorkoutDisplaySet['display_type'],
+  isAmrap?: boolean,
 ) {
+  const isAmrapWork = isAmrap ?? setType === 'amrap'
+
   if (isBackoffDisplayType(displayType)) {
-    return 'Backoff'
+    return isAmrapWork ? 'Backoff AMRAP' : 'Backoff'
   }
 
   if (isDropDisplayType(displayType)) {
-    return 'Drop'
+    return isAmrapWork ? 'Drop-set AMRAP' : 'Drop set'
   }
 
   switch (setType) {
     case 'main':
-      return 'Main'
+    case 'variation':
+    case 'accessory':
+      return 'Standard'
     case 'amrap':
       return 'AMRAP'
-    case 'variation':
-      return 'Variation'
-    case 'accessory':
-      return 'Accessory'
     case 'warmup':
-      return 'Warmup'
+      return 'Warm-up'
     default:
       return 'Set'
   }
@@ -473,39 +470,6 @@ export function hasRemainingPendingWork(snapshot: WorkoutExecutionSnapshot, setO
   return findNextUnfinishedExecutionItemAfter(orderedItems, currentIndex) !== null
 }
 
-function buildFollowUpLabel(
-  currentItem: ExecutionOrderItem | null,
-  followingItem: ExecutionOrderItem | null,
-) {
-  if (!followingItem) {
-    return null
-  }
-
-  const followingSetPosition = getSetPositionInBlock(followingItem.block, followingItem.set.set_order)
-
-  if (currentItem && currentItem.group.id === followingItem.group.id && followingItem.group.kind !== 'single') {
-    if (
-      currentItem.roundNumber !== null
-      && followingItem.roundNumber !== null
-      && currentItem.roundNumber !== followingItem.roundNumber
-    ) {
-      return `After this, go back to ${followingItem.set.exerciseName} for round ${followingItem.roundNumber}.`
-    }
-
-    return `After this, move to ${followingItem.set.exerciseName} in ${followingItem.group.label ?? formatExecutionGroupTypeLabel(followingItem.group.kind)}.`
-  }
-
-  if (currentItem && currentItem.block.blockId === followingItem.block.blockId && followingSetPosition !== null) {
-    return `After this, stay with ${followingItem.set.exerciseName} for set ${followingSetPosition}.`
-  }
-
-  if (followingSetPosition !== null) {
-    return `After this, move to ${followingItem.set.exerciseName} set ${followingSetPosition}.`
-  }
-
-  return `After this, move to ${followingItem.set.exerciseName}.`
-}
-
 export function buildWorkoutExecutionCue(snapshot: WorkoutExecutionSnapshot): WorkoutExecutionCue | null {
   const { nextBlock, nextSet } = snapshot
 
@@ -516,40 +480,23 @@ export function buildWorkoutExecutionCue(snapshot: WorkoutExecutionSnapshot): Wo
   const orderedItems = buildExecutionOrderItems(snapshot.groups)
   const currentIndex = orderedItems.findIndex((item) => item.set.set_order === nextSet.set_order)
   const currentItem = currentIndex >= 0 ? orderedItems[currentIndex] ?? null : null
-  const followingItem = currentIndex >= 0
-    ? findNextUnfinishedExecutionItemAfter(orderedItems, currentIndex)
-    : null
   const nextSetPosition = getSetPositionInBlock(nextBlock, nextSet.set_order)
-  const remainingSets = Math.max(0, snapshot.totalSets - snapshot.completedSets)
-  const workoutProgressLabel = `Workout ${snapshot.completedSets} of ${snapshot.totalSets} sets logged. ${remainingSets} ${remainingSets === 1 ? 'set' : 'sets'} left.`
-  const blockProgressLabel = `Set ${nextSetPosition ?? '?'} of ${nextBlock.totalCount} in this block. ${nextBlock.completedCount} logged so far.`
 
   if (!currentItem || currentItem.group.kind === 'single') {
     return {
-      blockProgressLabel,
       currentSetLabel: `${nextSet.exerciseName} set ${nextSetPosition ?? '?'} of ${nextBlock.totalCount}`,
-      followUpLabel: buildFollowUpLabel(currentItem, followingItem),
-      groupProgressLabel: null,
       roundLabel: null,
-      workoutProgressLabel,
     }
   }
 
   const roundLabel = currentItem.roundNumber !== null && currentItem.roundCount !== null
     ? `Round ${currentItem.roundNumber} of ${currentItem.roundCount}`
     : null
-  const groupTypeLabel = formatExecutionGroupTypeLabel(currentItem.group.kind)
-  const groupName = currentItem.group.label ?? groupTypeLabel
-
   return {
-    blockProgressLabel,
     currentSetLabel: roundLabel
       ? `${nextSet.exerciseName} ${roundLabel.toLowerCase()}`
       : nextSet.exerciseName,
-    followUpLabel: buildFollowUpLabel(currentItem, followingItem),
-    groupProgressLabel: `${groupTypeLabel} step ${currentItem.stepNumber ?? '?'} of ${currentItem.stepsInRound ?? currentItem.group.blocks.length} in ${groupName}. ${currentItem.group.completedCount} of ${currentItem.group.totalCount} grouped sets logged.`,
     roundLabel,
-    workoutProgressLabel,
   }
 }
 

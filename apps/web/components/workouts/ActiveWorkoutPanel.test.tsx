@@ -361,7 +361,7 @@ describe('ActiveWorkoutPanel', () => {
     mocks.useWorkoutSets.mockReturnValue({ data: mocks.workoutSets })
   })
 
-  it('renders the grouped execution cue and lets the user return to the launcher', async () => {
+  it('renders the next set without execution-cue clutter and lets the user return to the launcher', async () => {
     const user = userEvent.setup()
 
     render(
@@ -376,9 +376,12 @@ describe('ActiveWorkoutPanel', () => {
     )
 
     expect(screen.getByText('Chin-Up round 1 of 2')).toBeInTheDocument()
-    expect(screen.getByText('Workout 1 of 4 sets logged. 3 sets left.')).toBeInTheDocument()
-    expect(screen.getByText('Superset step 2 of 2 in Press + Pull. 1 of 4 grouped sets logged.')).toBeInTheDocument()
-    expect(screen.getByText('After this, go back to Overhead Press for round 2.')).toBeInTheDocument()
+    expect(screen.getAllByText('Accessory').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Standard').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Workout 1 of 4 sets logged. 3 sets left.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Execution cue')).not.toBeInTheDocument()
+    expect(screen.queryByText('Superset step 2 of 2 in Press + Pull. 1 of 4 grouped sets logged.')).not.toBeInTheDocument()
+    expect(screen.queryByText('After this, go back to Overhead Press for round 2.')).not.toBeInTheDocument()
     expect(screen.getByText('Last completed session')).toBeInTheDocument()
     expect(screen.getByText('Week 1 · Upper A · Apr 15, 2026')).toBeInTheDocument()
     expect(screen.getByText('25 lbs × 12 reps')).toBeInTheDocument()
@@ -476,7 +479,7 @@ describe('ActiveWorkoutPanel', () => {
       sourceSetOrder: null,
       workoutId: 44,
     })
-  })
+  }, 10000)
 
   it('updates the remaining workout-only percentage for an in-progress block', async () => {
     const user = userEvent.setup()

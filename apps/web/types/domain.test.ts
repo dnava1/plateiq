@@ -1,16 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import type { SetType, ExerciseAnalyticsTrack, ExerciseCategory, MovementPattern, IntensityType, ProgressionStyle, PreferredUnit, ProgramLevel } from './domain'
+import type { SetType, ExerciseAnalyticsTrack, MovementPattern, IntensityType, ProgressionStyle, PreferredUnit, ProgramLevel } from './domain'
 
 describe('domain enum types', () => {
   it('SetType values are valid', () => {
     const values: SetType[] = ['warmup', 'main', 'amrap', 'variation', 'accessory']
     expect(values).toHaveLength(5)
     values.forEach((v) => expect(typeof v).toBe('string'))
-  })
-
-  it('ExerciseCategory values are valid', () => {
-    const values: ExerciseCategory[] = ['main', 'accessory']
-    expect(values).toHaveLength(2)
   })
 
   it('MovementPattern values are valid', () => {

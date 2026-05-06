@@ -12,7 +12,7 @@ export function useCurrentTrainingMaxes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('training_maxes')
-        .select('*, exercises(name, category, is_main_lift)')
+        .select('*, exercises(name, analytics_track)')
         .order('effective_date', { ascending: false })
       if (error) throw error
       // Deduplicate: keep only the latest per exercise_id

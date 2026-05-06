@@ -164,7 +164,20 @@ describe('workout type helpers', () => {
   })
 
   it('formats drop-set display work distinctly from generic variations', () => {
-    expect(formatSetTypeLabel('variation', 'drop')).toBe('Drop')
+    expect(formatSetTypeLabel('variation', 'drop')).toBe('Drop set')
+  })
+
+  it('formats standard and AMRAP set types independently from block roles', () => {
+    expect(formatSetTypeLabel('main')).toBe('Standard')
+    expect(formatSetTypeLabel('variation')).toBe('Standard')
+    expect(formatSetTypeLabel('accessory')).toBe('Standard')
+    expect(formatSetTypeLabel('amrap')).toBe('AMRAP')
+    expect(formatSetTypeLabel('warmup')).toBe('Warm-up')
+  })
+
+  it('combines backoff and drop-set display work with AMRAP state', () => {
+    expect(formatSetTypeLabel('amrap', 'backoff', true)).toBe('Backoff AMRAP')
+    expect(formatSetTypeLabel('amrap', 'drop', true)).toBe('Drop-set AMRAP')
   })
 
   it('only returns rest timing when the program explicitly defines it', () => {
@@ -351,7 +364,10 @@ describe('workout type helpers', () => {
 
     const cue = buildWorkoutExecutionCue(buildWorkoutExecutionSnapshot(circuitSets))
 
-    expect(cue?.groupProgressLabel).toBe('Circuit step 1 of 2 in Upper Circuit. 0 of 4 grouped sets logged.')
+    expect(cue).toMatchObject({
+      currentSetLabel: 'Overhead Press round 1 of 2',
+      roundLabel: 'Round 1 of 2',
+    })
   })
 
   it('keeps the next block aligned with grouped execution order', () => {
@@ -362,16 +378,12 @@ describe('workout type helpers', () => {
     expect(snapshot.nextBlock?.exerciseName).toBe('Chin-Up')
   })
 
-  it('builds an explicit execution cue for grouped flow', () => {
+  it('builds the next-set label for grouped flow', () => {
     const cue = buildWorkoutExecutionCue(buildWorkoutExecutionSnapshot(buildGroupedSupersetSets([1])))
 
     expect(cue).toMatchObject({
-      blockProgressLabel: 'Set 1 of 2 in this block. 0 logged so far.',
       currentSetLabel: 'Chin-Up round 1 of 2',
-      followUpLabel: 'After this, go back to Overhead Press for round 2.',
-      groupProgressLabel: 'Superset step 2 of 2 in Press + Pull. 1 of 4 grouped sets logged.',
       roundLabel: 'Round 1 of 2',
-      workoutProgressLabel: 'Workout 1 of 4 sets logged. 3 sets left.',
     })
   })
 
@@ -391,13 +403,11 @@ describe('workout type helpers', () => {
     expect(hasRemainingPendingWork(snapshot, 1)).toBe(true)
   })
 
-  it('skips already-logged grouped steps when building the follow-up cue', () => {
+  it('skips already-logged grouped steps when building the next-set label', () => {
     const cue = buildWorkoutExecutionCue(buildWorkoutExecutionSnapshot(buildGroupedSupersetSets([3])))
 
     expect(cue).toMatchObject({
       currentSetLabel: 'Overhead Press round 1 of 2',
-      followUpLabel: 'After this, go back to Overhead Press for round 2.',
-      groupProgressLabel: 'Superset step 1 of 2 in Press + Pull. 1 of 4 grouped sets logged.',
       roundLabel: 'Round 1 of 2',
     })
   })
@@ -408,7 +418,7 @@ describe('workout type helpers', () => {
     expect(hasRemainingPendingWork(snapshot, 4)).toBe(false)
   })
 
-  it('falls back to a single-block execution cue outside grouped flow', () => {
+  it('falls back to a single-block next-set label outside grouped flow', () => {
     const cue = buildWorkoutExecutionCue(buildWorkoutExecutionSnapshot([
       createWorkoutDisplaySet({
         set_order: 1,
@@ -435,12 +445,8 @@ describe('workout type helpers', () => {
     ]))
 
     expect(cue).toMatchObject({
-      blockProgressLabel: 'Set 2 of 2 in this block. 1 logged so far.',
       currentSetLabel: 'Bench Press set 2 of 2',
-      followUpLabel: 'After this, move to Barbell Row set 1.',
-      groupProgressLabel: null,
       roundLabel: null,
-      workoutProgressLabel: 'Workout 1 of 3 sets logged. 2 sets left.',
     })
   })
 })

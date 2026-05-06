@@ -71,11 +71,9 @@ export type Database = {
       exercises: {
         Row: {
           analytics_track: string
-          category: string
           created_at: string | null
           created_by_user_id: string | null
           id: number
-          is_main_lift: boolean
           movement_pattern: string
           name: string
           progression_increment_lbs: number | null
@@ -83,11 +81,9 @@ export type Database = {
         }
         Insert: {
           analytics_track?: string
-          category: string
           created_at?: string | null
           created_by_user_id?: string | null
           id?: never
-          is_main_lift?: boolean
           movement_pattern: string
           name: string
           progression_increment_lbs?: number | null
@@ -95,11 +91,9 @@ export type Database = {
         }
         Update: {
           analytics_track?: string
-          category?: string
           created_at?: string | null
           created_by_user_id?: string | null
           id?: never
-          is_main_lift?: boolean
           movement_pattern?: string
           name?: string
           progression_increment_lbs?: number | null
@@ -489,9 +483,7 @@ export type Database = {
       update_exercise_definition: {
         Args: {
           p_analytics_track: string
-          p_category: string
           p_exercise_id: number
-          p_is_main_lift: boolean
           p_movement_pattern: string
           p_name: string
           p_strength_lift_slug: string | null

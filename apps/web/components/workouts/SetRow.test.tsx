@@ -120,7 +120,8 @@ describe('SetRow', () => {
 
     expect(screen.getByText('Squat')).toBeInTheDocument()
     expect(screen.getByText(/225 lbs × 5 reps/i)).toBeInTheDocument()
-    expect(screen.getByText('Main')).toBeInTheDocument()
+    expect(screen.getByText('Main work')).toBeInTheDocument()
+    expect(screen.getByText('Standard')).toBeInTheDocument()
   })
 
   it('renders backoff work distinctly from generic variation work', () => {
@@ -138,6 +139,7 @@ describe('SetRow', () => {
 
     expect(screen.getByText('Backoff')).toBeInTheDocument()
     expect(screen.queryByText('Variation')).not.toBeInTheDocument()
+    expect(screen.queryByText('Standard')).not.toBeInTheDocument()
   })
 
   it('renders drop-set work distinctly from generic variation work', () => {
@@ -153,8 +155,9 @@ describe('SetRow', () => {
       />,
     )
 
-    expect(screen.getByText('Drop')).toBeInTheDocument()
+    expect(screen.getByText('Drop set')).toBeInTheDocument()
     expect(screen.queryByText('Variation')).not.toBeInTheDocument()
+    expect(screen.queryByText('Standard')).not.toBeInTheDocument()
   })
 
   it('log button triggers the mutation', async () => {

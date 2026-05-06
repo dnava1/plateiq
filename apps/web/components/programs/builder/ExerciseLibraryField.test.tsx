@@ -8,8 +8,7 @@ const useExercisesMock = vi.fn()
 let exerciseLibrary: Array<{
   id: number
   name: string
-  category: string
-  is_main_lift: boolean
+  analytics_track: string
   movement_pattern: string
   created_by_user_id: string | null
   progression_increment_lbs: number | null
@@ -31,8 +30,7 @@ vi.mock('@/components/exercises/CreateExerciseForm', () => ({
     existingExercise?: {
       id: number
       name: string
-      category: string
-      is_main_lift: boolean
+      analytics_track: string
       movement_pattern: string
       created_by_user_id: string | null
       progression_increment_lbs: number | null
@@ -41,8 +39,7 @@ vi.mock('@/components/exercises/CreateExerciseForm', () => ({
     onCreated?: (exercise: {
       id: number
       name: string
-      category: string
-      is_main_lift: boolean
+      analytics_track: string
       movement_pattern: string
       created_by_user_id: string | null
       progression_increment_lbs: number | null
@@ -51,8 +48,7 @@ vi.mock('@/components/exercises/CreateExerciseForm', () => ({
     onUpdated?: (exercise: {
       id: number
       name: string
-      category: string
-      is_main_lift: boolean
+      analytics_track: string
       movement_pattern: string
       created_by_user_id: string | null
       progression_increment_lbs: number | null
@@ -60,7 +56,7 @@ vi.mock('@/components/exercises/CreateExerciseForm', () => ({
     }) => void
     initialValues?: {
       name?: string
-      category?: string
+      analytics_track?: string
     }
   }) => (
     open ? (
@@ -87,8 +83,7 @@ vi.mock('@/components/exercises/CreateExerciseForm', () => ({
             const createdExercise = {
               id: 999,
               name: initialValues?.name ?? 'Cable Row',
-              category: initialValues?.category ?? 'accessory',
-              is_main_lift: initialValues?.category === 'main',
+              analytics_track: initialValues?.analytics_track ?? 'standard',
               movement_pattern: 'other',
               created_by_user_id: 'user-1',
               progression_increment_lbs: null,
@@ -132,8 +127,7 @@ describe('ExerciseLibraryField', () => {
       {
         id: 1,
         name: 'Bench Press',
-        category: 'main',
-        is_main_lift: true,
+        analytics_track: 'standard',
         movement_pattern: 'horizontal_push',
         created_by_user_id: null,
         progression_increment_lbs: 5,
@@ -142,8 +136,7 @@ describe('ExerciseLibraryField', () => {
       {
         id: 2,
         name: 'Barbell Row',
-        category: 'accessory',
-        is_main_lift: false,
+        analytics_track: 'standard',
         movement_pattern: 'horizontal_pull',
         created_by_user_id: 'user-1',
         progression_increment_lbs: null,
@@ -152,8 +145,7 @@ describe('ExerciseLibraryField', () => {
       {
         id: 3,
         name: 'Bench Press',
-        category: 'accessory',
-        is_main_lift: false,
+        analytics_track: 'standard',
         movement_pattern: 'horizontal_push',
         created_by_user_id: 'user-1',
         progression_increment_lbs: null,
@@ -162,8 +154,7 @@ describe('ExerciseLibraryField', () => {
       {
         id: 4,
         name: 'Overhead Press',
-        category: 'main',
-        is_main_lift: true,
+        analytics_track: 'standard',
         movement_pattern: 'vertical_push',
         created_by_user_id: null,
         progression_increment_lbs: 5,
@@ -262,8 +253,7 @@ describe('ExerciseLibraryField', () => {
     exerciseLibrary = Array.from({ length: 10 }, (_, index) => ({
       id: index + 1,
       name: `Exercise ${index + 1}`,
-      category: 'accessory',
-      is_main_lift: false,
+      analytics_track: 'standard',
       movement_pattern: 'other',
       created_by_user_id: index % 2 === 0 ? 'user-1' : null,
       progression_increment_lbs: null,

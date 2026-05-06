@@ -242,7 +242,6 @@ export function ExerciseLibraryField({
         initialValues={{
           name: query.trim(),
           analytics_track: 'standard',
-          category: 'accessory',
           movement_pattern: 'other',
         }}
         title="Create and Add Exercise"

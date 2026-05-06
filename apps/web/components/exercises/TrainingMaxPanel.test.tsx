@@ -48,9 +48,8 @@ describe('TrainingMaxPanel', () => {
         {
           id: 10,
           name: 'Safety Squat Bar',
-          category: 'main',
+          analytics_track: 'standard',
           movement_pattern: 'squat',
-          is_main_lift: true,
           strength_lift_slug: null,
           created_at: null,
           created_by_user_id: null,
@@ -58,9 +57,8 @@ describe('TrainingMaxPanel', () => {
         {
           id: 11,
           name: 'Cable Fly',
-          category: 'accessory',
-          movement_pattern: 'push',
-          is_main_lift: false,
+          analytics_track: 'bodyweight_review',
+          movement_pattern: 'horizontal_push',
           strength_lift_slug: null,
           created_at: null,
           created_by_user_id: null,
@@ -115,7 +113,7 @@ describe('TrainingMaxPanel', () => {
     })
   })
 
-  it('supports history and TM updates for non-canonical main lifts', async () => {
+  it('supports history and TM updates for load-based exercises', async () => {
     const user = userEvent.setup()
 
     render(
@@ -163,9 +161,8 @@ describe('TrainingMaxPanel', () => {
         {
           id: 10,
           name: 'Safety Squat Bar',
-          category: 'main',
+          analytics_track: 'standard',
           movement_pattern: 'squat',
-          is_main_lift: true,
           strength_lift_slug: null,
           created_at: null,
           created_by_user_id: null,
@@ -173,9 +170,8 @@ describe('TrainingMaxPanel', () => {
         {
           id: 12,
           name: 'Front Squat',
-          category: 'main',
+          analytics_track: 'standard',
           movement_pattern: 'squat',
-          is_main_lift: true,
           strength_lift_slug: 'front_squat',
           created_at: null,
           created_by_user_id: null,
@@ -183,9 +179,8 @@ describe('TrainingMaxPanel', () => {
         {
           id: 13,
           name: 'Push Press',
-          category: 'main',
-          movement_pattern: 'push',
-          is_main_lift: true,
+          analytics_track: 'standard',
+          movement_pattern: 'vertical_push',
           strength_lift_slug: 'push_press',
           created_at: null,
           created_by_user_id: null,
@@ -207,7 +202,7 @@ describe('TrainingMaxPanel', () => {
     expect(screen.queryByText('Push Press')).not.toBeInTheDocument()
   })
 
-  it('shows an empty history message when a main lift has no saved TM entries', async () => {
+  it('shows an empty history message when a load-based exercise has no saved TM entries', async () => {
     useTrainingMaxHistoryMock.mockReturnValue({
       data: [],
       isLoading: false,
@@ -227,15 +222,14 @@ describe('TrainingMaxPanel', () => {
     expect(screen.getByText('No saved training max history exists for this lift yet.')).toBeInTheDocument()
   })
 
-  it('shows the empty-state hint when no main lifts exist', () => {
+  it('shows the empty-state hint when no max-enabled exercises exist', () => {
     useExercisesMock.mockReturnValue({
       data: [
         {
           id: 11,
           name: 'Cable Fly',
-          category: 'accessory',
-          movement_pattern: 'push',
-          is_main_lift: false,
+          analytics_track: 'bodyweight_review',
+          movement_pattern: 'horizontal_push',
           strength_lift_slug: null,
           created_at: null,
           created_by_user_id: null,

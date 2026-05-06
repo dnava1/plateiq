@@ -442,7 +442,7 @@ export function AnalyticsDashboard() {
 
                 <ChartCard
                   title="Plateau Watch"
-                  description="Main lifts that have not produced a fresh PR in the last four weeks."
+                  description="Load-based exercises that have not produced a fresh PR in the last four weeks."
                   emptyMessage="No plateaus detected in the current snapshot."
                   emptyStateNote={analytics.coverage.metrics.stallDetection.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.stallDetection.reasonCodes)}
                   headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.stallDetection} />}
