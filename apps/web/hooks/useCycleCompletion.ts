@@ -6,6 +6,8 @@ import { getExerciseLookupKeys, useExercises, type Exercise } from '@/hooks/useE
 import { useCurrentTrainingMaxes } from '@/hooks/useTrainingMaxes'
 import { getProgressionIncrements } from '@/lib/constants/templates/engine'
 import { formatEffortValue } from '@/lib/effort'
+import { resolveEditableProgramDefinition } from '@/lib/programs/editable'
+import { resolveExecutionInputRequirements } from '@/lib/programs/inputRequirements'
 import { collectProgramDays } from '@/lib/programs/week'
 import { isCustomProgramConfig, type CustomProgramConfig, type ProgressionRule } from '@/types/template'
 import type { Database } from '@/types/database'
@@ -413,7 +415,10 @@ function resolveBuiltInLifts(
   const lifts: ResolvedProgressionLift[] = []
 
   for (const exerciseKey of requiredExercises) {
-    const trainingMax = trainingMaxLookup.get(exerciseKey)
+    const trainingMax = getExerciseLookupKeys(exerciseKey)
+      .map((lookupKey) => trainingMaxLookup.get(lookupKey))
+      .find((candidate): candidate is CurrentTrainingMaxSnapshot => Boolean(candidate))
+
     if (!trainingMax || seen.has(trainingMax.exercise_id)) {
       continue
     }
@@ -558,6 +563,16 @@ export function useCycleCompletionPreview(program: TrainingProgram | null | unde
   const { data: trainingMaxes, isLoading: isTrainingMaxesLoading } = useCurrentTrainingMaxes()
   const { data: activeCycle, isLoading: isActiveCycleLoading } = useActiveCycle(program?.id)
   const { data: cycleWorkouts, isLoading: isCycleWorkoutsLoading } = useCycleWorkouts(activeCycle?.id)
+  const programDefinition = useMemo(
+    () => (program ? resolveEditableProgramDefinition(program) : null),
+    [program],
+  )
+  const inputRequirements = useMemo(
+    () => programDefinition
+      ? resolveExecutionInputRequirements(programDefinition, exercises, trainingMaxes as CurrentTrainingMaxSnapshot[] | undefined)
+      : null,
+    [exercises, programDefinition, trainingMaxes],
+  )
 
   const previewRows = useMemo(
     () => buildCycleCompletionPreview({
@@ -572,6 +587,8 @@ export function useCycleCompletionPreview(program: TrainingProgram | null | unde
 
   return {
     activeCycle,
+    inputMode: inputRequirements?.inputMode ?? 'none',
+    missingInputNames: inputRequirements?.missingExerciseNames ?? [],
     previewRows,
     isLoading: isExercisesLoading || isTrainingMaxesLoading || isActiveCycleLoading || isCycleWorkoutsLoading,
   }

@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { TEMPLATE_REGISTRY } from '@/lib/constants/templates'
 import { resolveRepoPath } from '@/test/resolveRepoPath'
 import type { CustomProgramConfig } from '@/types/template'
 import type { TrainingProgram } from './usePrograms'
@@ -120,6 +121,75 @@ describe('buildCycleCompletionPreview', () => {
 
     expect(rows).toEqual([])
     expect(buildCycleProgressionPayload(rows)).toEqual([])
+  })
+
+  it('resolves every built-in TM template against normalized training max lookup keys', () => {
+    const tmTemplates = Object.values(TEMPLATE_REGISTRY).filter((template) => template.uses_training_max)
+
+    expect(tmTemplates.length).toBeGreaterThan(0)
+
+    for (const template of tmTemplates) {
+      const exercises = template.required_exercises.map((name, index) => ({
+        id: index + 1,
+        name,
+      }))
+      const trainingMaxes = exercises.map((exercise) => ({
+        exercise_id: exercise.id,
+        weight_lbs: 300,
+        exercises: { name: exercise.name },
+      }))
+      const program = {
+        template_key: template.key,
+        name: template.name,
+        config: { rounding: 5, tm_percentage: template.default_tm_percentage ?? 0.9 },
+      } as unknown as TrainingProgram
+
+      const rows = buildCycleCompletionPreview({
+        activeCycle: null,
+        program,
+        exercises: exercises as never,
+        trainingMaxes,
+        cycleWorkouts: [],
+      })
+
+      expect(rows, template.key).toHaveLength(template.required_exercises.length)
+      expect(rows.map((row) => row.exerciseName), template.key).toEqual(template.required_exercises)
+    }
+  })
+
+  it('applies the right upper and lower increments for built-in 5/3/1 lifts', () => {
+    const program = {
+      template_key: 'wendler_531',
+      name: "Wendler's 5/3/1",
+      config: { variation_key: 'bbb', rounding: 5, tm_percentage: 0.9 },
+    } as unknown as TrainingProgram
+
+    const rows = buildCycleCompletionPreview({
+      activeCycle: null,
+      program,
+      exercises: [
+        { id: 1, name: 'Squat' },
+        { id: 2, name: 'Bench Press' },
+        { id: 3, name: 'Overhead Press' },
+        { id: 4, name: 'Deadlift' },
+      ] as never,
+      trainingMaxes: [
+        { exercise_id: 1, weight_lbs: 300, exercises: { name: 'Squat' } },
+        { exercise_id: 2, weight_lbs: 225, exercises: { name: 'Bench Press' } },
+        { exercise_id: 3, weight_lbs: 135, exercises: { name: 'Overhead Press' } },
+        { exercise_id: 4, weight_lbs: 405, exercises: { name: 'Deadlift' } },
+      ],
+      cycleWorkouts: [],
+    })
+
+    expect(rows).toHaveLength(4)
+    expect(rows.map((row) => row.exerciseName)).toEqual([
+      'Squat',
+      'Bench Press',
+      'Overhead Press',
+      'Deadlift',
+    ])
+    expect(rows.map((row) => row.incrementLbs)).toEqual([10, 5, 5, 10])
   })
 
   it('holds the training max when AMRAP performance clearly misses the target', () => {

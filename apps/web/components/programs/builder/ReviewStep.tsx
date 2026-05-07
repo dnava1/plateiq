@@ -13,8 +13,7 @@ import {
 import { TrainingMaxPanel } from '@/components/exercises/TrainingMaxPanel'
 import { Button } from '@/components/ui/button'
 import { normalizeEditableProgramConfig } from '@/lib/programs/editable'
-import { resolveDefinitionNeedsTrainingMaxForExecution } from '@/lib/programs/method'
-import { resolveExecutionMaxInputScope, type ExecutionMaxInputMode } from '@/lib/programs/trainingMax'
+import { resolveExecutionInputRequirements, resolveRequiredInputCopy } from '@/lib/programs/inputRequirements'
 import { resolveProgramDays, resolveProgramWeekLabel } from '@/lib/programs/week'
 import {
   createCustomProgramSchema,
@@ -77,54 +76,6 @@ function formatRepsLabel(set: SetPrescription) {
     : repsLabel
 }
 
-function formatTrainingMaxTargetLabel(value: string) {
-  return value
-    .trim()
-    .replace(/[_-]+/g, ' ')
-    .replace(/\b\w/g, (segment) => segment.toUpperCase())
-}
-
-function resolveRequiredInputCopy(inputMode: ExecutionMaxInputMode) {
-  switch (inputMode) {
-    case '1rm':
-      return {
-        badgeLabel: 'Required lifts',
-        emptyStateHint: 'Choose the lifts this program depends on before setting 1RM inputs here.',
-        loadingMessage: 'Loading the required 1RM inputs for this program.',
-        missingActionMessage: 'Set current estimated 1RMs for',
-        readyMessage: 'All required 1RM inputs are set for this program.',
-        title: 'Required 1RM Inputs',
-        toastLoadingMessage: 'Required 1RM inputs are still loading for this program.',
-        toastMissingActionMessage: 'Set current estimated 1RMs for',
-        description: 'Set the current estimated 1RM for every lift in this program before you save it. Each dialog can still accept a training max directly if that is what you have.',
-      }
-    case 'mixed':
-      return {
-        badgeLabel: 'Required lifts',
-        emptyStateHint: 'Choose the lifts this program depends on before setting max inputs here.',
-        loadingMessage: 'Loading the required max inputs for this program.',
-        missingActionMessage: 'Set the required max inputs for',
-        readyMessage: 'All required max inputs are set for this program.',
-        title: 'Required Max Inputs',
-        toastLoadingMessage: 'Required max inputs are still loading for this program.',
-        toastMissingActionMessage: 'Set the required max inputs for',
-        description: 'Set the current TM or estimated 1RM for every lift in this program before you save it.',
-      }
-    default:
-      return {
-        badgeLabel: 'Required lifts',
-        emptyStateHint: 'Choose the lifts this program depends on before setting training maxes here.',
-        loadingMessage: 'Loading the required training maxes for this program.',
-        missingActionMessage: 'Set current training maxes for',
-        readyMessage: 'All required training maxes are set for this program.',
-        title: 'Required Training Maxes',
-        toastLoadingMessage: 'Training max requirements are still loading for this program.',
-        toastMissingActionMessage: 'Set current training maxes for',
-        description: 'Set the current training max for every lift in this program before you save it.',
-      }
-  }
-}
-
 export function ReviewStep() {
   const router = useRouter()
   const { draft, source, toConfig, resetDraft, setStep } = useBuilderDraftStore()
@@ -138,44 +89,16 @@ export function ReviewStep() {
     ? draft.progression.increment_lbs ?? DEFAULT_LINEAR_INCREMENT_LBS
     : null
   const methodLabel = draft.uses_training_max ? METHOD_LABELS.tm_driven : METHOD_LABELS.general
-  const requiresMaxInputs = resolveDefinitionNeedsTrainingMaxForExecution(draft)
-  const maxInputScope = resolveExecutionMaxInputScope(draft)
-  const requiredInputCopy = resolveRequiredInputCopy(maxInputScope.inputMode)
   const exerciseKeyMap = buildExerciseKeyMap(exercises)
-  const resolvedRequiredExerciseIds = [...maxInputScope.exerciseIds]
-  const seenRequiredExerciseIds = new Set(resolvedRequiredExerciseIds)
-  const unresolvedMaxInputNames: string[] = []
-
-  for (const exerciseKey of maxInputScope.exerciseKeys) {
-    const resolvedExerciseId = resolveExerciseIdFromMap(exerciseKeyMap, exerciseKey)
-
-    if (resolvedExerciseId) {
-      if (!seenRequiredExerciseIds.has(resolvedExerciseId)) {
-        seenRequiredExerciseIds.add(resolvedExerciseId)
-        resolvedRequiredExerciseIds.push(resolvedExerciseId)
-      }
-      continue
-    }
-
-    unresolvedMaxInputNames.push(formatTrainingMaxTargetLabel(exerciseKey))
+  const maxInputRequirements = resolveExecutionInputRequirements(draft, exercises, trainingMaxes)
+  const requiresMaxInputs = maxInputRequirements.inputMode !== 'none'
+  const requiredInputCopy = resolveRequiredInputCopy(maxInputRequirements.inputMode)
+  const maxInputScope = {
+    exerciseIds: maxInputRequirements.targetExerciseIds,
+    exerciseKeys: maxInputRequirements.targetExerciseKeys,
+    inputMode: maxInputRequirements.inputMode,
   }
-
-  const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise]))
-  const resolvedRequiredExercises = resolvedRequiredExerciseIds.flatMap((exerciseId) => {
-    const exercise = exerciseById.get(exerciseId)
-    return exercise ? [exercise] : []
-  })
-  const trainingMaxExerciseIds = new Set(trainingMaxes.map((trainingMax) => trainingMax.exercise_id))
-  const missingMaxInputNames = [
-    ...resolvedRequiredExercises
-      .filter((exercise) => !trainingMaxExerciseIds.has(exercise.id))
-      .map((exercise) => exercise.name),
-    ...unresolvedMaxInputNames,
-  ]
-
-  if (requiresMaxInputs && resolvedRequiredExerciseIds.length === 0 && maxInputScope.exerciseKeys.length === 0) {
-    missingMaxInputNames.push('the selected primary lifts')
-  }
+  const missingMaxInputNames = maxInputRequirements.missingExerciseNames
 
   const templateKey = source?.template_key ?? draft.metadata?.source_template_key ?? 'custom'
   const saveStrategy = source?.save_strategy ?? 'create'

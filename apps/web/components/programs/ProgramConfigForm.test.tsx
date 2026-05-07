@@ -5,6 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ProgramConfigForm } from './ProgramConfigForm'
 
 const pushMock = vi.fn()
+const mutateMock = vi.fn()
+const useExercisesMock = vi.fn()
+const useCurrentTrainingMaxesMock = vi.fn()
 
 vi.mock('next/link', () => ({
   default: ({ children, href, ...props }: ComponentProps<'a'>) => (
@@ -24,11 +27,23 @@ vi.mock('@/hooks/usePreferredUnit', () => ({
   usePreferredUnit: () => 'lbs',
 }))
 
+vi.mock('@/hooks/useExercises', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/hooks/useExercises')>()
+  return {
+    ...actual,
+    useExercises: () => useExercisesMock(),
+  }
+})
+
 vi.mock('@/hooks/usePrograms', () => ({
   useCreateProgram: () => ({
     isPending: false,
-    mutate: vi.fn(),
+    mutate: mutateMock,
   }),
+}))
+
+vi.mock('@/hooks/useTrainingMaxes', () => ({
+  useCurrentTrainingMaxes: () => useCurrentTrainingMaxesMock(),
 }))
 
 vi.mock('sonner', () => ({
@@ -41,6 +56,11 @@ vi.mock('sonner', () => ({
 describe('ProgramConfigForm', () => {
   beforeEach(() => {
     pushMock.mockReset()
+    mutateMock.mockReset()
+    useExercisesMock.mockReset()
+    useCurrentTrainingMaxesMock.mockReset()
+    useExercisesMock.mockReturnValue({ data: [], isLoading: false })
+    useCurrentTrainingMaxesMock.mockReturnValue({ data: [], isLoading: false })
     Object.defineProperty(window.HTMLElement.prototype, 'scrollIntoView', {
       configurable: true,
       value: vi.fn(),
@@ -103,5 +123,67 @@ describe('ProgramConfigForm', () => {
 
     expect(screen.getByRole('link', { name: /Open Program Builder/i })).toHaveAttribute('href', '/programs/builder')
     expect(screen.queryByRole('link', { name: /Training-Max Driven/i })).not.toBeInTheDocument()
+  })
+
+  it('requires the relevant training maxes before a TM-backed template can be created', async () => {
+    const user = userEvent.setup()
+
+    useExercisesMock.mockReturnValue({
+      data: [
+        { id: 1, name: 'Squat', analytics_track: 'standard', created_by_user_id: null },
+        { id: 2, name: 'Bench Press', analytics_track: 'standard', created_by_user_id: null },
+        { id: 3, name: 'Overhead Press', analytics_track: 'standard', created_by_user_id: null },
+        { id: 4, name: 'Deadlift', analytics_track: 'standard', created_by_user_id: null },
+      ],
+      isLoading: false,
+    })
+
+    render(<ProgramConfigForm open onOpenChange={vi.fn()} />)
+
+    const wendlerTemplateCard = getWendlerTemplateCard()
+
+    expect(wendlerTemplateCard).toBeDefined()
+    await user.click(wendlerTemplateCard!)
+
+    expect(screen.getByText('Required Training Maxes')).toBeInTheDocument()
+    const gateMessage = screen.getByText(/Set current training maxes for/i)
+    expect(gateMessage).toHaveTextContent('Squat')
+    expect(gateMessage).toHaveTextContent('Bench Press')
+    expect(gateMessage).toHaveTextContent('Overhead Press')
+    expect(gateMessage).toHaveTextContent('Deadlift')
+    expect(screen.getByRole('button', { name: 'Create Program' })).toBeDisabled()
+  })
+
+  it('enables creation once the required training maxes already exist', async () => {
+    const user = userEvent.setup()
+
+    useExercisesMock.mockReturnValue({
+      data: [
+        { id: 1, name: 'Squat', analytics_track: 'standard', created_by_user_id: null },
+        { id: 2, name: 'Bench Press', analytics_track: 'standard', created_by_user_id: null },
+        { id: 3, name: 'Overhead Press', analytics_track: 'standard', created_by_user_id: null },
+        { id: 4, name: 'Deadlift', analytics_track: 'standard', created_by_user_id: null },
+      ],
+      isLoading: false,
+    })
+    useCurrentTrainingMaxesMock.mockReturnValue({
+      data: [
+        { exercise_id: 1, weight_lbs: 225 },
+        { exercise_id: 2, weight_lbs: 185 },
+        { exercise_id: 3, weight_lbs: 135 },
+        { exercise_id: 4, weight_lbs: 315 },
+      ],
+      isLoading: false,
+    })
+
+    render(<ProgramConfigForm open onOpenChange={vi.fn()} />)
+
+    const wendlerTemplateCard = getWendlerTemplateCard()
+
+    expect(wendlerTemplateCard).toBeDefined()
+    await user.click(wendlerTemplateCard!)
+
+    expect(screen.getByText('All required training maxes are set for this program.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Create Program' })).toBeEnabled()
   })
 })

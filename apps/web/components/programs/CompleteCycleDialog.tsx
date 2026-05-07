@@ -13,6 +13,7 @@ import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import type { TrainingProgram } from '@/hooks/usePrograms'
 import { resolveWorkoutProgram } from '@/hooks/useWorkouts'
+import { resolveRequiredInputCopy } from '@/lib/programs/inputRequirements'
 import type { PreferredUnit } from '@/types/domain'
 import { displayToLbs, formatUnit, formatWeight, lbsToDisplay } from '@/lib/utils'
 import { useWorkoutSessionStore } from '@/store/workoutSessionStore'
@@ -64,12 +65,13 @@ export function CompleteCycleDialog({ program }: CompleteCycleDialogProps) {
   const weightRoundingLbs = usePreferredWeightRounding()
   const clearSession = useWorkoutSessionStore((state) => state.clearSession)
   const completeCycle = useCompleteCycle()
-  const { activeCycle, previewRows, isLoading } = useCycleCompletionPreview(program)
+  const { activeCycle, inputMode, missingInputNames, previewRows, isLoading } = useCycleCompletionPreview(program)
   const { template } = useMemo(
     () => resolveWorkoutProgram(program, weightRoundingLbs, activeCycle),
     [activeCycle, program, weightRoundingLbs],
   )
   const usesTrainingMax = template?.uses_training_max ?? false
+  const requiredInputCopy = resolveRequiredInputCopy(inputMode === 'none' ? 'tm' : inputMode)
   const [isOnline, setIsOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine)
   const [open, setOpen] = useState(false)
   const [nextTmInputs, setNextTmInputs] = useState<Record<number, string>>({})
@@ -191,12 +193,6 @@ export function CompleteCycleDialog({ program }: CompleteCycleDialogProps) {
             </div>
           ) : null}
 
-          {usesTrainingMax && adjustedPreviewRows.length > 0 ? (
-            <div className="rounded-[22px] border border-border/70 bg-background/55 px-4 py-3 text-sm text-muted-foreground">
-              The suggestion follows the saved progression rule, but you can overwrite any lift here before the next cycle is created.
-            </div>
-          ) : null}
-
           {isLoading ? (
             <div className="rounded-[22px] border border-border/70 bg-background/55 px-4 py-6 text-sm text-muted-foreground">
               Building the cycle progression preview...
@@ -207,8 +203,10 @@ export function CompleteCycleDialog({ program }: CompleteCycleDialogProps) {
             </div>
           ) : previewRows.length === 0 ? (
             <div className="rounded-[22px] border border-border/70 bg-background/55 px-4 py-6 text-sm text-muted-foreground">
-              {usesTrainingMax
-                ? 'No training max changes are queued for the next cycle. Completing the cycle will still close the current block and create the next one.'
+              {usesTrainingMax && missingInputNames.length > 0
+                ? `${requiredInputCopy.missingActionMessage} ${missingInputNames.join(', ')} before this checkpoint can suggest next-cycle changes.`
+                : usesTrainingMax
+                  ? 'No training max changes are queued for the next cycle. Completing the cycle will still close the current block and create the next one.'
                 : 'No training max changes are queued here. Completing the cycle will still close the current block and create the next one while broader review stays outside this checkpoint for now.'}
             </div>
           ) : (

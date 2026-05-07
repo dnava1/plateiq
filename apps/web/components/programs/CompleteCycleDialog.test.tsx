@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CompleteCycleDialog } from './CompleteCycleDialog'
 
 const clearSessionMock = vi.fn()
@@ -34,6 +34,12 @@ vi.mock('sonner', () => ({
 }))
 
 describe('CompleteCycleDialog', () => {
+  beforeEach(() => {
+    clearSessionMock.mockReset()
+    mutateMock.mockReset()
+    useCycleCompletionPreviewMock.mockReset()
+  })
+
   it.each([
     {
       currentTmLbs: 300,
@@ -54,6 +60,8 @@ describe('CompleteCycleDialog', () => {
   ])('renders the preview rows for the next cycle', async ({ currentTmLbs, incrementLbs, newTmLbs, reason, expectedBadge, expectedNextTmValue }) => {
     useCycleCompletionPreviewMock.mockReturnValue({
       activeCycle: { id: 7, cycle_number: 4 },
+      inputMode: 'tm',
+      missingInputNames: [],
       previewRows: [
         {
           exerciseId: 1,
@@ -94,11 +102,14 @@ describe('CompleteCycleDialog', () => {
     expect(screen.getAllByText(expectedBadge)).toHaveLength(2)
     expect(screen.getByLabelText(/next cycle tm \(lbs\)/i)).toHaveValue(expectedNextTmValue)
     expect(screen.getByText(reason)).toBeInTheDocument()
+    expect(screen.queryByText(/The suggestion follows the saved progression rule/i)).not.toBeInTheDocument()
   })
 
   it('reframes non-TM programs as the current cycle checkpoint instead of a TM review surface', async () => {
     useCycleCompletionPreviewMock.mockReturnValue({
       activeCycle: { id: 7, cycle_number: 4 },
+      inputMode: 'none',
+      missingInputNames: [],
       previewRows: [],
       isLoading: false,
     })
@@ -131,6 +142,8 @@ describe('CompleteCycleDialog', () => {
   it('lets the user override the suggested next-cycle training max before completing the cycle', async () => {
     useCycleCompletionPreviewMock.mockReturnValue({
       activeCycle: { id: 7, cycle_number: 4 },
+      inputMode: 'tm',
+      missingInputNames: [],
       previewRows: [
         {
           exerciseId: 1,
@@ -175,5 +188,37 @@ describe('CompleteCycleDialog', () => {
       }),
       expect.any(Object),
     )
+  })
+
+  it('shows the missing lifts when a TM-backed checkpoint has no progression preview yet', async () => {
+    useCycleCompletionPreviewMock.mockReturnValue({
+      activeCycle: { id: 7, cycle_number: 4 },
+      inputMode: 'tm',
+      missingInputNames: ['Squat', 'Bench Press', 'Overhead Press', 'Deadlift'],
+      previewRows: [],
+      isLoading: false,
+    })
+
+    const user = userEvent.setup()
+
+    render(
+      <CompleteCycleDialog
+        program={{
+          id: 12,
+          user_id: 'user-1',
+          name: '5/3/1',
+          template_key: 'wendler_531',
+          config: { variation_key: 'bbb', rounding: 5, tm_percentage: 0.9 },
+          is_active: true,
+          start_date: '2026-04-10',
+          created_at: null,
+          updated_at: null,
+        }}
+      />,
+    )
+
+    await user.click(screen.getAllByRole('button', { name: /cycle checkpoint/i })[0])
+
+    expect(screen.getByText(/Set current training maxes for Squat, Bench Press, Overhead Press, Deadlift before this checkpoint can suggest next-cycle changes\./i)).toBeInTheDocument()
   })
 })

@@ -1,12 +1,17 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm, Controller, type FieldErrors, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createProgramSchema, type CreateProgramInput } from '@/lib/validations/program'
+import { useExercises } from '@/hooks/useExercises'
 import { useCreateProgram } from '@/hooks/usePrograms'
+import { useCurrentTrainingMaxes } from '@/hooks/useTrainingMaxes'
 import { getTemplate } from '@/lib/constants/templates'
+import { TrainingMaxPanel } from '@/components/exercises/TrainingMaxPanel'
+import { buildEditableConfigFromTemplate } from '@/lib/programs/editable'
+import { resolveExecutionInputRequirements, resolveRequiredInputCopy } from '@/lib/programs/inputRequirements'
 import { formatDaysPerWeek, formatWeekCycle } from '@/lib/utils'
 import { TemplatePicker } from './TemplatePicker'
 import { VariationSelector } from './VariationSelector'
@@ -54,6 +59,8 @@ const TM_PERCENTAGE_OPTIONS = [
 export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps) {
   const router = useRouter()
   const createProgram = useCreateProgram()
+  const { data: exercises = [], isLoading: areExercisesLoading } = useExercises()
+  const { data: trainingMaxes = [], isLoading: areTrainingMaxesLoading } = useCurrentTrainingMaxes()
   const selectedTemplateRef = useRef<HTMLDivElement | null>(null)
   const shouldFocusSelectedTemplateRef = useRef(false)
 
@@ -72,7 +79,32 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
   })
 
   const templateKey = useWatch({ control, name: 'template_key' })
+  const variationKey = useWatch({ control, name: 'variation_key' })
+  const tmPercentage = useWatch({ control, name: 'tm_percentage' })
   const template = templateKey ? getTemplate(templateKey) : null
+  const selectedTemplateDefinition = useMemo(
+    () => template
+      ? buildEditableConfigFromTemplate(template, {
+          variationKey: variationKey ?? null,
+          tmPercentage: typeof tmPercentage === 'number' ? tmPercentage : null,
+        })
+      : null,
+    [template, tmPercentage, variationKey],
+  )
+  const maxInputRequirements = useMemo(
+    () => selectedTemplateDefinition
+      ? resolveExecutionInputRequirements(selectedTemplateDefinition, exercises, trainingMaxes)
+      : null,
+    [exercises, selectedTemplateDefinition, trainingMaxes],
+  )
+  const requiresMaxInputs = (maxInputRequirements?.inputMode ?? 'none') !== 'none'
+  const requiredInputCopy = resolveRequiredInputCopy(maxInputRequirements?.inputMode ?? 'tm')
+  const missingMaxInputNames = maxInputRequirements?.missingExerciseNames ?? []
+  const isMaxInputStateLoading = requiresMaxInputs && (areExercisesLoading || areTrainingMaxesLoading)
+  const isCreateDisabled = !templateKey
+    || createProgram.isPending
+    || isMaxInputStateLoading
+    || (requiresMaxInputs && missingMaxInputNames.length > 0)
 
   useEffect(() => {
     if (!open || !template || !shouldFocusSelectedTemplateRef.current) {
@@ -100,6 +132,16 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
   }
 
   const onSubmit = (data: CreateProgramInput) => {
+    if (isMaxInputStateLoading) {
+      toast.error(requiredInputCopy.toastLoadingMessage)
+      return
+    }
+
+    if (requiresMaxInputs && missingMaxInputNames.length > 0) {
+      toast.error(`${requiredInputCopy.toastMissingActionMessage} ${missingMaxInputNames.join(', ')} before you create this program.`)
+      return
+    }
+
     createProgram.mutate(data, {
       onSuccess: () => {
         toast.success(`Program "${data.name}" created!`)
@@ -163,7 +205,7 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
           <div className="flex flex-col gap-1.5">
             <DialogTitle>Start a Program</DialogTitle>
             <DialogDescription>
-              Pick a template and adjust its setup, or open the builder once and choose training-max behavior inside the flow only if the program actually needs it.
+              Pick a template and adjust its setup here. If the program depends on training maxes or estimated 1RMs, set those inputs before you create it.
             </DialogDescription>
           </div>
         </DialogHeader>
@@ -268,6 +310,29 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
                     ) : null}
                   </div>
                 ) : null}
+
+                {requiresMaxInputs && maxInputRequirements ? (
+                  <div className="flex flex-col gap-3">
+                    <TrainingMaxPanel
+                      title={requiredInputCopy.title}
+                      description={requiredInputCopy.description}
+                      badgeLabel={requiredInputCopy.badgeLabel}
+                      emptyStateHint={requiredInputCopy.emptyStateHint}
+                      inputMode={maxInputRequirements.inputMode}
+                      targetExerciseIds={maxInputRequirements.targetExerciseIds}
+                      targetExerciseKeys={maxInputRequirements.targetExerciseKeys}
+                    />
+                    <div className="rounded-[24px] border border-border/70 bg-card/82 p-4 text-sm text-muted-foreground shadow-sm">
+                      {isMaxInputStateLoading ? (
+                        <p>{requiredInputCopy.loadingMessage}</p>
+                      ) : missingMaxInputNames.length > 0 ? (
+                        <p>{requiredInputCopy.missingActionMessage} {missingMaxInputNames.join(', ')} before you create this program.</p>
+                      ) : (
+                        <p>{requiredInputCopy.readyMessage}</p>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : null}
@@ -292,7 +357,7 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
             </Button>
             <Button
               type="submit"
-              disabled={!templateKey || createProgram.isPending}
+              disabled={isCreateDisabled}
               className="h-auto min-h-9 whitespace-normal text-center"
             >
               {createProgram.isPending ? 'Creating...' : 'Create Program'}
