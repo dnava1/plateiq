@@ -18,7 +18,7 @@ export function ChartTooltipContent({ id, label, rows }: ChartTooltipContentProp
   }
 
   return (
-    <div id={id} role="tooltip" className="pointer-events-none min-w-44 rounded-[18px] border border-border/70 bg-background/95 px-3 py-2 shadow-[0_16px_40px_-18px_rgba(15,23,42,0.5)] backdrop-blur-sm">
+    <div id={id} role="tooltip" className="shadow-app-tooltip pointer-events-none min-w-44 rounded-[18px] border border-border/70 bg-background/95 px-3 py-2 backdrop-blur-sm">
       <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
       <div className="mt-2 flex flex-col gap-1.5">
         {rows.map((row) => (

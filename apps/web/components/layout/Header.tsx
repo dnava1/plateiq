@@ -28,7 +28,7 @@ export function Header() {
   return (
     <header className="pt-safe-header relative z-50 md:sticky md:top-0 md:pt-4">
       <div className="app-shell">
-        <div className="flex w-full items-center gap-2 rounded-[22px] border border-border/70 bg-background/72 px-2.5 py-1.5 shadow-[0_20px_60px_-38px_rgba(0,0,0,0.8)] backdrop-blur-xl sm:gap-3 sm:px-4 md:rounded-[28px] md:px-3 md:py-3">
+        <div className="shadow-app-overlay flex w-full items-center gap-2 rounded-[22px] border border-border/70 bg-background/72 px-2.5 py-1.5 backdrop-blur-xl sm:gap-3 sm:px-4 md:rounded-[28px] md:px-3 md:py-3">
           <Link
             href="/dashboard"
             prefetch={false}

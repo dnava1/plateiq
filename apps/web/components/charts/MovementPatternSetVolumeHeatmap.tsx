@@ -135,7 +135,7 @@ export function MovementPatternSetVolumeHeatmap({
       tabIndex={0}
     >
       <div className="grid gap-1.5" style={{ gridTemplateColumns, minWidth }}>
-        <div className="sticky left-0 z-10 bg-card/95 shadow-[12px_0_18px_-18px_rgba(15,23,42,0.7)]" />
+        <div className="shadow-app-edge sticky left-0 z-10 bg-card/95" />
         {weekStarts.map((weekStart) => (
           <div key={weekStart} className="text-center text-[10px] leading-4 text-muted-foreground">
             {formatShortDate(weekStart)}
@@ -144,7 +144,7 @@ export function MovementPatternSetVolumeHeatmap({
 
         {movementPatterns.map((movementPattern) => (
           <div key={movementPattern} className="contents">
-            <div className="sticky left-0 z-10 flex min-h-10 items-center bg-card/95 pr-3 text-xs font-medium text-foreground shadow-[12px_0_18px_-18px_rgba(15,23,42,0.7)]">
+            <div className="shadow-app-edge sticky left-0 z-10 flex min-h-10 items-center bg-card/95 pr-3 text-xs font-medium text-foreground">
               {formatMovementPattern(movementPattern)}
             </div>
             {weekStarts.map((weekStart) => {

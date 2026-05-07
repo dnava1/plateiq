@@ -272,7 +272,7 @@ export function PwaSupport() {
     >
       <section
         aria-label="Install PlateIQ"
-        className="pointer-events-auto w-full max-w-md rounded-[28px] border border-border/70 bg-background/96 p-4 shadow-[0_24px_80px_-36px_rgba(0,0,0,0.82)] backdrop-blur-xl"
+        className="shadow-app-overlay pointer-events-auto w-full max-w-md rounded-[28px] border border-border/70 bg-background/96 p-4 backdrop-blur-xl"
       >
         <div className="flex items-start gap-3">
           <div className="mt-0.5 flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary ring-1 ring-primary/20">

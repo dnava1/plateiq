@@ -18,7 +18,7 @@ export function MobileNav() {
   return (
     <nav aria-label="App tabs" className="pb-safe-nav fixed inset-x-0 bottom-0 z-50 md:hidden">
       <div className="app-shell">
-        <div className="grid w-full grid-cols-5 gap-1 rounded-[24px] border border-border/70 bg-background/78 p-1.5 shadow-[0_24px_70px_-34px_rgba(0,0,0,0.92)] backdrop-blur-xl">
+        <div className="shadow-app-overlay grid w-full grid-cols-5 gap-1 rounded-[24px] border border-border/70 bg-background/78 p-1.5 backdrop-blur-xl">
           {APP_NAV_ITEMS.map(({ href, label, icon: Icon }) => {
             const isActive = isActiveNavPath(pathname, href)
             return (

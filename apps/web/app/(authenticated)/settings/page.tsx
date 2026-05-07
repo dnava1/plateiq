@@ -651,7 +651,7 @@ export default function SettingsPage() {
 
         <FeedbackCard />
 
-        <Card className="border-destructive/20 bg-destructive/5 shadow-[0_24px_80px_-42px_rgba(0,0,0,0.85)]">
+        <Card className="shadow-app-surface border-destructive/20 bg-destructive/5">
           <CardHeader>
             <CardTitle>{isGuest ? 'End Guest Session' : 'Danger Zone'}</CardTitle>
             <CardDescription>
