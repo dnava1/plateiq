@@ -256,7 +256,7 @@ function ScratchBuilderLink({ href, title, description, icon: Icon, onOpenChange
     <Link
       href={href}
       onClick={() => onOpenChange?.(false)}
-      className="card-hover w-full rounded-[24px] border border-dashed border-border/80 bg-card/70 p-5 text-left hover:border-primary/40 hover:bg-primary/5"
+      className="card-hover block w-full rounded-[24px] border border-dashed border-border/80 bg-card/70 p-5 text-left hover:border-primary/40 hover:bg-primary/5"
     >
       <div className="flex items-center gap-3">
         <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">

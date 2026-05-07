@@ -120,8 +120,8 @@ describe('SetRow', () => {
 
     expect(screen.getByText('Squat')).toBeInTheDocument()
     expect(screen.getByText(/225 lbs × 5 reps/i)).toBeInTheDocument()
-    expect(screen.getByText('Main work')).toBeInTheDocument()
-    expect(screen.getByText('Standard')).toBeInTheDocument()
+    expect(screen.queryByText('Main work')).not.toBeInTheDocument()
+    expect(screen.queryByText('Standard')).not.toBeInTheDocument()
   })
 
   it('renders backoff work distinctly from generic variation work', () => {

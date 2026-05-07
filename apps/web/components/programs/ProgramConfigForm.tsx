@@ -272,8 +272,13 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
             </div>
           ) : null}
 
-          <div className="flex gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} className="flex-1">
+          <div className="grid gap-2 pt-2 sm:grid-cols-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleOpenChange(false)}
+              className="h-auto min-h-9 whitespace-normal text-center"
+            >
               Cancel
             </Button>
             <Button
@@ -281,14 +286,14 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
               variant="outline"
               onClick={handleCustomizeInBuilder}
               disabled={!templateKey}
-              className="flex-1"
+              className="h-auto min-h-9 whitespace-normal text-center"
             >
               Customize in Builder
             </Button>
             <Button
               type="submit"
               disabled={!templateKey || createProgram.isPending}
-              className="flex-1"
+              className="h-auto min-h-9 whitespace-normal text-center"
             >
               {createProgram.isPending ? 'Creating...' : 'Create Program'}
             </Button>

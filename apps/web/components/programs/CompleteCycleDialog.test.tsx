@@ -41,7 +41,7 @@ describe('CompleteCycleDialog', () => {
       newTmLbs: 310,
       reason: 'Cycle completion applies one base increment for the next block.',
       expectedBadge: '+10 lbs',
-      expectedNextTm: '310 lbs',
+      expectedNextTmValue: 310,
     },
     {
       currentTmLbs: 300,
@@ -49,9 +49,9 @@ describe('CompleteCycleDialog', () => {
       newTmLbs: 300,
       reason: 'Best AMRAP performance missed the target by 2 reps, so the training max holds for the next cycle while you decide whether to deload manually.',
       expectedBadge: 'Hold',
-      expectedNextTm: '300 lbs',
+      expectedNextTmValue: 300,
     },
-  ])('renders the preview rows for the next cycle', async ({ currentTmLbs, incrementLbs, newTmLbs, reason, expectedBadge, expectedNextTm }) => {
+  ])('renders the preview rows for the next cycle', async ({ currentTmLbs, incrementLbs, newTmLbs, reason, expectedBadge, expectedNextTmValue }) => {
     useCycleCompletionPreviewMock.mockReturnValue({
       activeCycle: { id: 7, cycle_number: 4 },
       previewRows: [
@@ -92,7 +92,7 @@ describe('CompleteCycleDialog', () => {
     expect(screen.getByText('Current TM')).toBeInTheDocument()
     expect(screen.getAllByText('300 lbs').length).toBeGreaterThan(0)
     expect(screen.getAllByText(expectedBadge)).toHaveLength(2)
-    expect(screen.getAllByText(expectedNextTm).length).toBeGreaterThan(0)
+    expect(screen.getByLabelText(/next cycle tm \(lbs\)/i)).toHaveValue(expectedNextTmValue)
     expect(screen.getByText(reason)).toBeInTheDocument()
   })
 
@@ -126,5 +126,54 @@ describe('CompleteCycleDialog', () => {
     expect(screen.getByRole('heading', { name: 'Cycle Checkpoint' })).toBeInTheDocument()
     expect(screen.getByText(/This is the current TM-first checkpoint for rolling the block forward/i)).toBeInTheDocument()
     expect(screen.getByText(/Training max is not the organizing model for this program/i)).toBeInTheDocument()
+  })
+
+  it('lets the user override the suggested next-cycle training max before completing the cycle', async () => {
+    useCycleCompletionPreviewMock.mockReturnValue({
+      activeCycle: { id: 7, cycle_number: 4 },
+      previewRows: [
+        {
+          exerciseId: 1,
+          exerciseKey: 'squat',
+          exerciseName: 'Squat',
+          currentTmLbs: 300,
+          incrementLbs: 10,
+          newTmLbs: 310,
+          reason: 'Cycle completion applies one base increment for the next block.',
+        },
+      ],
+      isLoading: false,
+    })
+
+    const user = userEvent.setup()
+
+    render(
+      <CompleteCycleDialog
+        program={{
+          id: 12,
+          user_id: 'user-1',
+          name: '5/3/1',
+          template_key: 'wendler_531',
+          config: { variation_key: 'bbb', rounding: 5, tm_percentage: 0.9 },
+          is_active: true,
+          start_date: '2026-04-10',
+          created_at: null,
+          updated_at: null,
+        }}
+      />,
+    )
+
+    await user.click(screen.getAllByRole('button', { name: /cycle checkpoint/i })[0])
+    await user.clear(screen.getByLabelText(/next cycle tm \(lbs\)/i))
+    await user.type(screen.getByLabelText(/next cycle tm \(lbs\)/i), '290')
+    await user.click(screen.getByRole('button', { name: /complete cycle/i }))
+
+    expect(mutateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cycleId: 7,
+        progression: [{ exercise_id: 1, increment_lbs: -10 }],
+      }),
+      expect.any(Object),
+    )
   })
 })

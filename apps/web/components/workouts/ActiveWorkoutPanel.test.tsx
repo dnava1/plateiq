@@ -377,15 +377,16 @@ describe('ActiveWorkoutPanel', () => {
 
     expect(screen.getByText('Chin-Up round 1 of 2')).toBeInTheDocument()
     expect(screen.getAllByText('Accessory').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Standard').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Standard')).not.toBeInTheDocument()
     expect(screen.queryByText('Workout 1 of 4 sets logged. 3 sets left.')).not.toBeInTheDocument()
     expect(screen.queryByText('Execution cue')).not.toBeInTheDocument()
     expect(screen.queryByText('Superset step 2 of 2 in Press + Pull. 1 of 4 grouped sets logged.')).not.toBeInTheDocument()
     expect(screen.queryByText('After this, go back to Overhead Press for round 2.')).not.toBeInTheDocument()
-    expect(screen.getByText('Last completed session')).toBeInTheDocument()
+    expect(screen.getByText('Last session')).toBeInTheDocument()
+    expect(screen.queryByText('Last completed session')).not.toBeInTheDocument()
     expect(screen.getByText('Week 1 · Upper A · Apr 15, 2026')).toBeInTheDocument()
     expect(screen.getByText('25 lbs × 12 reps')).toBeInTheDocument()
-
+    expect(screen.queryByText('0/2 blocks')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /back to workouts/i }))
 
     expect(mocks.exitActiveWorkout).toHaveBeenCalledTimes(1)
@@ -480,6 +481,30 @@ describe('ActiveWorkoutPanel', () => {
       workoutId: 44,
     })
   }, 10000)
+
+  it('keeps the rest timer copy but hides the completed-rest badge when rest has elapsed', () => {
+    mocks.sessionState.restTimer = {
+      durationSeconds: 90,
+      endsAt: Date.now() - 1000,
+      label: 'Chin-Up',
+      sourceSetOrder: 3,
+      workoutId: 44,
+    } as never
+
+    render(
+      <ActiveWorkoutPanel
+        program={{
+          config: null,
+          id: 1,
+          name: 'Test Program',
+          template_key: 'test-program',
+        } as never}
+      />,
+    )
+
+    expect(screen.queryByText('Rest complete')).not.toBeInTheDocument()
+    expect(screen.getByText('Rest is complete. Start the next set when you are ready.')).toBeInTheDocument()
+  })
 
   it('updates the remaining workout-only percentage for an in-progress block', async () => {
     const user = userEvent.setup()

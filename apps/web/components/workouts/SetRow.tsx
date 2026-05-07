@@ -14,7 +14,6 @@ import { Button } from '@/components/ui/button'
 import { SetEntry } from './SetEntry'
 import {
   estimateOneRepMax,
-  formatBlockRoleLabel,
   formatDurationClock,
   formatRepTarget,
   formatSetTypeLabel,
@@ -23,6 +22,7 @@ import {
   isDropDisplayType,
   isEstimatedOneRepMaxPr,
   isQuickLoggableSet,
+  shouldShowSetTypeBadge,
   type WorkoutDisplaySet,
 } from './types'
 
@@ -121,6 +121,7 @@ export function SetRow({
   const recommendedRestSeconds = getRecommendedRestSeconds(set)
   const supportsQuickLogging = isQuickLoggableSet(set)
   const setTypeLabel = formatSetTypeLabel(set.set_type, set.display_type, set.is_amrap)
+  const showSetTypeBadge = shouldShowSetTypeBadge(set.set_type, set.display_type, set.is_amrap)
   const plannedWeightLabel = formatWeight(set.prescribedWeightLbs, preferredUnit, weightRoundingLbs)
   const loggedWeightLabel = formatWeight(set.weight_lbs, preferredUnit, weightRoundingLbs)
   const roundedPlannedWeight = roundWeightForDisplay(set.prescribedWeightLbs, weightRoundingLbs)
@@ -257,16 +258,17 @@ export function SetRow({
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium text-foreground">Set {set.set_order}</span>
-            <Badge variant="outline">{formatBlockRoleLabel(set.block_role)}</Badge>
-            <Badge
-              variant={set.is_amrap ? 'default' : 'outline'}
-              className={cn(
-                isBackoffSet ? 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200' : null,
-                isDropSet ? 'border-rose-500/40 bg-rose-500/10 text-rose-900 dark:text-rose-200' : null,
-              )}
-            >
-              {setTypeLabel}
-            </Badge>
+            {showSetTypeBadge ? (
+              <Badge
+                variant={set.is_amrap ? 'default' : 'outline'}
+                className={cn(
+                  isBackoffSet ? 'border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200' : null,
+                  isDropSet ? 'border-rose-500/40 bg-rose-500/10 text-rose-900 dark:text-rose-200' : null,
+                )}
+              >
+                {setTypeLabel}
+              </Badge>
+            ) : null}
             {syncLabel ? <Badge variant="outline">{syncLabel}</Badge> : null}
           </div>
           <div className="flex flex-col gap-1">

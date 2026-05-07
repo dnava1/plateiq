@@ -102,6 +102,8 @@ export function ProgramCard({ program }: ProgramCardProps) {
   const trainingMaxTargets = programDefinition
     ? resolveTrainingMaxTargetScope(programDefinition)
     : { exerciseIds: [], exerciseKeys: [] }
+  const actionRowClassName = 'flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:justify-end'
+  const actionButtonClassName = 'h-auto min-h-7 w-full whitespace-normal text-center sm:w-auto'
 
   const handleSetActive = () => {
     setActive.mutate(program.id, {
@@ -156,26 +158,42 @@ export function ProgramCard({ program }: ProgramCardProps) {
         </CardHeader>
 
         {program.is_active ? (
-          <CardFooter className="justify-end gap-2">
+          <CardFooter className={actionRowClassName}>
             {canManageTrainingMaxes && (
-              <Button variant="outline" size="sm" onClick={() => setShowTrainingMaxes((current) => !current)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowTrainingMaxes((current) => !current)}
+                className={actionButtonClassName}
+              >
                 {showTrainingMaxes ? 'Hide Training Maxes' : 'Training Maxes'}
               </Button>
             )}
-            <Link href={editHref} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+            <Link
+              href={editHref}
+              className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), actionButtonClassName)}
+            >
               <PencilLine data-icon="inline-start" />
               Edit
             </Link>
             <CompleteCycleDialog program={program} />
           </CardFooter>
         ) : (
-          <CardFooter className="justify-end gap-2">
+          <CardFooter className={actionRowClassName}>
             {canManageTrainingMaxes && (
-              <Button variant="outline" size="sm" onClick={() => setShowTrainingMaxes((current) => !current)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowTrainingMaxes((current) => !current)}
+                className={actionButtonClassName}
+              >
                 {showTrainingMaxes ? 'Hide Training Maxes' : 'Training Maxes'}
               </Button>
             )}
-            <Link href={editHref} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+            <Link
+              href={editHref}
+              className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), actionButtonClassName)}
+            >
               <PencilLine data-icon="inline-start" />
               Edit
             </Link>
@@ -184,6 +202,7 @@ export function ProgramCard({ program }: ProgramCardProps) {
               size="sm"
               onClick={handleSetActive}
               disabled={setActive.isPending}
+              className={actionButtonClassName}
             >
               {setActive.isPending ? 'Setting…' : 'Set Active'}
             </Button>
@@ -192,6 +211,7 @@ export function ProgramCard({ program }: ProgramCardProps) {
               size="sm"
               onClick={() => setDeleteOpen(true)}
               disabled={deleteProgram.isPending}
+              className={actionButtonClassName}
             >
               <Trash2 data-icon="inline-start" />
               Delete

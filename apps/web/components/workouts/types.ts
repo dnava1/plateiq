@@ -192,6 +192,14 @@ export function formatSetTypeLabel(
   }
 }
 
+export function shouldShowSetTypeBadge(
+  setType: WorkoutDisplaySet['set_type'],
+  displayType?: WorkoutDisplaySet['display_type'],
+  isAmrap?: boolean,
+) {
+  return formatSetTypeLabel(setType, displayType, isAmrap) !== 'Standard'
+}
+
 export function formatBlockRoleLabel(role: WorkoutDisplaySet['block_role']) {
   switch (role) {
     case 'primary':

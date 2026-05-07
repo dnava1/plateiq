@@ -51,6 +51,7 @@ import {
   hasRemainingPendingWork,
   isBackoffDisplayType,
   isDropDisplayType,
+  shouldShowSetTypeBadge,
   shouldAutoStartRestTimer,
   type WorkoutDisplayBlock,
   type WorkoutDisplaySet,
@@ -293,6 +294,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
   )
   const executionCue = useMemo(() => buildWorkoutExecutionCue(execution), [execution])
   const nextSetTypeLabel = nextSet ? formatSetTypeLabel(nextSet.set_type, nextSet.display_type, nextSet.is_amrap) : null
+  const showNextSetTypeBadge = nextSet ? shouldShowSetTypeBadge(nextSet.set_type, nextSet.display_type, nextSet.is_amrap) : false
   const nextSetIsBackoff = nextSet ? isBackoffDisplayType(nextSet.display_type) : false
   const nextSetIsDrop = nextSet ? isDropDisplayType(nextSet.display_type) : false
   const nextBlockRoleLabel = nextBlock ? formatBlockRoleLabel(nextBlock.role) : null
@@ -613,9 +615,6 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
                 <CardTitle className="text-xl">{selectedDay.label}</CardTitle>
                 <Badge>Week {effectiveWeekNumber}</Badge>
                 {fallbackCycle ? <Badge variant="outline">Cycle {fallbackCycle.cycle_number}</Badge> : null}
-                <Badge variant="outline">
-                  {execution.completedBlocks}/{execution.totalBlocks} blocks
-                </Badge>
               </div>
             </div>
             <Button type="button" size="sm" variant="ghost" onClick={exitActiveWorkout}>
@@ -632,7 +631,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
             <div className="flex flex-wrap items-center gap-2">
               <Badge>Next up</Badge>
               {nextBlockRoleLabel ? <Badge variant="outline">{nextBlockRoleLabel}</Badge> : null}
-              {nextSetTypeLabel ? (
+              {nextSetTypeLabel && showNextSetTypeBadge ? (
                 <Badge
                   variant={nextSet.is_amrap ? 'default' : 'outline'}
                   className={cn(
@@ -645,7 +644,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
               ) : null}
               {nextGroup && nextGroup.kind !== 'single' ? <Badge variant="secondary">{nextGroup.label}</Badge> : null}
               {executionCue?.roundLabel ? <Badge variant="outline">{executionCue.roundLabel}</Badge> : null}
-              {isRestTimerForCurrentWorkout ? <Badge variant={isRestComplete ? 'secondary' : 'outline'}>{isRestComplete ? 'Rest complete' : 'Resting'}</Badge> : null}
+              {isRestTimerForCurrentWorkout && !isRestComplete ? <Badge variant="outline">Resting</Badge> : null}
             </div>
             <div className="flex flex-col gap-1">
               <CardTitle className="text-xl">{executionCue?.currentSetLabel ?? nextSet.exerciseName}</CardTitle>
@@ -721,8 +720,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
               <div className="rounded-[22px] border border-border/70 bg-background/70 p-4">
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Exercise context</span>
-                    <p className="text-sm font-medium text-foreground">{nextSet.exerciseName}</p>
+                    <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Last session</span>
                   </div>
 
                   {exerciseContext.isLoading ? (
@@ -731,8 +729,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
                     <p className="text-sm text-muted-foreground">Exercise mapping is required before context can load.</p>
                   ) : currentRecentSession ? (
                     <div className="rounded-xl border border-border/70 bg-background/70 p-3">
-                      <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Last completed session</p>
-                      {recentSessionLabel ? <p className="mt-1 text-sm font-medium text-foreground">{recentSessionLabel}</p> : null}
+                      {recentSessionLabel ? <p className="text-sm font-medium text-foreground">{recentSessionLabel}</p> : null}
                       <p className="text-sm text-muted-foreground">
                         {formatWeight(currentRecentSession.referenceSet.weightLbs, preferredUnit, rounding)} × {currentRecentSession.referenceSet.repsActual} reps
                       </p>

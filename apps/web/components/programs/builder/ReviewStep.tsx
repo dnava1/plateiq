@@ -464,11 +464,15 @@ export function ReviewStep() {
         </div>
       ) : null}
 
-      <div className="flex gap-2">
-        <Button variant="outline" onClick={() => setStep('progression')} className="flex-1">
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Button
+          variant="outline"
+          onClick={() => setStep('progression')}
+          className="flex-1 whitespace-normal text-center"
+        >
           Back
         </Button>
-        <Button onClick={handleSubmit} disabled={isSaveDisabled} className="flex-1">
+        <Button onClick={handleSubmit} disabled={isSaveDisabled} className="flex-1 whitespace-normal text-center">
           {isPending
             ? saveStrategy === 'update'
               ? 'Saving...'
