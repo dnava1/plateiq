@@ -166,7 +166,8 @@
     @apply text-foreground;
     isolation: isolate;
     min-height: 100dvh;
-    background: var(--app-background-canvas);
+    background-color: var(--app-bottom-edge-color);
+    background-image: var(--app-background-canvas);
     overscroll-behavior-y: none;
     position: relative;
   }
@@ -176,7 +177,8 @@
     position: fixed;
     inset: 0;
     z-index: -1;
-    background: var(--app-background-canvas);
+    background-color: var(--app-bottom-edge-color);
+    background-image: var(--app-background-canvas);
     transform: translateZ(0);
   }
   body::after {
@@ -193,7 +195,8 @@
   html {
     @apply font-sans antialiased;
     min-height: 100%;
-    background: var(--app-background-canvas);
+    background-color: var(--app-bottom-edge-color);
+    background-image: var(--app-background-canvas);
     overscroll-behavior-y: none;
     transition: background-color 0.15s ease, color 0.15s ease;
   }
@@ -228,7 +231,10 @@
   }
   .pwa-launch-shell {
     @apply fixed inset-0 grid w-full place-items-center px-4 py-8;
-    background: var(--app-background-canvas);
+    background-color: var(--app-bottom-edge-color);
+    background-image: var(--app-background-canvas);
+    box-shadow: 0 24vh 0 24vh var(--app-bottom-edge-color);
+    isolation: isolate;
     overflow: hidden;
   }
   .pwa-launch-shell[data-status='launching'] .pwa-launch-card {

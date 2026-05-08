@@ -48,7 +48,7 @@ function ThemeSync() {
     const applyDark = (dark: boolean) => {
       root.classList.toggle('dark', dark)
       root.style.colorScheme = dark ? 'dark' : 'light'
-      root.style.backgroundColor = dark ? '#06070a' : '#fafafc'
+      root.style.backgroundColor = dark ? '#26262b' : '#f0f0f3'
       const themeColor = getComputedStyle(root).getPropertyValue('--pwa-theme-color').trim()
 
       document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((meta) => {

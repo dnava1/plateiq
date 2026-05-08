@@ -19,6 +19,68 @@ const geistMono = Geist_Mono({
   display: 'swap',
 })
 
+const APPLE_STARTUP_SCREENS = [
+  {
+    size: '750x1334',
+    media: '(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)',
+  },
+  {
+    size: '828x1792',
+    media: '(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)',
+  },
+  {
+    size: '1080x2340',
+    media: '(device-width: 360px) and (device-height: 780px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)',
+  },
+  {
+    size: '1125x2436',
+    media: '(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)',
+  },
+  {
+    size: '1170x2532',
+    media: '(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)',
+  },
+  {
+    size: '1179x2556',
+    media: '(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)',
+  },
+  {
+    size: '1206x2622',
+    media: '(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)',
+  },
+  {
+    size: '1242x2208',
+    media: '(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)',
+  },
+  {
+    size: '1242x2688',
+    media: '(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)',
+  },
+  {
+    size: '1284x2778',
+    media: '(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)',
+  },
+  {
+    size: '1290x2796',
+    media: '(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)',
+  },
+  {
+    size: '1320x2868',
+    media: '(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)',
+  },
+] as const
+
+const appleStartupImages = APPLE_STARTUP_SCREENS.flatMap(({ size, media }) => [
+  {
+    url: `/pwa/startup/apple-splash-${size}.png`,
+    media: `(prefers-color-scheme: light) and ${media}`,
+  },
+  {
+    url: `/pwa/startup/apple-splash-dark-${size}.png`,
+    media: `(prefers-color-scheme: dark) and ${media}`,
+  },
+])
+
 export const metadata: Metadata = {
   applicationName: 'PlateIQ',
   title: 'Strength Tracker | PlateIQ',
@@ -30,7 +92,8 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'black-translucent',
+    statusBarStyle: 'default',
+    startupImage: appleStartupImages,
     title: 'PlateIQ',
   },
   icons: {
@@ -123,7 +186,7 @@ export default async function RootLayout({
       className={`${manrope.variable} ${geistMono.variable} ${renderDarkTheme ? 'dark' : ''}`}
       suppressHydrationWarning
       style={{
-        backgroundColor: renderDarkTheme ? '#06070a' : renderLightTheme ? '#fafafc' : undefined,
+        backgroundColor: renderDarkTheme ? '#26262b' : renderLightTheme ? '#f0f0f3' : undefined,
         colorScheme: renderDarkTheme ? 'dark' : renderLightTheme ? 'light' : undefined,
       }}
     >
@@ -137,14 +200,6 @@ export default async function RootLayout({
                 background: #fafafc;
               }
 
-              @media (prefers-color-scheme: dark) {
-                html,
-                body {
-                  background: #06070a;
-                  color-scheme: dark;
-                }
-              }
-
               #plateiq-pwa-boot-splash {
                 position: fixed;
                 inset: 0;
@@ -155,6 +210,7 @@ export default async function RootLayout({
                 justify-content: center;
                 padding: 2rem 1rem;
                 background: #fafafc;
+                box-shadow: 0 24vh 0 24vh #f0f0f3;
                 overflow: hidden;
                 opacity: 0;
                 pointer-events: none;
@@ -270,49 +326,36 @@ export default async function RootLayout({
                 animation: plateiq-pwa-boot-spin 2.2s linear infinite;
               }
 
-              @media (prefers-color-scheme: dark) {
-                #plateiq-pwa-boot-splash {
-                  background: #06070a;
-                }
-
-                #plateiq-pwa-boot-splash .plateiq-pwa-boot-card {
-                  border-color: rgba(255, 255, 255, 0.09);
-                  background: rgba(19, 20, 24, 0.86);
-                  color: #f5f5f7;
-                  box-shadow: 0 20px 52px -24px rgba(0, 0, 0, 0.4), 0 8px 22px -12px rgba(0, 0, 0, 0.24);
-                }
-
-                #plateiq-pwa-boot-splash .plateiq-pwa-boot-mark-frame {
-                  border-color: rgba(255, 255, 255, 0.1);
-                  background: rgba(19, 20, 24, 0.8);
-                  box-shadow: 0 28px 80px -40px rgba(0, 0, 0, 0.85);
-                }
-
-                #plateiq-pwa-boot-splash .plateiq-pwa-boot-mark-glow {
-                  background: rgba(245, 132, 35, 0.12);
-                }
-
-                #plateiq-pwa-boot-splash .plateiq-pwa-boot-mark-sheen {
-                  border-color: rgba(255, 255, 255, 0.1);
-                  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05), transparent);
-                }
-
-                #plateiq-pwa-boot-splash .plateiq-pwa-boot-spinner {
-                  border-color: rgba(212, 212, 216, 0.24);
-                  border-top-color: rgba(212, 212, 216, 0.86);
-                }
-
-                #plateiq-pwa-boot-splash .plateiq-pwa-boot-logo--light {
-                  display: none;
-                }
-
-                #plateiq-pwa-boot-splash .plateiq-pwa-boot-logo--dark {
-                  display: block;
-                }
-              }
-
               html.dark #plateiq-pwa-boot-splash {
                 background: #06070a;
+                box-shadow: 0 24vh 0 24vh #26262b;
+              }
+
+              html.dark #plateiq-pwa-boot-splash .plateiq-pwa-boot-card {
+                border-color: rgba(255, 255, 255, 0.09);
+                background: rgba(19, 20, 24, 0.86);
+                color: #f5f5f7;
+                box-shadow: 0 20px 52px -24px rgba(0, 0, 0, 0.4), 0 8px 22px -12px rgba(0, 0, 0, 0.24);
+              }
+
+              html.dark #plateiq-pwa-boot-splash .plateiq-pwa-boot-mark-frame {
+                border-color: rgba(255, 255, 255, 0.1);
+                background: rgba(19, 20, 24, 0.8);
+                box-shadow: 0 28px 80px -40px rgba(0, 0, 0, 0.85);
+              }
+
+              html.dark #plateiq-pwa-boot-splash .plateiq-pwa-boot-mark-glow {
+                background: rgba(245, 132, 35, 0.12);
+              }
+
+              html.dark #plateiq-pwa-boot-splash .plateiq-pwa-boot-mark-sheen {
+                border-color: rgba(255, 255, 255, 0.1);
+                background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05), transparent);
+              }
+
+              html.dark #plateiq-pwa-boot-splash .plateiq-pwa-boot-spinner {
+                border-color: rgba(212, 212, 216, 0.24);
+                border-top-color: rgba(212, 212, 216, 0.86);
               }
 
               html[data-pwa-boot='active'] #plateiq-pwa-boot-splash,
@@ -385,7 +428,7 @@ export default async function RootLayout({
           id="plateiq-theme-init"
           suppressHydrationWarning
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var s=JSON.parse(localStorage.getItem('plateiq-ui'));var t=s&&s.state&&s.state.theme?s.state.theme:'system';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme:dark)').matches);document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'light';document.documentElement.style.backgroundColor=d?'#06070a':'#fafafc';}catch(e){document.documentElement.classList.add('dark');document.documentElement.style.colorScheme='dark';document.documentElement.style.backgroundColor='#06070a';}})();`,
+            __html: `(function(){try{var s=JSON.parse(localStorage.getItem('plateiq-ui'));var t=s&&s.state&&s.state.theme?s.state.theme:'system';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme:dark)').matches);document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'light';document.documentElement.style.backgroundColor=d?'#26262b':'#f0f0f3';}catch(e){var d=document.documentElement.classList.contains('dark');document.documentElement.style.colorScheme=d?'dark':'light';document.documentElement.style.backgroundColor=d?'#26262b':'#f0f0f3';}})();`,
           }}
         />
         <script
