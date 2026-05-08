@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'plateiq-shell-v6';
+const CACHE_VERSION = 'plateiq-shell-v7';
 const OFFLINE_URL = '/offline.html';
 const LAUNCH_URL = '/launch';
 const PRECACHE_URLS = [

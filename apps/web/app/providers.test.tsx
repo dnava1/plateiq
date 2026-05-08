@@ -182,6 +182,17 @@ describe('Providers', () => {
     expect(screen.queryByTestId('persist-provider')).not.toBeInTheDocument()
   })
 
+  it('syncs the saved theme preference into a cookie for server-side launch rendering', () => {
+    render(
+      <Providers>
+        <div>child content</div>
+      </Providers>,
+    )
+
+    expect(document.cookie).toContain('plateiq-theme=dark')
+    expect(document.documentElement.classList.contains('dark')).toBe(true)
+  })
+
   it('clears stale hinted query and offline state when auth resolves to a different user on first boot', async () => {
     mocks.cacheScopeHint = 'user-a'
     mocks.getSession.mockResolvedValue({

@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { CloudOff, LoaderCircle } from 'lucide-react'
+import { CloudOff } from 'lucide-react'
 import { sanitizeNextPath } from '@/lib/auth/auth-state'
 import { getSessionUserIdWithTimeout, getStoredAuthScopeHint } from '@/lib/auth/session-user'
+import { PlateIqMark } from '@/components/brand/PlateIqMark'
 import { getActiveWorkoutSnapshot, getOfflineWorkoutPack } from '@/lib/offline-workout-store'
 import { getPersistedQueryCacheMetadata, isPersistedQueryCacheMetadataFresh } from '@/lib/query-persistence'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface LaunchShellState {
   detail: string | null
@@ -20,26 +21,13 @@ interface PendingLaunchNavigation {
   requestId: number
 }
 
-function formatCachedSnapshotTime(value: string | null | undefined) {
-  if (!value) {
-    return null
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(value))
-}
-
 export function PwaLaunchShell() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [state, setState] = useState<LaunchShellState>({
     detail: null,
     status: 'launching',
-    title: 'Preparing PlateIQ',
+    title: 'PlateIQ',
   })
   const [pendingNavigation, setPendingNavigation] = useState<PendingLaunchNavigation | null>(null)
   const launchRequestIdRef = useRef(0)
@@ -78,9 +66,9 @@ export function PwaLaunchShell() {
 
       if (!isOfflineLaunch && sessionUserId) {
         setState({
-          detail: 'Restoring your saved data in the background.',
+          detail: null,
           status: 'launching',
-          title: 'Opening PlateIQ',
+          title: 'PlateIQ',
         })
 
         setPendingNavigation({
@@ -99,8 +87,6 @@ export function PwaLaunchShell() {
       if (!isActive) {
         return
       }
-
-      const formattedSnapshotTime = formatCachedSnapshotTime(cacheMetadata?.updatedAt)
       const hasFreshWarmSnapshot = isPersistedQueryCacheMetadataFresh(cacheMetadata)
       const hasOfflineWorkoutState = Boolean(activeWorkout || offlineWorkoutPack)
 
@@ -118,17 +104,9 @@ export function PwaLaunchShell() {
         : requestedPath
 
       setState({
-        detail: formattedSnapshotTime
-          ? `${cacheMetadata?.stale || !hasFreshWarmSnapshot ? 'Cached snapshot' : 'Warm snapshot'} updated ${formattedSnapshotTime}.`
-          : hasOfflineWorkoutState
-            ? 'Offline workout state is available on this device.'
-            : 'Opening your cached application shell.',
+        detail: null,
         status: 'launching',
-        title: isOfflineLaunch && hasOfflineWorkoutState && !hasFreshWarmSnapshot
-          ? 'Opening workout offline mode'
-          : isOfflineLaunch
-            ? 'Opening your cached shell'
-            : 'Opening PlateIQ',
+        title: 'PlateIQ',
       })
 
       setPendingNavigation({
@@ -175,29 +153,20 @@ export function PwaLaunchShell() {
   return (
     <div className="page-shell flex min-h-[calc(100dvh-7rem)] max-w-3xl items-center justify-center py-8 sm:py-12">
       <Card className="surface-panel w-full max-w-xl" role="status" aria-live="polite">
-        <CardHeader className="gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/12 text-primary">
-              {state.status === 'launching'
-                ? <LoaderCircle className="size-5 animate-spin motion-reduce:animate-none" />
-                : <CloudOff className="size-5" />}
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="eyebrow">PlateIQ</span>
-              <CardTitle className="text-xl">{state.title}</CardTitle>
-            </div>
+        <CardHeader className="w-full items-center gap-6 px-6 py-8 text-center sm:px-8 sm:py-10">
+          <div className="relative mx-auto grid size-28 place-items-center rounded-[36px] border border-border/70 bg-background/80 shadow-[0_28px_80px_-40px_rgba(15,23,42,0.45)] dark:shadow-[0_28px_80px_-40px_rgba(0,0,0,0.85)]">
+            <div className="absolute inset-3 rounded-[28px] bg-primary/8 blur-2xl dark:bg-primary/12" />
+            <div className="absolute inset-4 rounded-[28px] border border-white/65 bg-linear-to-b from-white/85 via-white/45 to-white/10 dark:border-white/10 dark:from-white/10 dark:via-white/5 dark:to-transparent" />
+            <PlateIqMark className="relative size-19 sm:size-20" />
           </div>
-          <CardDescription>
-            {state.detail ?? 'Loading your app shell and cached workout data.'}
-          </CardDescription>
+          <CardTitle className="mx-auto text-center text-3xl tracking-tight sm:text-[2.15rem]">{state.title}</CardTitle>
+          {state.status === 'offline-unavailable' && state.detail ? (
+            <CardDescription className="mx-auto flex max-w-md items-start gap-2 rounded-full border border-border/70 bg-muted/45 px-4 py-2 text-sm text-muted-foreground">
+              <CloudOff className="mt-0.5 size-4 shrink-0 text-foreground" />
+              <span>{state.detail}</span>
+            </CardDescription>
+          ) : null}
         </CardHeader>
-        <CardContent className="pt-0">
-          <div className="grid gap-3 sm:grid-cols-3" aria-hidden="true">
-            <div className="rounded-[20px] border border-border/70 bg-background/45 p-4" />
-            <div className="rounded-[20px] border border-border/70 bg-background/45 p-4" />
-            <div className="rounded-[20px] border border-border/70 bg-background/45 p-4" />
-          </div>
-        </CardContent>
       </Card>
     </div>
   )

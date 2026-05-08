@@ -97,7 +97,7 @@ describe('PwaLaunchShell', () => {
     render(<PwaLaunchShell />)
 
     await waitFor(() => {
-      expect(screen.getByText('Opening PlateIQ')).toBeInTheDocument()
+      expect(screen.getByText('PlateIQ')).toBeInTheDocument()
     })
 
     await waitFor(() => {

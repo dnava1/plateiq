@@ -44,9 +44,12 @@ function ThemeSync() {
 
   useEffect(() => {
     const root = document.documentElement
+    document.cookie = `plateiq-theme=${theme}; path=/; max-age=31536000; samesite=lax`
+
     const applyDark = (dark: boolean) => {
       root.classList.toggle('dark', dark)
       root.style.colorScheme = dark ? 'dark' : 'light'
+      root.style.backgroundColor = dark ? '#06070a' : '#fafafc'
       const themeColor = getComputedStyle(root).getPropertyValue('--pwa-theme-color').trim()
 
       document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((meta) => {
@@ -84,7 +87,7 @@ function WarmDataRestoreStatus({
   }
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-[calc(env(safe-area-inset-top)+0.75rem)] z-[60] flex justify-center px-4 md:justify-end md:px-6">
+    <div className="pointer-events-none fixed inset-x-0 top-[calc(env(safe-area-inset-top)+0.75rem)] z-60 flex justify-center px-4 md:justify-end md:px-6">
       <div
         role="status"
         aria-live="polite"
@@ -100,6 +103,7 @@ function WarmDataRestoreStatus({
 export function Providers({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [supabase] = useState(() => createClient())
+  const [hasMounted, setHasMounted] = useState(false)
   const [cacheScopeHint, setCacheScopeHint] = useState<string | null>(() => getStoredAuthScopeHint())
   const [authScope, setAuthScope] = useState<string | null>(null)
   const [pendingNavHref, setPendingNavHref] = useState<AppNavHref | null>(null)
@@ -120,6 +124,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
     return cacheScope ? createIdbPersister(cacheScope) : null
   }, [cacheScope])
   const isWarmDataReady = !cacheScope || restoredCacheScope === cacheScope
+
+  useEffect(() => {
+    setHasMounted(true)
+  }, [])
 
   useEffect(() => {
     if (!pendingNavHref) {
@@ -281,7 +289,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       }}
     >
       <ThemeSync />
-      <WarmDataRestoreStatus cacheScope={cacheScope} isWarmDataReady={isWarmDataReady} />
+      <WarmDataRestoreStatus cacheScope={hasMounted ? cacheScope : null} isWarmDataReady={isWarmDataReady} />
       {children}
     </AppShellClientStateProvider>
   )
