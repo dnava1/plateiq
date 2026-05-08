@@ -155,7 +155,6 @@ export default async function RootLayout({
                 justify-content: center;
                 padding: 2rem 1rem;
                 background: #fafafc;
-                box-shadow: 0 24vh 0 24vh #f0f0f3;
                 overflow: hidden;
                 opacity: 0;
                 pointer-events: none;
@@ -274,7 +273,6 @@ export default async function RootLayout({
               @media (prefers-color-scheme: dark) {
                 #plateiq-pwa-boot-splash {
                   background: #06070a;
-                  box-shadow: 0 24vh 0 24vh #26262b;
                 }
 
                 #plateiq-pwa-boot-splash .plateiq-pwa-boot-card {
