@@ -7,6 +7,17 @@ import { getInactiveNavPrefetchHrefs } from '@/components/layout/navigation'
 
 const FIRST_ROUTE_PREFETCH_DELAY_MS = 60
 const ROUTE_PREFETCH_GAP_MS = 110
+const STANDALONE_FIRST_ROUTE_PREFETCH_DELAY_MS = 1200
+const STANDALONE_ROUTE_PREFETCH_GAP_MS = 250
+
+function isStandaloneMode() {
+  const displayModeStandalone = typeof window.matchMedia === 'function'
+    ? window.matchMedia('(display-mode: standalone)').matches
+    : false
+
+  return displayModeStandalone
+    || (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+}
 
 export function AppRoutePrefetcher() {
   const pathname = usePathname()
@@ -18,6 +29,13 @@ export function AppRoutePrefetcher() {
       return
     }
 
+    const standaloneMode = isStandaloneMode()
+    const firstRoutePrefetchDelay = standaloneMode
+      ? STANDALONE_FIRST_ROUTE_PREFETCH_DELAY_MS
+      : FIRST_ROUTE_PREFETCH_DELAY_MS
+    const routePrefetchGap = standaloneMode
+      ? STANDALONE_ROUTE_PREFETCH_GAP_MS
+      : ROUTE_PREFETCH_GAP_MS
     const timeoutIds: number[] = []
     getInactiveNavPrefetchHrefs(pathname)
       .forEach((href, index) => {
@@ -27,7 +45,7 @@ export function AppRoutePrefetcher() {
           }
 
           router.prefetch(href)
-        }, FIRST_ROUTE_PREFETCH_DELAY_MS + (index * ROUTE_PREFETCH_GAP_MS))
+        }, firstRoutePrefetchDelay + (index * routePrefetchGap))
 
         timeoutIds.push(timeoutId)
       })

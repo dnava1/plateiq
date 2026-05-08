@@ -22,6 +22,23 @@ vi.mock('next/navigation', () => ({
   }),
 }))
 
+function setStandaloneMode(standalone: boolean) {
+  Object.defineProperty(window.navigator, 'standalone', {
+    configurable: true,
+    value: standalone,
+  })
+
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: vi.fn().mockImplementation(() => ({
+      addEventListener: vi.fn(),
+      matches: standalone,
+      media: '(display-mode: standalone)',
+      removeEventListener: vi.fn(),
+    })),
+  })
+}
+
 describe('AppRoutePrefetcher', () => {
   beforeEach(() => {
     vi.useFakeTimers()
@@ -31,6 +48,7 @@ describe('AppRoutePrefetcher', () => {
     }
     mocks.pathname = '/dashboard'
     mocks.prefetch.mockClear()
+    setStandaloneMode(false)
   })
 
   afterEach(() => {
@@ -57,6 +75,32 @@ describe('AppRoutePrefetcher', () => {
     expect(mocks.prefetch).toHaveBeenCalledWith('/programs')
     expect(mocks.prefetch).toHaveBeenCalledWith('/settings')
     expect(mocks.prefetch).not.toHaveBeenCalledWith('/dashboard')
+  })
+
+  it('delays standalone route prefetching until after the launch settles', () => {
+    setStandaloneMode(true)
+
+    render(<AppRoutePrefetcher />)
+
+    act(() => {
+      vi.advanceTimersByTime(1199)
+    })
+
+    expect(mocks.prefetch).not.toHaveBeenCalled()
+
+    act(() => {
+      vi.advanceTimersByTime(1)
+    })
+
+    expect(mocks.prefetch).toHaveBeenCalledWith('/workouts')
+
+    act(() => {
+      vi.advanceTimersByTime(250 * 3)
+    })
+
+    expect(mocks.prefetch).toHaveBeenCalledWith('/analytics')
+    expect(mocks.prefetch).toHaveBeenCalledWith('/programs')
+    expect(mocks.prefetch).toHaveBeenCalledWith('/settings')
   })
 
   it('waits until auth and warm data restore are ready before prefetching routes', () => {

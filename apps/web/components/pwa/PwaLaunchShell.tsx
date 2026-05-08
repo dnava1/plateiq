@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { CloudOff, LoaderCircle } from 'lucide-react'
 import { sanitizeNextPath } from '@/lib/auth/auth-state'
 import { getSessionUserIdWithTimeout, getStoredAuthScopeHint } from '@/lib/auth/session-user'
-import { useAppShellClientState } from '@/components/layout/AppShellClientState'
 import { getActiveWorkoutSnapshot, getOfflineWorkoutPack } from '@/lib/offline-workout-store'
 import { getPersistedQueryCacheMetadata, isPersistedQueryCacheMetadataFresh } from '@/lib/query-persistence'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,8 +18,6 @@ interface LaunchShellState {
 interface PendingLaunchNavigation {
   nextPath: string
   requestId: number
-  resolvedUserId: string | null
-  waitForWarmAuthShell: boolean
 }
 
 function formatCachedSnapshotTime(value: string | null | undefined) {
@@ -39,7 +36,6 @@ function formatCachedSnapshotTime(value: string | null | undefined) {
 export function PwaLaunchShell() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { authScope, isAuthReady, isWarmDataReady } = useAppShellClientState()
   const [state, setState] = useState<LaunchShellState>({
     detail: null,
     status: 'launching',
@@ -68,8 +64,6 @@ export function PwaLaunchShell() {
           setPendingNavigation({
             nextPath: '/continue',
             requestId,
-            resolvedUserId: null,
-            waitForWarmAuthShell: false,
           })
           return
         }
@@ -78,6 +72,20 @@ export function PwaLaunchShell() {
           detail: 'Open PlateIQ online once so this device can prepare your cached shell and offline data.',
           status: 'offline-unavailable',
           title: 'Offline access is not ready yet',
+        })
+        return
+      }
+
+      if (!isOfflineLaunch && sessionUserId) {
+        setState({
+          detail: 'Restoring your saved data in the background.',
+          status: 'launching',
+          title: 'Opening PlateIQ',
+        })
+
+        setPendingNavigation({
+          nextPath: requestedPath,
+          requestId,
         })
         return
       }
@@ -126,8 +134,6 @@ export function PwaLaunchShell() {
       setPendingNavigation({
         nextPath,
         requestId,
-        resolvedUserId,
-        waitForWarmAuthShell: !isOfflineLaunch && Boolean(sessionUserId),
       })
     })().catch(() => {
       if (!isActive) {
@@ -155,13 +161,6 @@ export function PwaLaunchShell() {
       return
     }
 
-    if (
-      pendingNavigation.waitForWarmAuthShell
-      && (!isAuthReady || authScope !== pendingNavigation.resolvedUserId || !isWarmDataReady)
-    ) {
-      return
-    }
-
     const timeoutId = window.setTimeout(() => {
       if (pendingNavigation.requestId === launchRequestIdRef.current) {
         router.replace(pendingNavigation.nextPath)
@@ -171,11 +170,11 @@ export function PwaLaunchShell() {
     return () => {
       window.clearTimeout(timeoutId)
     }
-  }, [authScope, isAuthReady, isWarmDataReady, pendingNavigation, router])
+  }, [pendingNavigation, router])
 
   return (
     <div className="page-shell flex min-h-[calc(100dvh-7rem)] max-w-3xl items-center justify-center py-8 sm:py-12">
-      <Card className="surface-panel w-full max-w-xl">
+      <Card className="surface-panel w-full max-w-xl" role="status" aria-live="polite">
         <CardHeader className="gap-3">
           <div className="flex items-center gap-3">
             <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/12 text-primary">

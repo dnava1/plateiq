@@ -3,12 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PwaLaunchShell } from './PwaLaunchShell'
 
 const mocks = vi.hoisted(() => ({
-  appShellState: {
-    authScope: null as string | null,
-    cacheScope: null as string | null,
-    isAuthReady: true,
-    isWarmDataReady: true,
-  },
   getActiveWorkoutSnapshot: vi.fn(),
   getOfflineWorkoutPack: vi.fn(),
   getPersistedQueryCacheMetadata: vi.fn(),
@@ -24,10 +18,6 @@ const mocks = vi.hoisted(() => ({
 vi.mock('next/navigation', () => ({
   useRouter: () => mocks.router,
   useSearchParams: () => mocks.searchParams,
-}))
-
-vi.mock('@/components/layout/AppShellClientState', () => ({
-  useAppShellClientState: () => mocks.appShellState,
 }))
 
 vi.mock('@/lib/auth/session-user', () => ({
@@ -57,12 +47,6 @@ function setOnline(online: boolean) {
 
 describe('PwaLaunchShell', () => {
   beforeEach(() => {
-    mocks.appShellState = {
-      authScope: null,
-      cacheScope: null,
-      isAuthReady: true,
-      isWarmDataReady: true,
-    }
     mocks.getActiveWorkoutSnapshot.mockReset()
     mocks.getOfflineWorkoutPack.mockReset()
     mocks.getPersistedQueryCacheMetadata.mockReset()
@@ -108,42 +92,30 @@ describe('PwaLaunchShell', () => {
     })
   })
 
-  it('waits for the authenticated warm shell before entering a protected route on online launch', async () => {
-    mocks.appShellState = {
-      authScope: null,
-      cacheScope: null,
-      isAuthReady: false,
-      isWarmDataReady: false,
-    }
+  it('routes online authenticated launches immediately and skips offline cache probing', async () => {
     mocks.getSessionUserIdWithTimeout.mockResolvedValue('user-123')
-    mocks.getPersistedQueryCacheMetadata.mockResolvedValue({
-      schemaVersion: 4,
-      stale: false,
-      updatedAt: '2026-05-08T08:00:00.000Z',
-      userId: 'user-123',
-    })
-    mocks.getActiveWorkoutSnapshot.mockResolvedValue(null)
-    mocks.getOfflineWorkoutPack.mockResolvedValue(null)
-
-    const { rerender } = render(<PwaLaunchShell />)
+    render(<PwaLaunchShell />)
 
     await waitFor(() => {
       expect(screen.getByText('Opening PlateIQ')).toBeInTheDocument()
     })
 
-    expect(mocks.replace).not.toHaveBeenCalled()
-
-    mocks.appShellState = {
-      authScope: 'user-123',
-      cacheScope: 'user-123',
-      isAuthReady: true,
-      isWarmDataReady: true,
-    }
-
-    rerender(<PwaLaunchShell />)
-
     await waitFor(() => {
       expect(mocks.replace).toHaveBeenCalledWith('/dashboard')
+    })
+
+    expect(mocks.getPersistedQueryCacheMetadata).not.toHaveBeenCalled()
+    expect(mocks.getActiveWorkoutSnapshot).not.toHaveBeenCalled()
+    expect(mocks.getOfflineWorkoutPack).not.toHaveBeenCalled()
+  })
+
+  it('sends online launches without a session to continue', async () => {
+    mocks.getSessionUserIdWithTimeout.mockResolvedValue(null)
+
+    render(<PwaLaunchShell />)
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/continue')
     })
   })
 
