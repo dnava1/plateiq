@@ -58,6 +58,14 @@ describe('PwaLaunchShell', () => {
     setOnline(true)
   })
 
+  it('uses the full-screen launch shell so the centered card and background fill the standalone viewport', () => {
+    mocks.getSessionUserIdWithTimeout.mockResolvedValue(null)
+
+    const { container } = render(<PwaLaunchShell />)
+
+    expect(container.firstElementChild).toHaveClass('pwa-launch-shell')
+  })
+
   it('routes offline boots with a saved workout pack into gym mode even without a warm query snapshot', async () => {
     setOnline(false)
     mocks.searchParams = new URLSearchParams('next=%2Fdashboard')

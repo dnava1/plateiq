@@ -151,7 +151,7 @@ export function PwaLaunchShell() {
   }, [pendingNavigation, router])
 
   return (
-    <div className="page-shell flex min-h-[calc(100dvh-7rem)] max-w-3xl items-center justify-center py-8 sm:py-12">
+    <div className="pwa-launch-shell">
       <Card className="surface-panel w-full max-w-xl" role="status" aria-live="polite">
         <CardHeader className="w-full items-center gap-6 px-6 py-8 text-center sm:px-8 sm:py-10">
           <div className="relative mx-auto grid size-28 place-items-center rounded-[36px] border border-border/70 bg-background/80 shadow-[0_28px_80px_-40px_rgba(15,23,42,0.45)] dark:shadow-[0_28px_80px_-40px_rgba(0,0,0,0.85)]">

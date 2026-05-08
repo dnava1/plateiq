@@ -131,12 +131,15 @@ export default async function RootLayout({
         <style
           dangerouslySetInnerHTML={{
             __html: `
-              html {
+              html,
+              body {
+                min-height: 100%;
                 background: #fafafc;
               }
 
               @media (prefers-color-scheme: dark) {
-                html {
+                html,
+                body {
                   background: #06070a;
                   color-scheme: dark;
                 }
@@ -149,6 +152,9 @@ export default async function RootLayout({
                 display: none;
                 align-items: center;
                 justify-content: center;
+                min-height: 100vh;
+                min-height: 100svh;
+                min-height: 100dvh;
                 background: #fafafc;
                 opacity: 0;
                 pointer-events: none;
@@ -221,6 +227,12 @@ export default async function RootLayout({
               @media (prefers-reduced-motion: reduce) {
                 #plateiq-pwa-boot-splash {
                   transition: none;
+                }
+              }
+
+              @media (display-mode: standalone) {
+                #plateiq-pwa-boot-splash {
+                  min-height: 100lvh;
                 }
               }
             `,

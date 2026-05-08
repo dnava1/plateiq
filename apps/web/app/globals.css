@@ -226,6 +226,14 @@
   .app-shell {
     @apply mx-auto w-full max-w-6xl px-4 md:px-6;
   }
+  .pwa-launch-shell {
+    @apply grid w-full place-items-center px-4 py-8;
+    min-height: 100vh;
+    min-height: 100svh;
+    min-height: 100dvh;
+    background: var(--app-background-canvas);
+    overflow-x: clip;
+  }
   .auth-shell {
     @apply relative flex items-center justify-center px-4;
     isolation: isolate;
@@ -326,7 +334,8 @@
 }
 
 @media (display-mode: standalone) {
-  .auth-shell {
+  .auth-shell,
+  .pwa-launch-shell {
     min-height: 100lvh;
   }
 }
