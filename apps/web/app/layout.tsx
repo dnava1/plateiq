@@ -147,13 +147,17 @@ export default async function RootLayout({
 
               #plateiq-pwa-boot-splash {
                 position: fixed;
-                inset: 0;
+                inset-inline: 0;
+                top: 0;
                 z-index: 2147483647;
                 box-sizing: border-box;
                 display: none;
+                min-height: 100vh;
+                min-height: 100svh;
+                min-height: 100dvh;
                 align-items: center;
                 justify-content: center;
-                padding: 2rem 1rem;
+                padding: calc(env(safe-area-inset-top) + 2rem) 1rem calc(env(safe-area-inset-bottom) + 2rem);
                 background: #fafafc;
                 overflow: hidden;
                 opacity: 0;
@@ -356,6 +360,12 @@ export default async function RootLayout({
 
                 #plateiq-pwa-boot-splash .plateiq-pwa-boot-spinner {
                   animation: none;
+                }
+              }
+
+              @media (display-mode: standalone) {
+                #plateiq-pwa-boot-splash {
+                  min-height: 100lvh;
                 }
               }
 

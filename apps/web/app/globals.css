@@ -227,9 +227,15 @@
     @apply mx-auto w-full max-w-6xl px-4 md:px-6;
   }
   .pwa-launch-shell {
-    @apply fixed inset-0 grid w-full place-items-center px-4 py-8;
+    @apply relative grid w-full place-items-center px-4;
+    isolation: isolate;
+    min-height: 100vh;
+    min-height: 100svh;
+    min-height: 100dvh;
+    padding-top: calc(env(safe-area-inset-top) + 2rem);
+    padding-bottom: calc(env(safe-area-inset-bottom) + 2rem);
     background: var(--app-background-canvas);
-    overflow: hidden;
+    overflow: clip;
   }
   .pwa-launch-shell[data-status='launching'] .pwa-launch-card {
     height: 17rem;
@@ -360,6 +366,10 @@
 }
 
 @media (display-mode: standalone) {
+  .pwa-launch-shell {
+    min-height: 100lvh;
+  }
+
   .auth-shell {
     min-height: 100lvh;
   }
