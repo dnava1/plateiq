@@ -234,6 +234,19 @@
     background: var(--app-background-canvas);
     overflow-x: clip;
   }
+  .pwa-launch-spinner-slot {
+    @apply grid h-6 place-items-center;
+  }
+  .pwa-launch-spinner {
+    @apply size-5 text-muted-foreground opacity-0;
+    animation:
+      pwa-launch-spin 2.2s linear infinite,
+      pwa-launch-spinner-reveal 0.01s linear 2s forwards;
+  }
+  .pwa-launch-shell:not([data-status='launching']) .pwa-launch-spinner {
+    animation: none;
+    opacity: 0;
+  }
   .auth-shell {
     @apply relative flex items-center justify-center px-4;
     isolation: isolate;
@@ -332,6 +345,12 @@
   from { opacity: 0; transform: scale(0.96); }
   to   { opacity: 1; transform: scale(1); }
 }
+@keyframes pwa-launch-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes pwa-launch-spinner-reveal {
+  to { opacity: 1; }
+}
 
 @media (display-mode: standalone) {
   .auth-shell,
@@ -356,6 +375,7 @@
   .interactive:active,
   .card-hover,
   .card-hover:hover,
+  .pwa-launch-spinner,
   [data-slot='dialog-overlay'],
   [data-slot='dialog-content'],
   [data-slot='sheet-overlay'],

@@ -13,11 +13,18 @@ const mocks = vi.hoisted(() => ({
     replace: vi.fn(),
   },
   searchParams: new URLSearchParams(),
+  shellState: {
+    isWarmDataReady: true,
+  },
 }))
 
 vi.mock('next/navigation', () => ({
   useRouter: () => mocks.router,
   useSearchParams: () => mocks.searchParams,
+}))
+
+vi.mock('@/components/layout/AppShellClientState', () => ({
+  useAppShellClientState: () => mocks.shellState,
 }))
 
 vi.mock('@/lib/auth/session-user', () => ({
@@ -55,7 +62,11 @@ describe('PwaLaunchShell', () => {
     mocks.replace.mockReset()
     mocks.router.replace = mocks.replace
     mocks.searchParams = new URLSearchParams()
+    mocks.shellState = {
+      isWarmDataReady: true,
+    }
     setOnline(true)
+    vi.useRealTimers()
   })
 
   it('uses the full-screen launch shell so the centered card and background fill the standalone viewport', () => {
@@ -64,6 +75,41 @@ describe('PwaLaunchShell', () => {
     const { container } = render(<PwaLaunchShell />)
 
     expect(container.firstElementChild).toHaveClass('pwa-launch-shell')
+  })
+
+  it('renders the launch spinner immediately so CSS can handle the delayed reveal', () => {
+    mocks.getSessionUserIdWithTimeout.mockReturnValue(new Promise(() => {}))
+
+    const { container } = render(<PwaLaunchShell />)
+    const shell = container.firstElementChild
+
+    expect(shell).toHaveAttribute('data-status', 'launching')
+    expect(container.querySelector('.pwa-launch-spinner-slot')).toBeInTheDocument()
+    expect(container.querySelector('.pwa-launch-spinner')).toBeInTheDocument()
+  })
+
+  it('waits for warm data restore before leaving the launch screen', async () => {
+    mocks.shellState = {
+      isWarmDataReady: false,
+    }
+    mocks.getSessionUserIdWithTimeout.mockResolvedValue('user-123')
+
+    const { rerender } = render(<PwaLaunchShell />)
+
+    await waitFor(() => {
+      expect(screen.getByText('PlateIQ')).toBeInTheDocument()
+    })
+
+    expect(mocks.replace).not.toHaveBeenCalled()
+
+    mocks.shellState = {
+      isWarmDataReady: true,
+    }
+    rerender(<PwaLaunchShell />)
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/dashboard')
+    })
   })
 
   it('routes offline boots with a saved workout pack into gym mode even without a warm query snapshot', async () => {

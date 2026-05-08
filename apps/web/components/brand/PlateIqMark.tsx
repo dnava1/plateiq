@@ -3,9 +3,10 @@ import { cn } from '@/lib/utils'
 
 interface PlateIqMarkProps {
   className?: string
+  preload?: boolean
 }
 
-export function PlateIqMark({ className }: PlateIqMarkProps) {
+export function PlateIqMark({ className, preload = false }: PlateIqMarkProps) {
   return (
     <span aria-hidden="true" className={cn('inline-flex shrink-0 items-center justify-center', className)}>
       <Image
@@ -15,6 +16,7 @@ export function PlateIqMark({ className }: PlateIqMarkProps) {
         height={256}
         className="block size-full object-contain dark:hidden"
         draggable={false}
+        preload={preload}
       />
       <Image
         src="/icons/plateiq-mark-dark.svg"
@@ -23,6 +25,7 @@ export function PlateIqMark({ className }: PlateIqMarkProps) {
         height={256}
         className="hidden size-full object-contain dark:block"
         draggable={false}
+        preload={preload}
       />
     </span>
   )

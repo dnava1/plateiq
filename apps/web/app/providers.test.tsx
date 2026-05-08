@@ -110,6 +110,7 @@ describe('Providers', () => {
 
     expect(screen.getByTestId('persist-provider')).toBeInTheDocument()
     expect(mocks.createIdbPersister).toHaveBeenCalledWith('user-123')
+    expect(screen.queryByText('Restoring saved data')).not.toBeInTheDocument()
   })
 
   it('defers hinted persisted restore on online launch boots until auth resolves', () => {
