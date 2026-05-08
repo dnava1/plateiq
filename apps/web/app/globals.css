@@ -227,12 +227,16 @@
     @apply mx-auto w-full max-w-6xl px-4 md:px-6;
   }
   .pwa-launch-shell {
-    @apply grid w-full place-items-center px-4 py-8;
-    min-height: 100vh;
-    min-height: 100svh;
-    min-height: 100dvh;
+    @apply fixed inset-0 grid w-full place-items-center px-4 py-8;
     background: var(--app-background-canvas);
-    overflow-x: clip;
+    overflow: hidden;
+  }
+  .pwa-launch-shell[data-status='launching'] .pwa-launch-card {
+    height: 17rem;
+  }
+  .pwa-launch-card-header {
+    height: 100%;
+    align-content: start;
   }
   .pwa-launch-spinner-slot {
     @apply grid h-6 place-items-center;
@@ -242,6 +246,9 @@
     animation:
       pwa-launch-spin 2.2s linear infinite,
       pwa-launch-spinner-reveal 0.01s linear 2s forwards;
+  }
+  html[data-pwa-launch-slow='true'] .pwa-launch-spinner {
+    opacity: 1;
   }
   .pwa-launch-shell:not([data-status='launching']) .pwa-launch-spinner {
     animation: none;
@@ -353,9 +360,16 @@
 }
 
 @media (display-mode: standalone) {
-  .auth-shell,
-  .pwa-launch-shell {
+  .auth-shell {
     min-height: 100lvh;
+  }
+}
+
+@media (width >= 40rem) {
+  @layer utilities {
+    .pwa-launch-shell[data-status='launching'] .pwa-launch-card {
+      height: 18.25rem;
+    }
   }
 }
 

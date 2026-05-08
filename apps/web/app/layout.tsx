@@ -153,11 +153,9 @@ export default async function RootLayout({
                 display: none;
                 align-items: center;
                 justify-content: center;
-                min-height: 100vh;
-                min-height: 100svh;
-                min-height: 100dvh;
                 padding: 2rem 1rem;
                 background: #fafafc;
+                overflow: hidden;
                 opacity: 0;
                 pointer-events: none;
                 transition: opacity 180ms ease;
@@ -171,18 +169,27 @@ export default async function RootLayout({
 
               #plateiq-pwa-boot-splash .plateiq-pwa-boot-card {
                 width: min(100%, 36rem);
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                gap: 1.25rem;
-                padding: 2rem 1.5rem;
+                height: 17rem;
                 border: 1px solid rgba(209, 213, 219, 0.7);
                 border-radius: 28px;
                 background: rgba(255, 255, 255, 0.88);
                 color: #303038;
+                overflow: hidden;
                 text-align: center;
                 box-shadow: 0 18px 48px -24px rgba(15, 23, 42, 0.18), 0 8px 20px -12px rgba(15, 23, 42, 0.1);
                 backdrop-filter: blur(24px);
+              }
+
+              #plateiq-pwa-boot-splash .plateiq-pwa-boot-card-header {
+                width: 100%;
+                height: 100%;
+                display: grid;
+                justify-items: center;
+                align-items: center;
+                align-content: start;
+                gap: 1.25rem;
+                padding: 2rem 1.5rem;
+                text-align: center;
               }
 
               #plateiq-pwa-boot-splash .plateiq-pwa-boot-mark-frame {
@@ -237,8 +244,8 @@ export default async function RootLayout({
                 margin: 0;
                 font-family: var(--font-manrope), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
                 font-size: 1.875rem;
-                font-weight: 600;
-                line-height: 1.15;
+                font-weight: 500;
+                line-height: 1.375;
                 letter-spacing: 0;
               }
 
@@ -250,7 +257,7 @@ export default async function RootLayout({
                 transition: opacity 180ms ease;
               }
 
-              html[data-pwa-boot-slow='true'] #plateiq-pwa-boot-splash .plateiq-pwa-boot-spinner-slot {
+              html[data-pwa-launch-slow='true'] #plateiq-pwa-boot-splash .plateiq-pwa-boot-spinner-slot {
                 opacity: 1;
               }
 
@@ -352,14 +359,12 @@ export default async function RootLayout({
                 }
               }
 
-              @media (display-mode: standalone) {
-                #plateiq-pwa-boot-splash {
-                  min-height: 100lvh;
-                }
-              }
-
               @media (min-width: 640px) {
                 #plateiq-pwa-boot-splash .plateiq-pwa-boot-card {
+                  height: 18.25rem;
+                }
+
+                #plateiq-pwa-boot-splash .plateiq-pwa-boot-card-header {
                   padding: 2.5rem 2rem;
                 }
 
@@ -387,45 +392,47 @@ export default async function RootLayout({
           id="plateiq-pwa-boot-init"
           suppressHydrationWarning
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var standalone=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;if(!standalone){return;}var root=document.documentElement;root.setAttribute('data-pwa-boot','active');var slowTimer=window.setTimeout(function(){if(root.getAttribute('data-pwa-boot')==='active'){root.setAttribute('data-pwa-boot-slow','true');}},2000);var dismiss=function(){if(root.getAttribute('data-pwa-boot')!=='active'){return;}window.clearTimeout(slowTimer);root.removeAttribute('data-pwa-boot-slow');root.setAttribute('data-pwa-boot','done');window.setTimeout(function(){if(root.getAttribute('data-pwa-boot')==='done'){root.removeAttribute('data-pwa-boot');}},220);};window.addEventListener('load',function(){window.requestAnimationFrame(dismiss);},{once:true});window.addEventListener('pageshow',function(){window.requestAnimationFrame(dismiss);},{once:true});}catch(e){}})();`,
+            __html: `(function(){try{var standalone=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;if(!standalone){return;}var root=document.documentElement;root.setAttribute('data-pwa-boot','active');var slowTimer=window.setTimeout(function(){if(root.getAttribute('data-pwa-boot')==='active'){root.setAttribute('data-pwa-launch-slow','true');}},2000);var dismiss=function(){if(root.getAttribute('data-pwa-boot')!=='active'){return;}window.clearTimeout(slowTimer);root.setAttribute('data-pwa-boot','done');window.setTimeout(function(){if(root.getAttribute('data-pwa-boot')==='done'){root.removeAttribute('data-pwa-boot');}},220);};window.addEventListener('load',function(){window.requestAnimationFrame(dismiss);},{once:true});window.addEventListener('pageshow',function(){window.requestAnimationFrame(dismiss);},{once:true});}catch(e){}})();`,
           }}
         />
       </head>
       <body className="min-h-dvh font-sans antialiased">
         <div id="plateiq-pwa-boot-splash" aria-hidden="true">
           <div className="plateiq-pwa-boot-card">
-            <div className="plateiq-pwa-boot-mark-frame">
-              <div className="plateiq-pwa-boot-mark-glow" />
-              <div className="plateiq-pwa-boot-mark-sheen" />
-              <div className="plateiq-pwa-boot-splash__mark">
-                {/* eslint-disable-next-line @next/next/no-img-element -- raw img paints sooner than next/image for the standalone boot splash */}
-                <img
-                  className="plateiq-pwa-boot-logo--light"
-                  src="/icons/plateiq-mark-light.svg"
-                  alt=""
-                  width="80"
-                  height="80"
-                  decoding="sync"
-                  draggable="false"
-                  fetchPriority="high"
-                />
-                {/* eslint-disable-next-line @next/next/no-img-element -- raw img paints sooner than next/image for the standalone boot splash */}
-                <img
-                  className="plateiq-pwa-boot-logo--dark"
-                  src="/icons/plateiq-mark-dark.svg"
-                  alt=""
-                  width="80"
-                  height="80"
-                  decoding="sync"
-                  draggable="false"
-                  fetchPriority="high"
-                />
+            <div className="plateiq-pwa-boot-card-header">
+              <div className="plateiq-pwa-boot-mark-frame">
+                <div className="plateiq-pwa-boot-mark-glow" />
+                <div className="plateiq-pwa-boot-mark-sheen" />
+                <div className="plateiq-pwa-boot-splash__mark">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- raw img paints sooner than next/image for the standalone boot splash */}
+                  <img
+                    className="plateiq-pwa-boot-logo--light"
+                    src="/icons/plateiq-mark-light.svg"
+                    alt=""
+                    width="80"
+                    height="80"
+                    decoding="sync"
+                    draggable="false"
+                    fetchPriority="high"
+                  />
+                  {/* eslint-disable-next-line @next/next/no-img-element -- raw img paints sooner than next/image for the standalone boot splash */}
+                  <img
+                    className="plateiq-pwa-boot-logo--dark"
+                    src="/icons/plateiq-mark-dark.svg"
+                    alt=""
+                    width="80"
+                    height="80"
+                    decoding="sync"
+                    draggable="false"
+                    fetchPriority="high"
+                  />
+                </div>
               </div>
-            </div>
-            <div className="plateiq-pwa-boot-title-stack">
-              <p className="plateiq-pwa-boot-title">PlateIQ</p>
-              <div className="plateiq-pwa-boot-spinner-slot">
-                <div className="plateiq-pwa-boot-spinner" />
+              <div className="plateiq-pwa-boot-title-stack">
+                <p className="plateiq-pwa-boot-title">PlateIQ</p>
+                <div className="plateiq-pwa-boot-spinner-slot">
+                  <div className="plateiq-pwa-boot-spinner" />
+                </div>
               </div>
             </div>
           </div>

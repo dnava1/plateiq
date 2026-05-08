@@ -67,6 +67,7 @@ describe('PwaLaunchShell', () => {
     }
     setOnline(true)
     vi.useRealTimers()
+    document.documentElement.removeAttribute('data-pwa-launch-slow')
   })
 
   it('uses the full-screen launch shell so the centered card and background fill the standalone viewport', () => {
@@ -86,6 +87,31 @@ describe('PwaLaunchShell', () => {
     expect(shell).toHaveAttribute('data-status', 'launching')
     expect(container.querySelector('.pwa-launch-spinner-slot')).toBeInTheDocument()
     expect(container.querySelector('.pwa-launch-spinner')).toBeInTheDocument()
+  })
+
+  it('clears the shared slow-launch spinner flag after leaving the launch screen', () => {
+    mocks.getSessionUserIdWithTimeout.mockReturnValue(new Promise(() => {}))
+    document.documentElement.setAttribute('data-pwa-launch-slow', 'true')
+
+    const { unmount } = render(<PwaLaunchShell />)
+
+    unmount()
+
+    expect(document.documentElement).not.toHaveAttribute('data-pwa-launch-slow')
+  })
+
+  it('keeps the shared slow-launch spinner flag while the boot card is still fading', () => {
+    mocks.getSessionUserIdWithTimeout.mockReturnValue(new Promise(() => {}))
+    document.documentElement.setAttribute('data-pwa-boot', 'done')
+    document.documentElement.setAttribute('data-pwa-launch-slow', 'true')
+
+    const { unmount } = render(<PwaLaunchShell />)
+
+    unmount()
+
+    expect(document.documentElement).toHaveAttribute('data-pwa-launch-slow', 'true')
+    document.documentElement.removeAttribute('data-pwa-boot')
+    document.documentElement.removeAttribute('data-pwa-launch-slow')
   })
 
   it('waits for warm data restore before leaving the launch screen', async () => {

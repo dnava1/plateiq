@@ -35,6 +35,14 @@ export function PwaLaunchShell() {
   const launchRequestIdRef = useRef(0)
 
   useEffect(() => {
+    return () => {
+      if (!document.documentElement.hasAttribute('data-pwa-boot')) {
+        document.documentElement.removeAttribute('data-pwa-launch-slow')
+      }
+    }
+  }, [])
+
+  useEffect(() => {
     let isActive = true
     const requestedPath = sanitizeNextPath(searchParams.get('next'), '/dashboard')
     const requestId = ++launchRequestIdRef.current
@@ -154,8 +162,8 @@ export function PwaLaunchShell() {
 
   return (
     <div className="pwa-launch-shell" data-status={state.status}>
-      <Card className="surface-panel w-full max-w-xl py-0" role="status" aria-live="polite">
-        <CardHeader className="w-full items-center gap-5 px-6 py-8 text-center sm:px-8 sm:py-10">
+      <Card className="pwa-launch-card surface-panel w-full max-w-xl py-0" role="status" aria-live="polite">
+        <CardHeader className="pwa-launch-card-header w-full items-center justify-items-center gap-5 px-6 py-8 text-center sm:px-8 sm:py-10">
           <div className="relative mx-auto grid size-28 place-items-center rounded-[36px] border border-border/70 bg-background/80 shadow-[0_28px_80px_-40px_rgba(15,23,42,0.45)] dark:shadow-[0_28px_80px_-40px_rgba(0,0,0,0.85)]">
             <div className="absolute inset-3 rounded-[28px] bg-primary/8 blur-2xl dark:bg-primary/12" />
             <div className="absolute inset-4 rounded-[28px] border border-white/65 bg-linear-to-b from-white/85 via-white/45 to-white/10 dark:border-white/10 dark:from-white/10 dark:via-white/5 dark:to-transparent" />
