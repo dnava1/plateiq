@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-
-const NO_STORE_HEADERS = {
-  'Cache-Control': 'private, no-store',
-}
+import { PRIVATE_NO_STORE_HEADERS } from '@/lib/security/request'
 
 export const runtime = 'nodejs'
 
@@ -18,11 +15,11 @@ export async function GET(request: Request) {
     if (process.env.NODE_ENV === 'production') {
       return NextResponse.json(
         { error: 'Cron is not configured.' },
-        { status: 503, headers: NO_STORE_HEADERS },
+        { status: 503, headers: PRIVATE_NO_STORE_HEADERS },
       )
     }
   } else if (request.headers.get('authorization') !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: NO_STORE_HEADERS })
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: PRIVATE_NO_STORE_HEADERS })
   }
 
   const supabase = createAdminClient()
@@ -39,7 +36,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(
       { error: 'Unable to complete cron keepalive.' },
-      { status: 500, headers: NO_STORE_HEADERS },
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS },
     )
   }
 
@@ -47,5 +44,5 @@ export async function GET(request: Request) {
     status: 'ok',
     exerciseCount: count,
     timestamp: new Date().toISOString(),
-  }, { headers: NO_STORE_HEADERS })
+  }, { headers: PRIVATE_NO_STORE_HEADERS })
 }

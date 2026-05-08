@@ -1,5 +1,6 @@
-const CACHE_VERSION = 'plateiq-shell-v4';
+const CACHE_VERSION = 'plateiq-shell-v6';
 const OFFLINE_URL = '/offline.html';
+const LAUNCH_URL = '/launch';
 const PRECACHE_URLS = [
   OFFLINE_URL,
   '/manifest.json',
@@ -29,11 +30,23 @@ const PRECACHE_URLS = [
   '/continue',
   '/gym',
   '/legal',
+  '/upgrade',
+  LAUNCH_URL,
 ];
 
-const PUBLIC_DOCUMENTS = new Set(['/', '/continue', '/gym', '/legal']);
+const PUBLIC_DOCUMENTS = new Set(['/', '/continue', '/gym', '/legal', '/upgrade', LAUNCH_URL]);
 const STATIC_DESTINATIONS = new Set(['style', 'script', 'font', 'image']);
-const NEXT_STATIC_ASSET_PATTERN = /(?:src|href)="([^"]*\/_next\/static\/[^"]+)"/g;
+const API_PATH_PREFIXES = [
+  '/api/',
+  '/auth/',
+];
+const AUTHENTICATED_ROUTE_PREFIXES = [
+  '/analytics',
+  '/dashboard',
+  '/programs',
+  '/settings',
+  '/workouts',
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -72,7 +85,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  if (API_PATH_PREFIXES.some((prefix) => url.pathname.startsWith(prefix))) {
+    return;
+  }
+
   if (request.mode === 'navigate') {
+    if (isAuthenticatedNavigation(url)) {
+      event.respondWith(handleAuthenticatedNavigation(request, url));
+      return;
+    }
+
     event.respondWith(handleNavigation(request, url));
     return;
   }
@@ -89,21 +111,19 @@ async function handleNavigation(request, url) {
     return networkFirst(request, true, publicDocumentPath);
   }
 
-  const offlineGymFallbackPath = getOfflineGymFallbackPath(url.pathname);
-
   try {
     return await fetch(request);
   } catch {
-    if (offlineGymFallbackPath) {
-      const fallbackResponse = await caches.match(offlineGymFallbackPath);
-
-      if (fallbackResponse) {
-        return fallbackResponse;
-      }
-    }
-
     return caches.match(OFFLINE_URL);
   }
+}
+
+function isAuthenticatedNavigation(url) {
+  return AUTHENTICATED_ROUTE_PREFIXES.some((prefix) => (
+    prefix.endsWith('/')
+      ? url.pathname.startsWith(prefix)
+      : url.pathname === prefix || url.pathname.startsWith(`${prefix}/`)
+  ));
 }
 
 function getPublicDocumentPath(pathname) {
@@ -122,43 +142,18 @@ function getPublicDocumentPath(pathname) {
   return null;
 }
 
-function getOfflineGymFallbackPath(pathname) {
-  if (pathname === '/dashboard' || pathname === '/workouts') {
-    return '/gym';
+async function handleAuthenticatedNavigation(request, url) {
+  try {
+    return await fetch(request);
+  } catch {
+    const launchUrl = new URL(LAUNCH_URL, self.location.origin);
+    launchUrl.searchParams.set('next', `${url.pathname}${url.search}`);
+    return Response.redirect(launchUrl.toString(), 302);
   }
-
-  if (pathname !== '/' && pathname.endsWith('/')) {
-    return getOfflineGymFallbackPath(pathname.slice(0, -1));
-  }
-
-  return null;
 }
 
 async function precacheShell(cache) {
   await cache.addAll(PRECACHE_URLS);
-
-  try {
-    const response = await fetch('/gym', { credentials: 'same-origin' });
-
-    if (!response.ok) {
-      return;
-    }
-
-    await cache.put('/gym', response.clone());
-    const html = await response.text();
-    const assetUrls = Array.from(html.matchAll(NEXT_STATIC_ASSET_PATTERN))
-      .map((match) => match[1])
-      .filter((assetUrl) => typeof assetUrl === 'string')
-      .map((assetUrl) => new URL(assetUrl, self.location.origin))
-      .filter((assetUrl) => assetUrl.origin === self.location.origin)
-      .map((assetUrl) => assetUrl.pathname + assetUrl.search);
-
-    if (assetUrls.length > 0) {
-      await cache.addAll(Array.from(new Set(assetUrls)));
-    }
-  } catch {
-    // The generic offline page still covers install-time cache misses.
-  }
 }
 
 async function networkFirst(request, shouldCache, fallbackPath) {

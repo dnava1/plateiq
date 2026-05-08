@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   clearActiveWorkoutSnapshot,
+  clearOfflineWorkoutState,
   clearOfflineWorkoutPack,
   createOfflineWorkoutOutboxEntry,
   createOfflineWorkoutSnapshotFromPackWorkout,
@@ -9,6 +10,7 @@ import {
   getLastSnapshotUserId,
   getOfflineWorkoutPack,
   getOfflineWorkoutPackKey,
+  getOfflineWorkoutOutboxCount,
   getOfflineWorkoutOutboxEntries,
   getOfflineWorkoutOutboxEntryId,
   getOfflineWorkoutOutboxKey,
@@ -23,12 +25,14 @@ import {
 } from './offline-workout-store'
 
 const delMock = vi.fn()
+const delManyMock = vi.fn()
 const getMock = vi.fn()
 const keysMock = vi.fn()
 const setMock = vi.fn()
 
 vi.mock('idb-keyval', () => ({
   del: (...args: unknown[]) => delMock(...args),
+  delMany: (...args: unknown[]) => delManyMock(...args),
   get: (...args: unknown[]) => getMock(...args),
   keys: (...args: unknown[]) => keysMock(...args),
   set: (...args: unknown[]) => setMock(...args),
@@ -103,6 +107,7 @@ function createWorkoutPack(): OfflineWorkoutPack {
 describe('offline workout store', () => {
   beforeEach(() => {
     delMock.mockReset()
+    delManyMock.mockReset()
     getMock.mockReset()
     keysMock.mockReset()
     setMock.mockReset()
@@ -152,6 +157,25 @@ describe('offline workout store', () => {
       workoutId: 44,
     })
     expect(delMock).toHaveBeenCalledWith(getOfflineWorkoutPackKey('user-123'))
+  })
+
+  it('clears all user-scoped offline workout state without touching other users', async () => {
+    const snapshotKey = getActiveWorkoutSnapshotKey('user-123')
+    const packKey = getOfflineWorkoutPackKey('user-123')
+    const outboxKey = getOfflineWorkoutOutboxKey('user-123', 'set-log:44:2')
+    keysMock.mockResolvedValue([
+      snapshotKey,
+      packKey,
+      outboxKey,
+      getActiveWorkoutSnapshotKey('user-456'),
+      'other-key',
+    ])
+    localStorage.setItem('plateiq-offline-workout:last-user', 'user-123')
+
+    await clearOfflineWorkoutState('user-123')
+
+    expect(delManyMock).toHaveBeenCalledWith([snapshotKey, packKey, outboxKey])
+    expect(getLastSnapshotUserId()).toBeNull()
   })
 
   it('marks packed workouts complete and blocks resuming completed packed sessions', async () => {
@@ -207,9 +231,11 @@ describe('offline workout store', () => {
 
     await upsertOfflineWorkoutOutboxEntry('user-123', firstEntry)
     const entries = await getOfflineWorkoutOutboxEntries('user-123')
+    const count = await getOfflineWorkoutOutboxCount('user-123')
 
     expect(setMock).toHaveBeenCalledWith(firstKey, firstEntry)
     expect(entries).toEqual([secondEntry, firstEntry])
+    expect(count).toBe(2)
   })
 
   it('marks outbox entries failed and synced', async () => {

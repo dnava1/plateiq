@@ -1,25 +1,17 @@
 import { NextResponse } from 'next/server'
 import { hasInsightEligibleAnalyticsData, parseAnalyticsData } from '@/lib/analytics'
 import { buildAnalyticsInsightSnapshot, generateTrainingInsight } from '@/lib/insights'
+import { isSameOriginRequest, PRIVATE_NO_STORE_HEADERS } from '@/lib/security/request'
 import { createClient } from '@/lib/supabase/server'
 import { generateInsightRequestSchema } from '@/lib/validations/insights'
-
-const NO_STORE_HEADERS = {
-  'Cache-Control': 'private, no-store',
-}
 
 const INSIGHT_DAILY_LIMIT = 3
 
 export const runtime = 'nodejs'
 
-function isSameOriginRequest(request: Request) {
-  const origin = request.headers.get('origin')
-  return Boolean(origin) && origin === new URL(request.url).origin
-}
-
 function createResponseHeaders(extra: Record<string, string> = {}) {
   return {
-    ...NO_STORE_HEADERS,
+    ...PRIVATE_NO_STORE_HEADERS,
     ...extra,
   }
 }

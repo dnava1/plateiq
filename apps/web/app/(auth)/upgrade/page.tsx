@@ -6,6 +6,8 @@ import { useSearchParams } from 'next/navigation'
 import { PlateIqMark } from '@/components/brand/PlateIqMark'
 import { sanitizeNextPath } from '@/lib/auth/auth-state'
 import { GOOGLE_OAUTH_SCOPES } from '@/lib/auth/google'
+import { getOfflineWorkoutOutboxCount } from '@/lib/offline-workout-store'
+import { getPersistedPendingMutationCount } from '@/lib/query-persistence'
 import {
   EXISTING_GOOGLE_IDENTITY_ERROR_CODE,
   EXISTING_GOOGLE_UPGRADE_MODE,
@@ -65,6 +67,10 @@ function UpgradePageContent() {
   const [action, setAction] = useState<UpgradeAction>(null)
   const [feedback, setFeedback] = useState<FeedbackState | null>(null)
   const [dismissedUrlFeedbackKey, setDismissedUrlFeedbackKey] = useState<string | null>(null)
+  const [pendingOfflineChangeState, setPendingOfflineChangeState] = useState<{
+    count: number
+    userId: string
+  } | null>(null)
   const feedbackRef = useRef<HTMLParagraphElement>(null)
   const existingAccountConflictRef = useRef(false)
   const initialFeedback = getInitialFeedback(errorParam, upgradeMode)
@@ -91,9 +97,50 @@ function UpgradePageContent() {
     }
   }, [visibleFeedback])
 
+  useEffect(() => {
+    let isActive = true
+
+    if (!user?.id || !user.is_anonymous) {
+      return () => {
+        isActive = false
+      }
+    }
+
+    void Promise.all([
+      getPersistedPendingMutationCount(user.id),
+      getOfflineWorkoutOutboxCount(user.id),
+    ]).then(([pendingMutationCount, offlineOutboxCount]) => {
+      if (!isActive) {
+        return
+      }
+
+      setPendingOfflineChangeState({
+        count: Math.max(pendingMutationCount, offlineOutboxCount),
+        userId: user.id,
+      })
+    }).catch(() => {
+      if (isActive) {
+        setPendingOfflineChangeState({ count: 0, userId: user.id })
+      }
+    })
+
+    return () => {
+      isActive = false
+    }
+  }, [user?.id, user?.is_anonymous])
+
+  const effectivePendingOfflineChangeCount = user?.is_anonymous === true && pendingOfflineChangeState?.userId === user.id
+    ? pendingOfflineChangeState.count
+    : 0
+  const isOfflineProgressLoading = user?.is_anonymous === true && pendingOfflineChangeState?.userId !== user.id
+
   const shouldAutoRetry = hasExistingAccountRetry
     && action === null
-    && (isLoading || user?.is_anonymous === true)
+    && (isLoading || (user?.is_anonymous === true && (isOfflineProgressLoading || effectivePendingOfflineChangeCount === 0)))
+  const hasPendingOfflineChanges = effectivePendingOfflineChangeCount > 0
+  const offlineProgressFeedback = hasPendingOfflineChanges
+    ? `Sync or discard ${effectivePendingOfflineChangeCount} pending offline ${effectivePendingOfflineChangeCount === 1 ? 'change' : 'changes'} before switching this guest account to Google. This protects workout progress saved on this device.`
+    : null
 
   const nextAfterUpgrade = sanitizeNextPath('/settings', '/settings')
 
@@ -108,6 +155,14 @@ function UpgradePageContent() {
   }
 
   const handleExistingAccountGoogleSignIn = async () => {
+    if (hasPendingOfflineChanges) {
+      setFeedback({
+        tone: 'error',
+        message: offlineProgressFeedback ?? 'Sync your offline workout changes before signing in with Google.',
+      })
+      return
+    }
+
     setAction('upgrade-google')
     clearVisibleFeedback()
     let preparedExistingAccountGoogleSignIn = false
@@ -166,6 +221,14 @@ function UpgradePageContent() {
       return
     }
 
+    if (hasPendingOfflineChanges) {
+      setFeedback({
+        tone: 'error',
+        message: offlineProgressFeedback ?? 'Sync your offline workout changes before signing in with Google.',
+      })
+      return
+    }
+
     setAction('upgrade-google')
     clearVisibleFeedback()
 
@@ -195,6 +258,8 @@ function UpgradePageContent() {
       typeof window === 'undefined'
       || action !== null
       || !user?.is_anonymous
+      || isOfflineProgressLoading
+      || effectivePendingOfflineChangeCount !== 0
     ) {
       return
     }
@@ -217,9 +282,9 @@ function UpgradePageContent() {
     )
 
     retryExistingAccountGoogleSignIn()
-  }, [action, hasExistingAccountRetry, user?.id, user?.is_anonymous])
+  }, [action, effectivePendingOfflineChangeCount, feedback?.message, hasExistingAccountRetry, isOfflineProgressLoading, user?.id, user?.is_anonymous])
 
-  const isPending = action !== null || shouldAutoRetry || isLoading
+  const isPending = action !== null || shouldAutoRetry || isLoading || isOfflineProgressLoading || hasPendingOfflineChanges
 
   if (!user && !isLoading && !shouldAutoRetry && action === null) {
     return (
@@ -266,6 +331,16 @@ function UpgradePageContent() {
           <p className="text-sm leading-6 text-muted-foreground">
             Sign in with Google to keep this temporary guest session and continue with a permanent account.
           </p>
+
+          {offlineProgressFeedback ? (
+            <p
+              role="status"
+              aria-live="polite"
+              className="rounded-2xl border border-border/70 bg-muted/45 px-3 py-2 text-sm text-muted-foreground"
+            >
+              {offlineProgressFeedback}
+            </p>
+          ) : null}
 
           <Button
             type="button"

@@ -4,12 +4,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import UpgradePage from './page'
 
 const {
+  getOfflineWorkoutOutboxCountMock,
+  getPersistedPendingMutationCountMock,
   linkIdentityMock,
   signInWithOAuthMock,
   signOutMock,
   useSearchParamsMock,
   useUserMock,
 } = vi.hoisted(() => ({
+  getOfflineWorkoutOutboxCountMock: vi.fn(),
+  getPersistedPendingMutationCountMock: vi.fn(),
   linkIdentityMock: vi.fn(),
   signInWithOAuthMock: vi.fn(),
   signOutMock: vi.fn(),
@@ -30,6 +34,22 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/hooks/useUser', () => ({
   useUser: () => useUserMock(),
 }))
+
+vi.mock('@/lib/query-persistence', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/query-persistence')>('@/lib/query-persistence')
+  return {
+    ...actual,
+    getPersistedPendingMutationCount: (...args: unknown[]) => getPersistedPendingMutationCountMock(...args),
+  }
+})
+
+vi.mock('@/lib/offline-workout-store', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/offline-workout-store')>('@/lib/offline-workout-store')
+  return {
+    ...actual,
+    getOfflineWorkoutOutboxCount: (...args: unknown[]) => getOfflineWorkoutOutboxCountMock(...args),
+  }
+})
 
 vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
@@ -54,6 +74,8 @@ describe('UpgradePage', () => {
       },
       isLoading: false,
     })
+    getOfflineWorkoutOutboxCountMock.mockResolvedValue(0)
+    getPersistedPendingMutationCountMock.mockResolvedValue(0)
     linkIdentityMock.mockReset()
     signInWithOAuthMock.mockReset()
     signOutMock.mockReset()
@@ -220,5 +242,19 @@ describe('UpgradePage', () => {
     })
 
     expect(screen.getByRole('button', { name: 'Redirecting to Google…' })).toBeInTheDocument()
+  })
+
+  it('blocks the Google upgrade while pending offline changes exist on this device', async () => {
+    getOfflineWorkoutOutboxCountMock.mockResolvedValue(2)
+
+    render(<UpgradePage />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/Sync or discard 2 pending offline changes/i)).toBeInTheDocument()
+    })
+
+    expect(screen.getByRole('button', { name: 'Sign In with Google' })).toBeDisabled()
+    expect(linkIdentityMock).not.toHaveBeenCalled()
+    expect(signInWithOAuthMock).not.toHaveBeenCalled()
   })
 })

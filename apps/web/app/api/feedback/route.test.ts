@@ -93,6 +93,23 @@ describe('POST /api/feedback', () => {
     await expect(response.json()).resolves.toEqual({ error: 'Forbidden' })
   })
 
+  it('rejects submissions without an Origin header', async () => {
+    const response = await POST(new Request('http://localhost/api/feedback', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        category: 'bug',
+        message: 'This submission should be blocked before validation.',
+      }),
+    }))
+
+    expect(response.status).toBe(403)
+    expect(response.headers.get('cache-control')).toBe('private, no-store')
+    await expect(response.json()).resolves.toEqual({ error: 'Forbidden' })
+  })
+
   it('rejects invalid JSON', async () => {
     const response = await POST(createInvalidJsonRequest())
 

@@ -2,7 +2,7 @@ import { buildExerciseKeyMap, resolveExerciseIdFromMap, type Exercise } from '@/
 import type { CustomProgramConfig } from '@/types/template'
 import { resolveExecutionMaxInputScope, type ExecutionMaxInputMode } from './trainingMax'
 
-interface WeekAwareExecutionProgram extends Pick<CustomProgramConfig, 'cycle_length_weeks' | 'days' | 'week_schemes'> {}
+type WeekAwareExecutionProgram = Pick<CustomProgramConfig, 'cycle_length_weeks' | 'days' | 'week_schemes'>
 
 interface CurrentMaxInputSnapshot {
   exercise_id: number

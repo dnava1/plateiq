@@ -5,11 +5,10 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { Activity, CloudOff, Dumbbell, Play, RefreshCw } from 'lucide-react'
 import { useOfflineWorkoutSync } from '@/hooks/useOfflineWorkoutSync'
-import { createClient } from '@/lib/supabase/client'
+import { getSessionUserIdWithTimeout, getStoredAuthScopeHint } from '@/lib/auth/session-user'
 import {
   createOfflineWorkoutSnapshotFromPackWorkout,
   getActiveWorkoutSnapshot,
-  getLastSnapshotUserId,
   getOfflineWorkoutPack,
   saveActiveWorkoutSnapshot,
   type OfflineWorkoutOutboxEntry,
@@ -32,36 +31,6 @@ import {
   shouldAutoStartRestTimer,
   type WorkoutDisplaySet,
 } from './types'
-
-const SESSION_LOOKUP_TIMEOUT_MS = 1200
-
-async function getSessionUserIdWithTimeout() {
-  return new Promise<string | null>((resolve) => {
-    let isSettled = false
-
-    const resolveOnce = (userId: string | null) => {
-      if (isSettled) {
-        return
-      }
-
-      isSettled = true
-      window.clearTimeout(timeoutId)
-      resolve(userId)
-    }
-
-    const timeoutId = window.setTimeout(() => resolveOnce(null), SESSION_LOOKUP_TIMEOUT_MS)
-
-    try {
-      const supabase = createClient()
-
-      void supabase.auth.getSession()
-        .then(({ data }) => resolveOnce(data.session?.user.id ?? null))
-        .catch(() => resolveOnce(null))
-    } catch {
-      resolveOnce(null)
-    }
-  })
-}
 
 function formatSnapshotTime(value: string | null | undefined) {
   if (!value) {
@@ -112,7 +81,7 @@ export function OfflineGymResumePage() {
     let isActive = true
 
     const loadSnapshot = async () => {
-      const offlineUserId = navigator.onLine ? null : getLastSnapshotUserId()
+      const offlineUserId = navigator.onLine ? null : getStoredAuthScopeHint()
       const sessionUserId = offlineUserId ? null : await getSessionUserIdWithTimeout()
       const resolvedUserId = sessionUserId ?? offlineUserId
 

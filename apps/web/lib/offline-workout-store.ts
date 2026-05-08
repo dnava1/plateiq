@@ -1,4 +1,4 @@
-import { del, get, keys, set } from 'idb-keyval'
+import { del, delMany, get, keys, set } from 'idb-keyval'
 import type { SetSyncState, RestTimerState } from '@/store/workoutSessionStore'
 import type { TrainingProgram } from '@/hooks/usePrograms'
 import type { WorkoutDisplaySet } from '@/components/workouts/types'
@@ -209,6 +209,28 @@ export async function clearOfflineWorkoutPack(userId: string) {
   emitOfflineWorkoutStoreChanged(userId)
 }
 
+export async function clearOfflineWorkoutState(userId: string) {
+  const storedKeys = await keys()
+  const userScopedPrefixes = [
+    getActiveWorkoutSnapshotKey(userId),
+    getOfflineWorkoutPackKey(userId),
+    `${OUTBOX_KEY_PREFIX}:${userId}:`,
+  ]
+  const userScopedKeys = storedKeys
+    .map((key) => String(key))
+    .filter((key) => userScopedPrefixes.some((prefix) => key === prefix || key.startsWith(prefix)))
+
+  if (userScopedKeys.length > 0) {
+    await delMany(userScopedKeys)
+  }
+
+  if (typeof window !== 'undefined' && getLastSnapshotUserId() === userId) {
+    window.localStorage.removeItem(LAST_SNAPSHOT_USER_KEY)
+  }
+
+  emitOfflineWorkoutStoreChanged(userId)
+}
+
 export async function markOfflineWorkoutPackWorkoutCompleted(
   userId: string,
   workoutId: number,
@@ -406,4 +428,10 @@ export async function getOfflineWorkoutOutboxEntries(userId: string) {
   return entries
     .filter((entry): entry is OfflineWorkoutOutboxEntry => Boolean(entry))
     .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+}
+
+export async function getOfflineWorkoutOutboxCount(userId: string) {
+  const entries = await getOfflineWorkoutOutboxEntries(userId)
+
+  return entries.length
 }

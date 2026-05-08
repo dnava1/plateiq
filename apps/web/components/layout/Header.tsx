@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { isAnonymousUser } from '@/lib/auth/auth-state'
 import { resolveUserDisplayProfile } from '@/lib/auth/user-display'
 import { useUser } from '@/hooks/useUser'
@@ -10,20 +11,47 @@ import { cn } from '@/lib/utils'
 import { PlateIqMark } from '@/components/brand/PlateIqMark'
 import { APP_NAV_ITEMS, isActiveNavPath } from '@/components/layout/navigation'
 
+const OPTIMISTIC_ACTIVE_TIMEOUT_MS = 1_200
+
+interface OptimisticNavTarget {
+  href: string
+  sourcePathname: string
+}
+
 export function Header() {
   const pathname = usePathname()
   const router = useRouter()
+  const [optimisticTarget, setOptimisticTarget] = useState<OptimisticNavTarget | null>(null)
+  const activePathname = optimisticTarget?.sourcePathname === pathname ? optimisticTarget.href : pathname
   const { data: user } = useUser()
   const isGuest = isAnonymousUser(user)
   const { avatarUrl, displayName, initials } = resolveUserDisplayProfile(user, {
     anonymousDisplayName: 'Guest',
   })
-  const isSettingsActive = isActiveNavPath(pathname, '/settings')
   const prefetchRoute = (href: string) => {
     if (!isActiveNavPath(pathname, href)) {
       router.prefetch(href)
     }
   }
+  const prepareRouteChange = (href: string) => {
+    prefetchRoute(href)
+
+    if (!isActiveNavPath(pathname, href)) {
+      setOptimisticTarget({ href, sourcePathname: pathname })
+    }
+  }
+
+  useEffect(() => {
+    if (!optimisticTarget) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setOptimisticTarget(null)
+    }, OPTIMISTIC_ACTIVE_TIMEOUT_MS)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [optimisticTarget])
 
   return (
     <header className="pt-safe-header relative z-50 md:sticky md:top-0 md:pt-4">
@@ -36,6 +64,7 @@ export function Header() {
             className="flex min-w-0 items-center gap-2 sm:gap-3"
             onFocus={() => prefetchRoute('/dashboard')}
             onPointerEnter={() => prefetchRoute('/dashboard')}
+            onPointerDown={() => prepareRouteChange('/dashboard')}
           >
             <PlateIqMark className="size-9 md:size-10" />
             <span className="min-w-0">
@@ -50,7 +79,7 @@ export function Header() {
 
           <nav aria-label="Primary" className="ml-2 hidden items-center gap-1 rounded-full border border-border/70 bg-muted/40 p-1 md:flex">
             {APP_NAV_ITEMS.map((item) => {
-              const isActive = isActiveNavPath(pathname, item.href)
+              const isActive = isActiveNavPath(activePathname, item.href)
               return (
                 <Link
                   key={item.href}
@@ -59,6 +88,7 @@ export function Header() {
                   aria-current={isActive ? 'page' : undefined}
                   onFocus={() => prefetchRoute(item.href)}
                   onPointerEnter={() => prefetchRoute(item.href)}
+                  onPointerDown={() => prepareRouteChange(item.href)}
                   className={cn(
                     'rounded-full px-3 py-2 text-sm font-medium transition-all',
                     isActive
@@ -78,12 +108,13 @@ export function Header() {
               prefetch={false}
               className={cn(
                 'group flex items-center gap-2 rounded-full p-1 transition-colors',
-                isSettingsActive ? 'bg-muted/50 ring-1 ring-border/70' : 'hover:bg-muted/40'
+                isActiveNavPath(activePathname, '/settings') ? 'bg-muted/50 ring-1 ring-border/70' : 'hover:bg-muted/40'
               )}
               aria-label="Open settings"
               title="Open settings"
               onFocus={() => prefetchRoute('/settings')}
               onPointerEnter={() => prefetchRoute('/settings')}
+              onPointerDown={() => prepareRouteChange('/settings')}
             >
               <div className="hidden flex-col items-end lg:flex">
                 <span className="max-w-32 truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">

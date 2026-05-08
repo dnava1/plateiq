@@ -9,6 +9,7 @@ import SettingsPage from './page'
 
 const mocks = vi.hoisted(() => ({
   clearAllPersistedQueryCaches: vi.fn().mockResolvedValue(undefined),
+  clearOfflineWorkoutState: vi.fn().mockResolvedValue(undefined),
   invalidateQueries: vi.fn().mockResolvedValue(undefined),
   isAnonymousUser: vi.fn().mockReturnValue(false),
   replace: vi.fn(),
@@ -71,6 +72,10 @@ vi.mock('@/store/uiStore', () => ({
 
 vi.mock('@/lib/query-persistence', () => ({
   clearAllPersistedQueryCaches: mocks.clearAllPersistedQueryCaches,
+}))
+
+vi.mock('@/lib/offline-workout-store', () => ({
+  clearOfflineWorkoutState: mocks.clearOfflineWorkoutState,
 }))
 
 vi.mock('@/components/layout/ThemeToggle', () => ({
@@ -136,6 +141,7 @@ describe('SettingsPage', () => {
     mocks.rpc.mockClear()
     mocks.signOut.mockClear()
     mocks.clearAllPersistedQueryCaches.mockClear()
+    mocks.clearOfflineWorkoutState.mockClear()
     mocks.replace.mockClear()
     mocks.toastSuccess.mockClear()
     mocks.toastError.mockClear()
@@ -502,6 +508,7 @@ describe('SettingsPage', () => {
       expect(mocks.signOut).toHaveBeenCalledWith({ scope: 'local' })
     })
 
+    expect(mocks.clearOfflineWorkoutState).toHaveBeenCalledWith('guest-user')
     expect(mocks.clearAllPersistedQueryCaches).toHaveBeenCalledOnce()
     expect(mocks.replace).toHaveBeenCalledWith('/continue')
   })

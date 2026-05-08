@@ -43,6 +43,17 @@ describe('POST /api/auth/upgrade/discard', () => {
     expect(response.headers.get('set-cookie')).toContain('plateiq-discard-guest-user=guest-user')
   })
 
+  it('rejects prepare requests without an Origin header', async () => {
+    const response = await POST(new Request('http://localhost/api/auth/upgrade/discard', {
+      method: 'POST',
+    }))
+
+    expect(response.status).toBe(403)
+    expect(response.headers.get('cache-control')).toBe('private, no-store')
+    await expect(response.json()).resolves.toEqual({ error: 'Forbidden' })
+    expect(mocks.createClient).not.toHaveBeenCalled()
+  })
+
   it('rejects non-guest users', async () => {
     mocks.createClient.mockResolvedValue(createSupabaseClient({ id: 'permanent-user', is_anonymous: false }))
     mocks.isAnonymousUser.mockReturnValue(false)
@@ -67,5 +78,15 @@ describe('POST /api/auth/upgrade/discard', () => {
 
     expect(response.status).toBe(204)
     expect(response.headers.get('set-cookie')).toContain('plateiq-discard-guest-user=;')
+  })
+
+  it('rejects cleanup deletes without an Origin header', async () => {
+    const response = await DELETE(new Request('http://localhost/api/auth/upgrade/discard', {
+      method: 'DELETE',
+    }))
+
+    expect(response.status).toBe(403)
+    expect(response.headers.get('cache-control')).toBe('private, no-store')
+    await expect(response.json()).resolves.toEqual({ error: 'Forbidden' })
   })
 })

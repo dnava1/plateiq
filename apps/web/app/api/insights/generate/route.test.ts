@@ -96,6 +96,25 @@ describe('POST /api/insights/generate', () => {
     expect(mocks.createClient).not.toHaveBeenCalled()
   })
 
+  it('rejects submissions without an Origin header', async () => {
+    const response = await POST(new Request('http://localhost/api/insights/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        dateFrom: '2026-02-01',
+        dateTo: '2026-04-01',
+        exerciseId: null,
+      }),
+    }))
+
+    expect(response.status).toBe(403)
+    expect(response.headers.get('cache-control')).toBe('private, no-store')
+    await expect(response.json()).resolves.toEqual({ error: 'Forbidden' })
+    expect(mocks.createClient).not.toHaveBeenCalled()
+  })
+
   it('rejects unauthenticated requests', async () => {
     mocks.createClient.mockResolvedValue(createSupabaseClient({ user: null }))
 

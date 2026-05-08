@@ -1,22 +1,14 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { isSameOriginRequest, PRIVATE_NO_STORE_HEADERS } from '@/lib/security/request'
 import { feedbackSubmissionSchema } from '@/lib/validations/feedback'
-
-const NO_STORE_HEADERS = {
-  'Cache-Control': 'private, no-store',
-}
 
 export const runtime = 'nodejs'
 
-function isSameOriginRequest(request: Request) {
-  const origin = request.headers.get('origin')
-  return Boolean(origin) && origin === new URL(request.url).origin
-}
-
 export async function POST(request: Request) {
   if (!isSameOriginRequest(request)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403, headers: NO_STORE_HEADERS })
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403, headers: PRIVATE_NO_STORE_HEADERS })
   }
 
   let body: unknown
@@ -26,7 +18,7 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json(
       { error: 'Request body must be valid JSON.' },
-      { status: 400, headers: NO_STORE_HEADERS },
+      { status: 400, headers: PRIVATE_NO_STORE_HEADERS },
     )
   }
 
@@ -35,7 +27,7 @@ export async function POST(request: Request) {
   if (!parsedRequest.success) {
     return NextResponse.json(
       { error: parsedRequest.error.issues[0]?.message ?? 'Invalid feedback submission.' },
-      { status: 400, headers: NO_STORE_HEADERS },
+      { status: 400, headers: PRIVATE_NO_STORE_HEADERS },
     )
   }
 
@@ -46,7 +38,7 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser()
 
   if (authError || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: NO_STORE_HEADERS })
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: PRIVATE_NO_STORE_HEADERS })
   }
 
   const admin = createAdminClient()
@@ -72,7 +64,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       { error: 'Unable to save feedback right now.' },
-      { status: 500, headers: NO_STORE_HEADERS },
+      { status: 500, headers: PRIVATE_NO_STORE_HEADERS },
     )
   }
 
@@ -81,6 +73,6 @@ export async function POST(request: Request) {
       submissionId: data.id,
       createdAt: data.created_at,
     },
-    { status: 201, headers: NO_STORE_HEADERS },
+    { status: 201, headers: PRIVATE_NO_STORE_HEADERS },
   )
 }

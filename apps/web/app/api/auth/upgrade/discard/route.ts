@@ -5,22 +5,14 @@ import {
   getDiscardGuestCookieOptions,
   getExpiredDiscardGuestCookieOptions,
 } from '@/lib/auth/google-upgrade'
+import { isSameOriginRequest, PRIVATE_NO_STORE_HEADERS } from '@/lib/security/request'
 import { createClient } from '@/lib/supabase/server'
-
-const NO_STORE_HEADERS = {
-  'Cache-Control': 'private, no-store',
-}
 
 export const runtime = 'nodejs'
 
-function isSameOriginRequest(request: Request) {
-  const origin = request.headers.get('origin')
-  return Boolean(origin) && origin === new URL(request.url).origin
-}
-
 export async function POST(request: Request) {
   if (!isSameOriginRequest(request)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403, headers: NO_STORE_HEADERS })
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403, headers: PRIVATE_NO_STORE_HEADERS })
   }
 
   const supabase = await createClient()
@@ -30,27 +22,27 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser()
 
   if (authError || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: NO_STORE_HEADERS })
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: PRIVATE_NO_STORE_HEADERS })
   }
 
   if (!isAnonymousUser(user)) {
     return NextResponse.json(
       { error: 'Only guest accounts can prepare an existing-account sign-in.' },
-      { status: 403, headers: NO_STORE_HEADERS },
+      { status: 403, headers: PRIVATE_NO_STORE_HEADERS },
     )
   }
 
-  const response = NextResponse.json({ prepared: true }, { status: 200, headers: NO_STORE_HEADERS })
+  const response = NextResponse.json({ prepared: true }, { status: 200, headers: PRIVATE_NO_STORE_HEADERS })
   response.cookies.set(DISCARD_GUEST_COOKIE_NAME, user.id, getDiscardGuestCookieOptions())
   return response
 }
 
 export async function DELETE(request: Request) {
   if (!isSameOriginRequest(request)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403, headers: NO_STORE_HEADERS })
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403, headers: PRIVATE_NO_STORE_HEADERS })
   }
 
-  const response = new NextResponse(null, { status: 204, headers: NO_STORE_HEADERS })
+  const response = new NextResponse(null, { status: 204, headers: PRIVATE_NO_STORE_HEADERS })
   response.cookies.set(DISCARD_GUEST_COOKIE_NAME, '', getExpiredDiscardGuestCookieOptions())
   return response
 }

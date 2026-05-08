@@ -14,6 +14,7 @@ import { useSupabase } from '@/hooks/useSupabase'
 import { analyticsQueryKeys } from '@/hooks/useAnalytics'
 import { useUiStore } from '@/store/uiStore'
 import { clearAllPersistedQueryCaches } from '@/lib/query-persistence'
+import { clearOfflineWorkoutState } from '@/lib/offline-workout-store'
 import { displayToLbs, lbsToDisplay } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -536,6 +537,9 @@ export default function SettingsPage() {
       return
     }
 
+    if (user?.id) {
+      await clearOfflineWorkoutState(user.id).catch(() => undefined)
+    }
     await clearAllPersistedQueryCaches().catch(() => undefined)
     queryClient.clear()
 

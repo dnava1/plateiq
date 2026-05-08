@@ -5,7 +5,7 @@
   "description": "Track workouts, strength programs, analytics, and AI insights in one installable app.",
   "lang": "en-US",
   "dir": "ltr",
-  "start_url": "/dashboard",
+  "start_url": "/launch",
   "scope": "/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "browser"],

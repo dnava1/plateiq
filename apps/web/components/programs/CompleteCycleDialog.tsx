@@ -89,19 +89,6 @@ export function CompleteCycleDialog({ program }: CompleteCycleDialogProps) {
     }
   }, [])
 
-  useEffect(() => {
-    if (!open) {
-      setNextTmInputs({})
-      return
-    }
-
-    setNextTmInputs(
-      Object.fromEntries(
-        previewRows.map((row) => [row.exerciseId, formatEditableNextTmValue(row.newTmLbs, preferredUnit)]),
-      ),
-    )
-  }, [open, preferredUnit, previewRows])
-
   const adjustedPreviewRows = useMemo<EditableCycleProgressionRow[]>(() => {
     return previewRows.map((row) => {
       const nextTmInput = nextTmInputs[row.exerciseId] ?? formatEditableNextTmValue(row.newTmLbs, preferredUnit)
@@ -124,6 +111,14 @@ export function CompleteCycleDialog({ program }: CompleteCycleDialogProps) {
   }, [nextTmInputs, preferredUnit, previewRows])
 
   const hasInvalidNextTmInput = adjustedPreviewRows.some((row) => !row.isValid)
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen)
+
+    if (!nextOpen) {
+      setNextTmInputs({})
+    }
+  }
 
   const handleConfirm = () => {
     if (!activeCycle) {
@@ -166,7 +161,7 @@ export function CompleteCycleDialog({ program }: CompleteCycleDialogProps) {
         Cycle Checkpoint
       </Button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-3xl">
           <DialogHeader className="gap-2 pr-8">
             <div className="flex flex-wrap items-center gap-2">
