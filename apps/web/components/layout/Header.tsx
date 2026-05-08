@@ -7,9 +7,10 @@ import { useAppShellClientState } from '@/components/layout/AppShellClientState'
 import { isAnonymousUser } from '@/lib/auth/auth-state'
 import { resolveUserDisplayProfile } from '@/lib/auth/user-display'
 import { useUser } from '@/hooks/useUser'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { PlateIqMark } from '@/components/brand/PlateIqMark'
+import { ProfileAvatar } from '@/components/layout/ProfileAvatar'
 import {
   APP_NAV_ITEMS,
   isActiveNavPath,
@@ -23,7 +24,8 @@ export function Header() {
   const router = useRouter()
   const { pendingNavHref, setPendingNavHref } = useAppShellClientState()
   const activePathname = pendingNavHref ?? pathname
-  const { data: user } = useUser()
+  const { data: user, isLoading: isUserLoading } = useUser()
+  const isIdentityLoading = isUserLoading || !user
   const isGuest = isAnonymousUser(user)
   const { avatarUrl, displayName, initials } = resolveUserDisplayProfile(user, {
     anonymousDisplayName: 'Guest',
@@ -129,17 +131,30 @@ export function Header() {
               onPointerDown={handlePointerDown('/settings')}
               onClick={handleClick('/settings')}
             >
-              <div className="hidden flex-col items-end lg:flex">
-                <span className="max-w-32 truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">
-                  {displayName}
-                </span>
-                <span className="text-xs text-muted-foreground">{isGuest ? 'Guest session' : 'Signed in'}</span>
-              </div>
+              {isIdentityLoading ? (
+                <div className="hidden flex-col items-end gap-1 lg:flex" aria-hidden="true">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              ) : (
+                <div className="hidden flex-col items-end lg:flex">
+                  <span className="max-w-32 truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">
+                    {displayName}
+                  </span>
+                  <span className="text-xs text-muted-foreground">{isGuest ? 'Guest session' : 'Signed in'}</span>
+                </div>
+              )}
 
-              <Avatar className="ring-2 ring-primary/15 transition-all group-hover:ring-primary/35 md:size-10">
-                {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} /> : null}
-                <AvatarFallback>{initials}</AvatarFallback>
-              </Avatar>
+              {isIdentityLoading ? (
+                <Skeleton className="size-8 rounded-full md:size-10" aria-hidden="true" />
+              ) : (
+                <ProfileAvatar
+                  avatarUrl={avatarUrl}
+                  className="ring-2 ring-primary/15 transition-all group-hover:ring-primary/35 md:size-10"
+                  displayName={displayName}
+                  initials={initials}
+                />
+              )}
             </Link>
           </div>
         </div>

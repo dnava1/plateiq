@@ -6,6 +6,7 @@ import { analyticsQueryKeys } from '@/hooks/useAnalytics'
 import { dashboardQueryKeys } from '@/hooks/useDashboard'
 import {
   completeWorkoutMutation,
+  deferWorkoutSecondaryInvalidations,
   logSetMutation,
   updateWorkoutBlockPrescriptionMutation,
   workoutQueryKeys,
@@ -113,8 +114,7 @@ function invalidateAfterEntry(queryClient: QueryClient | undefined, entry: Offli
     if (entry.variables.isAmrap) {
       queryClient.invalidateQueries({ queryKey: workoutQueryKeys.amrapHistory(entry.variables.exerciseId) })
     }
-    queryClient.invalidateQueries({ queryKey: analyticsQueryKeys.all() })
-    queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() })
+    deferWorkoutSecondaryInvalidations(queryClient)
     return
   }
 

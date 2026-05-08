@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { Suspense, useEffect, useEffectEvent, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { Loader2 } from 'lucide-react'
 import { PlateIqMark } from '@/components/brand/PlateIqMark'
 import { sanitizeNextPath } from '@/lib/auth/auth-state'
 import { GOOGLE_OAUTH_SCOPES } from '@/lib/auth/google'
@@ -15,6 +16,7 @@ import {
 } from '@/lib/auth/google-upgrade'
 import { useUser } from '@/hooks/useUser'
 import { createClient } from '@/lib/supabase/client'
+import { AuthPageFallback } from '@/components/auth/AuthPageFallback'
 import { Button, buttonVariants } from '@/components/ui/button'
 
 type UpgradeAction =
@@ -52,7 +54,7 @@ function getInitialFeedback(errorParam: string | null, upgradeMode: string | nul
 
 export default function UpgradePage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<AuthPageFallback />}>
       <UpgradePageContent />
     </Suspense>
   )
@@ -368,6 +370,9 @@ function UpgradePageContent() {
               />
             </svg>
             <span>{action === 'upgrade-google' || shouldAutoRetry ? 'Redirecting to Google…' : 'Sign In with Google'}</span>
+            {action === 'upgrade-google' || shouldAutoRetry ? (
+              <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+            ) : null}
           </Button>
         </div>
 

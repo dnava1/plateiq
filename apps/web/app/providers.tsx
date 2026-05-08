@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { usePathname } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Loader2 } from 'lucide-react'
 import { getAuthScope } from '@/lib/auth/auth-state'
 import { getStoredAuthScopeHint } from '@/lib/auth/session-user'
 import { APP_NAV_ITEMS, isActiveNavPath, type AppNavHref } from '@/components/layout/navigation'
@@ -69,6 +70,31 @@ function ThemeSync() {
   }, [theme])
 
   return null
+}
+
+function WarmDataRestoreStatus({
+  cacheScope,
+  isWarmDataReady,
+}: {
+  cacheScope: string | null
+  isWarmDataReady: boolean
+}) {
+  if (!cacheScope || isWarmDataReady) {
+    return null
+  }
+
+  return (
+    <div className="pointer-events-none fixed inset-x-0 top-[calc(env(safe-area-inset-top)+0.75rem)] z-[60] flex justify-center px-4 md:justify-end md:px-6">
+      <div
+        role="status"
+        aria-live="polite"
+        className="shadow-app-overlay flex items-center gap-2 rounded-full border border-border/70 bg-background/90 px-3 py-2 text-xs font-medium text-muted-foreground backdrop-blur-xl"
+      >
+        <Loader2 className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+        <span>Restoring saved data</span>
+      </div>
+    </div>
+  )
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -255,6 +281,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       }}
     >
       <ThemeSync />
+      <WarmDataRestoreStatus cacheScope={cacheScope} isWarmDataReady={isWarmDataReady} />
       {children}
     </AppShellClientStateProvider>
   )

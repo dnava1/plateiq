@@ -305,6 +305,64 @@ describe('SettingsPage', () => {
     expect(screen.getByRole('radio', { name: 'Kilograms (kg)' })).toBeDisabled()
   })
 
+  it('does not show fallback account identity while auth is loading', () => {
+    mocks.useUser.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+    })
+    mocks.useProfile.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+    })
+
+    const { container } = render(<SettingsPage />, { wrapper: createWrapper() })
+
+    expect(screen.queryByText('Athlete')).not.toBeInTheDocument()
+    expect(screen.queryByText('A')).not.toBeInTheDocument()
+    expect(screen.queryByText('Signed in')).not.toBeInTheDocument()
+    expect(container.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('does not flash fallback account identity when auth has no user object yet', () => {
+    mocks.useUser.mockReturnValue({
+      data: null,
+      isLoading: false,
+    })
+    mocks.useProfile.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+    })
+
+    const { container } = render(<SettingsPage />, { wrapper: createWrapper() })
+
+    expect(screen.queryByText('Athlete')).not.toBeInTheDocument()
+    expect(screen.queryByText('A')).not.toBeInTheDocument()
+    expect(screen.queryByText('Signed in')).not.toBeInTheDocument()
+    expect(container.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('keeps avatar initials hidden while the profile image is loading', () => {
+    mocks.useUser.mockReturnValue({
+      data: {
+        email: 'dan@plateiq.local',
+        id: 'user-1',
+        is_anonymous: false,
+        user_metadata: {
+          avatar_url: 'https://example.com/dan-avatar.png',
+          full_name: 'Dan Navarro',
+        },
+      },
+      isLoading: false,
+    })
+
+    const { container } = render(<SettingsPage />, { wrapper: createWrapper() })
+
+    expect(screen.getByRole('heading', { name: 'Dan Navarro' })).toBeInTheDocument()
+    expect(screen.queryByText('D')).not.toBeInTheDocument()
+    expect(container.querySelector('[data-slot="avatar-fallback"]')).not.toBeInTheDocument()
+    expect(container.querySelector('[data-slot="skeleton"]')).toBeInTheDocument()
+  })
+
   it('does not let PreferenceSync overwrite the optimistic unit while a preference mutation is pending', async () => {
     const user = userEvent.setup()
     let resolveUpdate: ((value: { error: null }) => void) | undefined

@@ -30,11 +30,47 @@ import { ReviewStep } from '@/components/programs/builder/ReviewStep'
 import { useBuilderStepNavigation } from '@/components/programs/builder/useBuilderStepNavigation'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowLeft, WandSparkles } from 'lucide-react'
+
+function BuilderPageFallback() {
+  return (
+    <div className="page-shell max-w-5xl">
+      <section role="status" aria-live="polite" className="page-header">
+        <div className="flex flex-col gap-3">
+          <span className="eyebrow">Program Editor</span>
+          <div className="flex flex-col gap-2">
+            <h1 className="page-title">Preparing editor</h1>
+            <p className="page-copy">Loading the program setup workspace.</p>
+          </div>
+        </div>
+      </section>
+
+      <Card className="surface-panel w-full max-w-3xl" aria-hidden="true">
+        <CardHeader className="gap-4">
+          <div className="flex items-center gap-3">
+            <Skeleton className="size-11 rounded-2xl" />
+            <Skeleton className="h-7 w-40" />
+          </div>
+          <div className="grid gap-2 sm:grid-cols-5">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <Skeleton key={index} className="h-10 w-full rounded-2xl" />
+            ))}
+          </div>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <Skeleton className="h-10 w-full max-w-md" />
+          <Skeleton className="h-32 w-full rounded-[22px]" />
+          <Skeleton className="h-24 w-full rounded-[22px]" />
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
 
 export default function BuilderPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<BuilderPageFallback />}>
       <BuilderPageContent />
     </Suspense>
   )
@@ -197,7 +233,7 @@ function BuilderPageContent() {
   }
 
   if (programId && (isProgramLoading || isEditabilityLoading) && !shouldRenderBuilder) {
-    return null
+    return <BuilderPageFallback />
   }
 
   if (programId && !program) {
@@ -224,7 +260,7 @@ function BuilderPageContent() {
   }
 
   if (!shouldRenderBuilder) {
-    return null
+    return <BuilderPageFallback />
   }
 
   return (

@@ -9,6 +9,7 @@ import { isCaptchaRejectionError, isInvalidCaptchaResponseError, turnstileSiteKe
 import { GOOGLE_OAUTH_SCOPES } from '@/lib/auth/google'
 import { sanitizeNextPath } from '@/lib/auth/auth-state'
 import { createClient } from '@/lib/supabase/client'
+import { AuthPageFallback } from '@/components/auth/AuthPageFallback'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 
@@ -46,7 +47,7 @@ function isLocalDevelopmentHost() {
 
 export default function ContinuePage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<AuthPageFallback />}>
       <ContinuePageContent />
     </Suspense>
   )
@@ -228,7 +229,11 @@ function ContinuePageContent() {
             </svg>
             <span>{authAction === 'google' ? 'Redirecting to Google…' : 'Continue with Google'}</span>
           </span>
-          <ArrowRight />
+          {authAction === 'google' ? (
+            <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
+          ) : (
+            <ArrowRight />
+          )}
         </Button>
 
         {feedback && (

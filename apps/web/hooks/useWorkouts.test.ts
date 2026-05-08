@@ -217,6 +217,78 @@ describe('useWorkouts', () => {
     )
   })
 
+  it('defers dashboard and analytics invalidations after logging a set', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-10T12:34:56.000Z'))
+
+    const single = vi.fn().mockResolvedValue({
+      data: {
+        id: 91,
+        workout_id: 44,
+        exercise_id: 2,
+        user_id: 'user-1',
+        set_order: 3,
+        set_type: 'main',
+        weight_lbs: 225,
+        reps_prescribed: 5,
+        reps_prescribed_max: null,
+        reps_actual: 5,
+        is_amrap: false,
+        rpe: null,
+        intensity_type: 'percentage_tm',
+        logged_at: '2026-04-10T12:34:56.000Z',
+        prescribed_intensity: 0.75,
+        prescribed_weight_lbs: 225,
+        prescription_base_weight_lbs: 300,
+        updated_at: '2026-04-10T12:34:56.000Z',
+      },
+      error: null,
+    })
+    const select = vi.fn(() => ({ single }))
+    const upsert = vi.fn(() => ({ select }))
+
+    useSupabaseMock.mockReturnValue({
+      from: vi.fn((table: string) => {
+        expect(table).toBe('workout_sets')
+        return { upsert }
+      }),
+    })
+
+    const { queryClient, wrapper } = createWrapperWithClient()
+    const invalidateQueriesSpy = vi.spyOn(queryClient, 'invalidateQueries')
+    const { result } = renderHook(() => useLogSet(), { wrapper })
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        workoutId: 44,
+        exerciseId: 2,
+        exerciseName: 'Squat',
+        userId: 'user-1',
+        setOrder: 3,
+        setType: 'main',
+        weightLbs: 225,
+        repsPrescribed: 5,
+        repsActual: 5,
+        isAmrap: false,
+        intensityType: 'percentage_tm',
+        prescribedIntensity: 0.75,
+        prescribedWeightLbs: 225,
+        prescriptionBaseWeightLbs: 300,
+      })
+    })
+
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ['workout-sets', 44] })
+    expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({ queryKey: ['analytics'] })
+    expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({ queryKey: ['dashboard'] })
+
+    act(() => {
+      vi.advanceTimersByTime(1200)
+    })
+
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ['analytics'] })
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ['dashboard'] })
+  })
+
   it('seedWorkoutSetsMutation inserts workout-only prescription snapshots for missing sets', async () => {
     const single = vi.fn().mockResolvedValue({
       data: {

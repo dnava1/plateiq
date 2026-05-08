@@ -16,7 +16,6 @@ import { useUiStore } from '@/store/uiStore'
 import { clearAllPersistedQueryCaches } from '@/lib/query-persistence'
 import { clearOfflineWorkoutState } from '@/lib/offline-workout-store'
 import { displayToLbs, lbsToDisplay } from '@/lib/utils'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
   Card,
@@ -36,7 +35,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { Skeleton } from '@/components/ui/skeleton'
 import { LegalLinks } from '@/components/layout/LegalLinks'
+import { ProfileAvatar } from '@/components/layout/ProfileAvatar'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { FeedbackCard } from '@/components/settings/FeedbackCard'
 import type { PreferredUnit, StrengthProfileSex } from '@/types/domain'
@@ -424,6 +425,7 @@ export default function SettingsPage() {
   const [isSigningOut, setIsSigningOut] = useState(false)
   const { preferredUnit, setPreferredUnit } = useUiStore()
   const isGuest = isAnonymousUser(user)
+  const isAccountIdentityLoading = isUserLoading || !user
 
   const syncOptimisticProfilePreferences = async (
     updater: (currentProfile: ProfilePreferences) => ProfilePreferences,
@@ -568,25 +570,38 @@ export default function SettingsPage() {
         <Card className="surface-panel">
           <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
-              {!isGuest && (
-                <Avatar size="lg">
-                  {avatarUrl ? <AvatarImage src={avatarUrl} alt={displayName} /> : null}
-                  <AvatarFallback>{initials}</AvatarFallback>
-                </Avatar>
+              {isAccountIdentityLoading ? (
+                <Skeleton className="size-10 rounded-full" aria-hidden="true" />
+              ) : !isGuest && (
+                <ProfileAvatar
+                  avatarUrl={avatarUrl}
+                  displayName={displayName}
+                  initials={initials}
+                  size="lg"
+                />
               )}
               <div className="flex flex-col gap-1">
                 <span className="eyebrow">Account</span>
-                <h2 className="text-2xl font-semibold tracking-[-0.06em] text-foreground">{displayName}</h2>
-                <p className="text-sm text-muted-foreground">
-                  {isGuest
-                    ? 'This guest account is temporary and can be lost. Sign in with Google to keep your data.'
-                    : user?.email ?? '—'}
-                </p>
+                {isAccountIdentityLoading ? (
+                  <>
+                    <Skeleton className="h-8 w-40" aria-hidden="true" />
+                    <Skeleton className="h-5 w-56" aria-hidden="true" />
+                  </>
+                ) : (
+                  <>
+                    <h2 className="text-2xl font-semibold tracking-[-0.06em] text-foreground">{displayName}</h2>
+                    <p className="text-sm text-muted-foreground">
+                      {isGuest
+                        ? 'This guest account is temporary and can be lost. Sign in with Google to keep your data.'
+                        : user?.email ?? '—'}
+                    </p>
+                  </>
+                )}
                 <LegalLinks />
               </div>
             </div>
 
-            {isGuest && (
+            {!isAccountIdentityLoading && isGuest && (
               <Link href="/upgrade" className={buttonVariants({ size: 'lg', className: 'w-full sm:w-auto' })}>
                 Sign In with Google
               </Link>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getTemplate } from '@/lib/constants/templates'
 import { isValidRpe } from '@/lib/effort'
@@ -48,6 +48,9 @@ export type CycleWorkout = Workout & {
 export type HistoricalAmrapSet = Pick<WorkoutSet, 'reps_actual' | 'reps_prescribed' | 'set_order' | 'weight_lbs' | 'workout_id'>
 
 const DEFAULT_ROUNDING_LBS = 5
+const WORKOUT_HISTORY_GC_TIME_MS = 30 * 60 * 1000
+const SECONDARY_WORKOUT_INVALIDATION_DELAY_MS = 1200
+const deferredSecondaryInvalidationTimers = new WeakMap<QueryClient, number>()
 
 export const workoutQueryKeys = {
   activeCycle: (programId: number | undefined) => ['cycles', 'active', programId] as const,
@@ -65,6 +68,30 @@ export const workoutMutationKeys = {
   logSet: () => ['workout-set-upsert'] as const,
   updateWorkoutBlockPrescription: () => ['workout-set-prescription', 'update'] as const,
   completeWorkout: () => ['workout-complete'] as const,
+}
+
+function invalidateWorkoutSecondarySurfaces(queryClient: QueryClient) {
+  queryClient.invalidateQueries({ queryKey: analyticsQueryKeys.all() })
+  queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() })
+}
+
+export function deferWorkoutSecondaryInvalidations(queryClient: QueryClient) {
+  if (typeof window === 'undefined') {
+    invalidateWorkoutSecondarySurfaces(queryClient)
+    return
+  }
+
+  const existingTimer = deferredSecondaryInvalidationTimers.get(queryClient)
+  if (existingTimer) {
+    window.clearTimeout(existingTimer)
+  }
+
+  const timer = window.setTimeout(() => {
+    deferredSecondaryInvalidationTimers.delete(queryClient)
+    invalidateWorkoutSecondarySurfaces(queryClient)
+  }, SECONDARY_WORKOUT_INVALIDATION_DELAY_MS)
+
+  deferredSecondaryInvalidationTimers.set(queryClient, timer)
 }
 
 export function queueWorkoutOutboxEntry(
@@ -589,7 +616,7 @@ export function useHistoricalAmrapSets(exerciseId: number | undefined) {
     queryFn: async () => fetchHistoricalAmrapSets(supabase, exerciseId!),
     enabled: !!exerciseId,
     staleTime: 60 * 1000,
-    gcTime: Infinity,
+    gcTime: WORKOUT_HISTORY_GC_TIME_MS,
   })
 }
 
@@ -605,7 +632,7 @@ export function useRecentExerciseHistory(
     queryFn: async () => fetchRecentExerciseHistory(supabase, userId!, workoutId!, exerciseIds),
     enabled: Boolean(userId && workoutId && exerciseIds.length > 0),
     staleTime: 60 * 1000,
-    gcTime: Infinity,
+    gcTime: WORKOUT_HISTORY_GC_TIME_MS,
   })
 }
 
@@ -739,8 +766,7 @@ export function useLogSet() {
       if (variables.isAmrap) {
         queryClient.invalidateQueries({ queryKey: workoutQueryKeys.amrapHistory(variables.exerciseId) })
       }
-      queryClient.invalidateQueries({ queryKey: analyticsQueryKeys.all() })
-      queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.all() })
+      deferWorkoutSecondaryInvalidations(queryClient)
     },
   })
 }

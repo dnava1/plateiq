@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => {
     clearActiveWorkoutSnapshot: vi.fn(),
     completeWorkoutMutation: vi.fn(),
     completeWorkoutSession: vi.fn(),
+    deferWorkoutSecondaryInvalidations: vi.fn(),
     getOfflineWorkoutOutboxEntries: vi.fn(),
     invalidateQueries: vi.fn(),
     logSetMutation: vi.fn(),
@@ -38,6 +39,7 @@ vi.mock('@/hooks/useDashboard', () => ({
 
 vi.mock('@/hooks/useWorkouts', () => ({
   completeWorkoutMutation: (...args: unknown[]) => mocks.completeWorkoutMutation(...args),
+  deferWorkoutSecondaryInvalidations: (...args: unknown[]) => mocks.deferWorkoutSecondaryInvalidations(...args),
   logSetMutation: (...args: unknown[]) => mocks.logSetMutation(...args),
   updateWorkoutBlockPrescriptionMutation: (...args: unknown[]) => mocks.updateWorkoutBlockPrescriptionMutation(...args),
   workoutQueryKeys: {
@@ -88,6 +90,7 @@ describe('drainOfflineWorkoutOutbox', () => {
     mocks.clearActiveWorkoutSnapshot.mockReset()
     mocks.completeWorkoutMutation.mockReset()
     mocks.completeWorkoutSession.mockReset()
+    mocks.deferWorkoutSecondaryInvalidations.mockReset()
     mocks.getOfflineWorkoutOutboxEntries.mockReset()
     mocks.invalidateQueries.mockReset()
     mocks.logSetMutation.mockReset()
@@ -153,6 +156,7 @@ describe('drainOfflineWorkoutOutbox', () => {
     expect(mocks.clearActiveWorkoutSnapshot).toHaveBeenCalledWith('user-123')
     expect(mocks.markOfflineWorkoutPackWorkoutCompleted).toHaveBeenCalledWith('user-123', 44)
     expect(mocks.completeWorkoutSession).toHaveBeenCalledWith(44)
+    expect(mocks.deferWorkoutSecondaryInvalidations).toHaveBeenCalledWith({ invalidateQueries: mocks.invalidateQueries })
   })
 
   it('leaves failed replay entries in the outbox with the latest error', async () => {

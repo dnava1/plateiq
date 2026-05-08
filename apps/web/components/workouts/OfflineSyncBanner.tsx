@@ -17,7 +17,11 @@ export function OfflineSyncBanner({ sync }: OfflineSyncBannerProps) {
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-[22px] border border-border/70 bg-muted/60 px-4 py-3 text-sm text-muted-foreground">
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex items-center gap-3 rounded-[22px] border border-border/70 bg-muted/60 px-4 py-3 text-sm text-muted-foreground"
+    >
       {failedCount > 0
         ? <AlertCircle className="text-destructive" />
         : sync.isOnline
