@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { getAuthScope } from '@/lib/auth/auth-state'
 import { getStoredAuthScopeHint } from '@/lib/auth/session-user'
-import { APP_NAV_ITEMS, isActiveNavPath } from '@/components/layout/navigation'
+import { APP_NAV_ITEMS, isActiveNavPath, type AppNavHref } from '@/components/layout/navigation'
 import { useUiStore } from '@/store/uiStore'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -17,6 +17,8 @@ import {
   getQueryPersistenceBuster,
 } from '@/lib/query-persistence'
 import { AppShellClientStateProvider } from '@/components/layout/AppShellClientState'
+
+const PENDING_NAV_TIMEOUT_MS = 3_000
 
 function makeQueryClient(scope: string) {
   void scope
@@ -74,6 +76,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [supabase] = useState(() => createClient())
   const [cacheScopeHint, setCacheScopeHint] = useState<string | null>(() => getStoredAuthScopeHint())
   const [authScope, setAuthScope] = useState<string | null>(null)
+  const [pendingNavHref, setPendingNavHref] = useState<AppNavHref | null>(null)
   const [isAuthReady, setIsAuthReady] = useState(false)
   const [restoredCacheScope, setRestoredCacheScope] = useState<string | null>(null)
   const initialCacheScopeHintRef = useRef(cacheScopeHint)
@@ -91,6 +94,28 @@ export function Providers({ children }: { children: React.ReactNode }) {
     return cacheScope ? createIdbPersister(cacheScope) : null
   }, [cacheScope])
   const isWarmDataReady = !cacheScope || restoredCacheScope === cacheScope
+
+  useEffect(() => {
+    if (!pendingNavHref) {
+      return
+    }
+
+    if (!isAuthenticatedAppPath || isActiveNavPath(pathname, pendingNavHref)) {
+      setPendingNavHref(null)
+    }
+  }, [isAuthenticatedAppPath, pathname, pendingNavHref])
+
+  useEffect(() => {
+    if (!pendingNavHref) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setPendingNavHref((currentHref) => currentHref === pendingNavHref ? null : currentHref)
+    }, PENDING_NAV_TIMEOUT_MS)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [pendingNavHref])
 
   useEffect(() => {
     let isActive = true
@@ -225,6 +250,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
         cacheScope,
         isAuthReady,
         isWarmDataReady,
+        pendingNavHref,
+        setPendingNavHref,
       }}
     >
       <ThemeSync />

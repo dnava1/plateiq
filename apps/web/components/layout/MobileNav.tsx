@@ -2,48 +2,57 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { type MouseEvent, type PointerEvent } from 'react'
+import { useAppShellClientState } from '@/components/layout/AppShellClientState'
 import { cn } from '@/lib/utils'
-import { APP_NAV_ITEMS, isActiveNavPath } from '@/components/layout/navigation'
-
-const OPTIMISTIC_ACTIVE_TIMEOUT_MS = 1_200
-
-interface OptimisticNavTarget {
-  href: string
-  sourcePathname: string
-}
+import {
+  APP_NAV_ITEMS,
+  isActiveNavPath,
+  isPlainAppNavActivation,
+  shouldCommitAppNavOnPointerDown,
+  type AppNavHref,
+} from '@/components/layout/navigation'
 
 export function MobileNav() {
   const pathname = usePathname()
   const router = useRouter()
-  const [optimisticTarget, setOptimisticTarget] = useState<OptimisticNavTarget | null>(null)
-  const activePathname = optimisticTarget?.sourcePathname === pathname ? optimisticTarget.href : pathname
+  const { pendingNavHref, setPendingNavHref } = useAppShellClientState()
+  const activePathname = pendingNavHref ?? pathname
 
-  const prefetchRoute = (href: string) => {
+  const prefetchRoute = (href: AppNavHref) => {
     if (!isActiveNavPath(pathname, href)) {
       router.prefetch(href)
     }
   }
 
-  const prepareRouteChange = (href: string) => {
-    prefetchRoute(href)
-
+  const markPendingRoute = (href: AppNavHref) => {
     if (!isActiveNavPath(pathname, href)) {
-      setOptimisticTarget({ href, sourcePathname: pathname })
+      setPendingNavHref(href)
     }
   }
 
-  useEffect(() => {
-    if (!optimisticTarget) {
+  const handlePointerDown = (href: AppNavHref) => (event: PointerEvent<HTMLAnchorElement>) => {
+    prefetchRoute(href)
+
+    if (isActiveNavPath(pathname, href) || !isPlainAppNavActivation(event)) {
       return
     }
 
-    const timeoutId = window.setTimeout(() => {
-      setOptimisticTarget(null)
-    }, OPTIMISTIC_ACTIVE_TIMEOUT_MS)
+    markPendingRoute(href)
 
-    return () => window.clearTimeout(timeoutId)
-  }, [optimisticTarget])
+    if (!shouldCommitAppNavOnPointerDown(event)) {
+      return
+    }
+
+    event.preventDefault()
+    router.push(href)
+  }
+
+  const handleClick = (href: AppNavHref) => (event: MouseEvent<HTMLAnchorElement>) => {
+    if (!isActiveNavPath(pathname, href) && isPlainAppNavActivation(event)) {
+      markPendingRoute(href)
+    }
+  }
 
   return (
     <nav aria-label="App tabs" className="pb-safe-nav fixed inset-x-0 bottom-0 z-50 md:hidden">
@@ -59,7 +68,8 @@ export function MobileNav() {
                 aria-current={isActive ? 'page' : undefined}
                 onFocus={() => prefetchRoute(href)}
                 onPointerEnter={() => prefetchRoute(href)}
-                onPointerDown={() => prepareRouteChange(href)}
+                onPointerDown={handlePointerDown(href)}
+                onClick={handleClick(href)}
                 className={cn(
                   'flex min-w-0 flex-col items-center gap-1 rounded-2xl px-1 py-2 text-[0.64rem] font-medium leading-none transition-all',
                   isActive

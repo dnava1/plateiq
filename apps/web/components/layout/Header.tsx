@@ -2,56 +2,66 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { type MouseEvent, type PointerEvent } from 'react'
+import { useAppShellClientState } from '@/components/layout/AppShellClientState'
 import { isAnonymousUser } from '@/lib/auth/auth-state'
 import { resolveUserDisplayProfile } from '@/lib/auth/user-display'
 import { useUser } from '@/hooks/useUser'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { PlateIqMark } from '@/components/brand/PlateIqMark'
-import { APP_NAV_ITEMS, isActiveNavPath } from '@/components/layout/navigation'
-
-const OPTIMISTIC_ACTIVE_TIMEOUT_MS = 1_200
-
-interface OptimisticNavTarget {
-  href: string
-  sourcePathname: string
-}
+import {
+  APP_NAV_ITEMS,
+  isActiveNavPath,
+  isPlainAppNavActivation,
+  shouldCommitAppNavOnPointerDown,
+  type AppNavHref,
+} from '@/components/layout/navigation'
 
 export function Header() {
   const pathname = usePathname()
   const router = useRouter()
-  const [optimisticTarget, setOptimisticTarget] = useState<OptimisticNavTarget | null>(null)
-  const activePathname = optimisticTarget?.sourcePathname === pathname ? optimisticTarget.href : pathname
+  const { pendingNavHref, setPendingNavHref } = useAppShellClientState()
+  const activePathname = pendingNavHref ?? pathname
   const { data: user } = useUser()
   const isGuest = isAnonymousUser(user)
   const { avatarUrl, displayName, initials } = resolveUserDisplayProfile(user, {
     anonymousDisplayName: 'Guest',
   })
-  const prefetchRoute = (href: string) => {
+  const prefetchRoute = (href: AppNavHref) => {
     if (!isActiveNavPath(pathname, href)) {
       router.prefetch(href)
     }
   }
-  const prepareRouteChange = (href: string) => {
-    prefetchRoute(href)
 
+  const markPendingRoute = (href: AppNavHref) => {
     if (!isActiveNavPath(pathname, href)) {
-      setOptimisticTarget({ href, sourcePathname: pathname })
+      setPendingNavHref(href)
     }
   }
 
-  useEffect(() => {
-    if (!optimisticTarget) {
+  const handlePointerDown = (href: AppNavHref) => (event: PointerEvent<HTMLAnchorElement>) => {
+    prefetchRoute(href)
+
+    if (isActiveNavPath(pathname, href) || !isPlainAppNavActivation(event)) {
       return
     }
 
-    const timeoutId = window.setTimeout(() => {
-      setOptimisticTarget(null)
-    }, OPTIMISTIC_ACTIVE_TIMEOUT_MS)
+    markPendingRoute(href)
 
-    return () => window.clearTimeout(timeoutId)
-  }, [optimisticTarget])
+    if (!shouldCommitAppNavOnPointerDown(event)) {
+      return
+    }
+
+    event.preventDefault()
+    router.push(href)
+  }
+
+  const handleClick = (href: AppNavHref) => (event: MouseEvent<HTMLAnchorElement>) => {
+    if (!isActiveNavPath(pathname, href) && isPlainAppNavActivation(event)) {
+      markPendingRoute(href)
+    }
+  }
 
   return (
     <header className="pt-safe-header relative z-50 md:sticky md:top-0 md:pt-4">
@@ -64,7 +74,8 @@ export function Header() {
             className="flex min-w-0 items-center gap-2 sm:gap-3"
             onFocus={() => prefetchRoute('/dashboard')}
             onPointerEnter={() => prefetchRoute('/dashboard')}
-            onPointerDown={() => prepareRouteChange('/dashboard')}
+            onPointerDown={handlePointerDown('/dashboard')}
+            onClick={handleClick('/dashboard')}
           >
             <PlateIqMark className="size-9 md:size-10" />
             <span className="min-w-0">
@@ -88,7 +99,8 @@ export function Header() {
                   aria-current={isActive ? 'page' : undefined}
                   onFocus={() => prefetchRoute(item.href)}
                   onPointerEnter={() => prefetchRoute(item.href)}
-                  onPointerDown={() => prepareRouteChange(item.href)}
+                  onPointerDown={handlePointerDown(item.href)}
+                  onClick={handleClick(item.href)}
                   className={cn(
                     'rounded-full px-3 py-2 text-sm font-medium transition-all',
                     isActive
@@ -114,7 +126,8 @@ export function Header() {
               title="Open settings"
               onFocus={() => prefetchRoute('/settings')}
               onPointerEnter={() => prefetchRoute('/settings')}
-              onPointerDown={() => prepareRouteChange('/settings')}
+              onPointerDown={handlePointerDown('/settings')}
+              onClick={handleClick('/settings')}
             >
               <div className="hidden flex-col items-end lg:flex">
                 <span className="max-w-32 truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">

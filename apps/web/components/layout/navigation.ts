@@ -7,13 +7,13 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
+export type AppNavHref = '/dashboard' | '/analytics' | '/workouts' | '/programs' | '/settings'
+
 export interface AppNavItem {
-  href: string
+  href: AppNavHref
   label: string
   icon: LucideIcon
 }
-
-export type AppNavHref = '/dashboard' | '/analytics' | '/workouts' | '/programs' | '/settings'
 
 export const APP_NAV_ITEMS: AppNavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -61,4 +61,28 @@ export function getInactiveNavPrefetchHrefs(pathname: string) {
 
 export function getTapNavPrefetchHrefs(targetHref: AppNavHref) {
   return [targetHref, ...APP_NAV_PREFETCH_PRIORITY[targetHref].slice(0, 2)]
+}
+
+interface AppNavActivationLike {
+  button: number
+  altKey: boolean
+  ctrlKey: boolean
+  metaKey: boolean
+  shiftKey: boolean
+}
+
+interface AppNavPointerActivationLike extends AppNavActivationLike {
+  pointerType: string
+}
+
+export function isPlainAppNavActivation(event: AppNavActivationLike) {
+  return event.button === 0
+    && !event.altKey
+    && !event.ctrlKey
+    && !event.metaKey
+    && !event.shiftKey
+}
+
+export function shouldCommitAppNavOnPointerDown(event: AppNavPointerActivationLike) {
+  return isPlainAppNavActivation(event) && event.pointerType !== 'mouse'
 }
