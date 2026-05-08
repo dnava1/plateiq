@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { BodyweightRepTrendChart } from './BodyweightRepTrendChart'
 import { ConsistencyHeatmap } from './ConsistencyHeatmap'
 import { E1rmTrendChart } from './E1rmTrendChart'
 import { VolumeTrendChart } from './VolumeTrendChart'
@@ -8,6 +9,25 @@ const TEST_WEIGHT_LBS = 246
 
 const mocks = vi.hoisted(() => ({
   preferredUnit: 'kg' as 'kg' | 'lbs',
+  tooltipPayload: [{
+    color: '#f97316',
+    name: 'Bench Press',
+    payload: {
+      date: '2026-04-01',
+      weekStart: '2026-04-01',
+      e1rm: 246,
+      exerciseName: 'Bench Press',
+      reps: 5,
+      totalVolume: 246,
+      weight: 246,
+    },
+    value: 246,
+  }] as Array<{
+    color?: string
+    name?: string
+    payload?: Record<string, unknown>
+    value?: number | string | Array<number | string>
+  }>,
   weightRoundingLbs: 5.51156,
 }))
 
@@ -17,6 +37,23 @@ vi.mock('@/hooks/usePreferredUnit', () => ({
 
 vi.mock('@/hooks/usePreferredWeightRounding', () => ({
   usePreferredWeightRounding: () => mocks.weightRoundingLbs,
+}))
+
+vi.mock('./RechartsViewportTooltip', () => ({
+  HIDDEN_RECHARTS_TOOLTIP_WRAPPER_STYLE: {
+    pointerEvents: 'none',
+    visibility: 'hidden',
+    zIndex: 30,
+  },
+  RechartsViewportTooltipPortal: ({
+    label,
+    payload,
+    renderContent,
+  }: {
+    label?: string | number
+    payload: unknown[]
+    renderContent: (tooltip: { label?: string | number; payload: unknown[] }) => React.ReactNode
+  }) => renderContent({ label, payload }),
 }))
 
 vi.mock('recharts', () => ({
@@ -45,20 +82,7 @@ vi.mock('recharts', () => ({
         <div data-testid="tooltip">
           {content({
             active: true,
-            payload: [{
-              color: '#f97316',
-              name: 'Bench Press',
-              payload: {
-                date: '2026-04-01',
-                weekStart: '2026-04-01',
-                e1rm: TEST_WEIGHT_LBS,
-                exerciseName: 'Bench Press',
-                reps: 5,
-                totalVolume: TEST_WEIGHT_LBS,
-                weight: TEST_WEIGHT_LBS,
-              },
-              value: TEST_WEIGHT_LBS,
-            }],
+            payload: mocks.tooltipPayload,
           })}
         </div>
       )
@@ -145,5 +169,42 @@ describe('chart weight formatting', () => {
 
     expect(screen.getAllByText('Squat').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Bench Press').length).toBeGreaterThan(0)
+  })
+
+  it('renders all visible bodyweight rep series in the shared tooltip', () => {
+    mocks.tooltipPayload = [
+      {
+        color: '#f97316',
+        name: 'Pull Up',
+        payload: {
+          date: '2026-04-01',
+          exerciseName: 'Pull Up',
+        },
+        value: 18,
+      },
+      {
+        color: '#22c55e',
+        name: 'Chin Up',
+        payload: {
+          date: '2026-04-01',
+          exerciseName: 'Chin Up',
+        },
+        value: 15,
+      },
+    ]
+
+    render(
+      <BodyweightRepTrendChart
+        data={[
+          { date: '2026-04-01', bestReps: 18, exerciseId: 1, exerciseName: 'Pull Up' },
+          { date: '2026-04-01', bestReps: 15, exerciseId: 2, exerciseName: 'Chin Up' },
+        ]}
+      />,
+    )
+
+    expect(screen.getByTestId('tooltip')).toHaveTextContent('Pull Up')
+    expect(screen.getByTestId('tooltip')).toHaveTextContent('18 reps')
+    expect(screen.getByTestId('tooltip')).toHaveTextContent('Chin Up')
+    expect(screen.getByTestId('tooltip')).toHaveTextContent('15 reps')
   })
 })

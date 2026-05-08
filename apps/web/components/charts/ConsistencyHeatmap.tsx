@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { cn } from '@/lib/utils'
 import type { WeeklyActivitySummary } from '@/types/analytics'
 import { ChartTooltipContent } from './ChartTooltipContent'
 import { formatDisplayLoad, formatShortDate } from './chart-utils'
 import { ScrollableChartFrame } from './ScrollableChartFrame'
+import { resolveElementCenterTooltipAnchor, ViewportTooltipPortal } from './ViewportTooltipPortal'
 
 interface ConsistencyHeatmapProps {
   compact?: boolean
@@ -15,9 +16,7 @@ interface ConsistencyHeatmapProps {
 }
 
 interface ActiveWeekTooltip {
-  left: number
-  placement: 'bottom' | 'top'
-  top: number
+  anchorElement: HTMLElement
   weekStart: string
 }
 
@@ -52,6 +51,7 @@ export function ConsistencyHeatmap({
   metric = 'volume',
 }: ConsistencyHeatmapProps) {
   const preferredUnit = usePreferredUnit()
+  const heatmapContainerRef = useRef<HTMLDivElement>(null)
   const [activeTooltip, setActiveTooltip] = useState<ActiveWeekTooltip | null>(null)
   const maxValue = Math.max(
     ...data.map((entry) => (metric === 'sessions' ? entry.totalSessions : entry.totalVolume)),
@@ -61,19 +61,8 @@ export function ConsistencyHeatmap({
   const activeEntry = activeTooltip ? data.find((entry) => entry.weekStart === activeTooltip.weekStart) : undefined
 
   function showTooltip(element: HTMLElement, weekStart: string) {
-    const rect = element.getBoundingClientRect()
-    const tooltipHalfWidth = 112
-    const viewportWidth = window.innerWidth
-    const left = Math.min(
-      Math.max(rect.left + rect.width / 2, tooltipHalfWidth + 8),
-      viewportWidth - tooltipHalfWidth - 8,
-    )
-    const hasRoomAbove = rect.top > 140
-
     setActiveTooltip({
-      left,
-      placement: hasRoomAbove ? 'top' : 'bottom',
-      top: hasRoomAbove ? rect.top - 12 : rect.bottom + 12,
+      anchorElement: element,
       weekStart,
     })
   }
@@ -83,7 +72,7 @@ export function ConsistencyHeatmap({
   }
 
   const heatmap = (
-    <div className={cn('flex gap-1.5', compact ? 'items-center' : 'items-start')}>
+    <div ref={heatmapContainerRef} className={cn('flex gap-1.5', compact ? 'items-center' : 'items-start')}>
       {data.map((entry) => {
         const bucket = getVolumeBucket(metric === 'sessions' ? entry.totalSessions : entry.totalVolume, maxValue)
         const isTooltipVisible = activeTooltip?.weekStart === entry.weekStart
@@ -118,25 +107,22 @@ export function ConsistencyHeatmap({
     <>
       {compact ? heatmap : (
         <ScrollableChartFrame
-          onScroll={() => setActiveTooltip(null)}
           minWidth={minWidth}
           scrollKey={`${metric}-${data.length}`}
         >
           {heatmap}
         </ScrollableChartFrame>
       )}
-      {activeTooltip && activeEntry ? (
-        <div
-          className="pointer-events-none fixed z-50"
-          style={{
-            left: activeTooltip.left,
-            top: activeTooltip.top,
-            transform: activeTooltip.placement === 'top' ? 'translate(-50%, -100%)' : 'translate(-50%, 0)',
-          }}
-        >
+      <ViewportTooltipPortal
+        active={activeTooltip !== null && activeEntry !== undefined}
+        boundaryAxis="horizontal"
+        resolveAnchor={() => resolveElementCenterTooltipAnchor(activeTooltip?.anchorElement ?? null)}
+        resolveBoundaryElement={() => heatmapContainerRef.current}
+        renderContent={({ maxWidth }) => activeEntry ? (
           <ChartTooltipContent
             id={`consistency-tooltip-${activeEntry.weekStart}`}
             label={`Week of ${formatShortDate(activeEntry.weekStart)}`}
+            maxWidth={maxWidth}
             rows={metric === 'sessions'
               ? [
                   { label: 'Status', value: activeEntry.isActive ? 'Active week' : 'Rest week' },
@@ -148,8 +134,8 @@ export function ConsistencyHeatmap({
                   { label: 'Sets', value: `${activeEntry.totalSets}` },
                 ]}
           />
-        </div>
-      ) : null}
+        ) : null}
+      />
     </>
   )
 }

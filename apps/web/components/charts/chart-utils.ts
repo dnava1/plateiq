@@ -2,6 +2,7 @@ import { formatDisplayNumber, formatUnit, lbsToDisplay, roundWeightForDisplay } 
 import type { PreferredUnit } from '@/types/domain'
 
 export const CHART_COLORS = ['#f97316', '#38bdf8', '#22c55e', '#facc15', '#fb7185'] as const
+export const CHART_TOOLTIP_ALLOW_ESCAPE_VIEW_BOX = { x: false, y: true } as const
 
 const COMPACT_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
   notation: 'compact',

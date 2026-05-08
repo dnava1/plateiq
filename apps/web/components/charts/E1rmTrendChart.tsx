@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import { usePreferredWeightRounding } from '@/hooks/usePreferredWeightRounding'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { formatWeight } from '@/lib/utils'
@@ -14,8 +14,9 @@ import {
   YAxis,
 } from 'recharts'
 import type { AnalyticsE1rmPoint } from '@/types/analytics'
-import { CHART_COLORS, formatCompactRoundedWeight, formatShortDate } from './chart-utils'
+import { CHART_COLORS, CHART_TOOLTIP_ALLOW_ESCAPE_VIEW_BOX, formatCompactRoundedWeight, formatShortDate } from './chart-utils'
 import { MeasuredChartContainer } from './MeasuredChartContainer'
+import { HIDDEN_RECHARTS_TOOLTIP_WRAPPER_STYLE, RechartsViewportTooltipPortal } from './RechartsViewportTooltip'
 import { ScrollableChartFrame } from './ScrollableChartFrame'
 
 const MAX_VISIBLE_SERIES = 5
@@ -32,12 +33,14 @@ interface E1rmVisibleSeries {
 function E1rmTooltip({
   active,
   label,
+  maxWidth,
   payload,
   preferredUnit,
   weightRoundingLbs,
 }: {
   active?: boolean
   label?: string
+  maxWidth?: number
   payload?: Array<{
     color?: string
     dataKey?: string
@@ -73,7 +76,7 @@ function E1rmTooltip({
     }, [])
 
   const resolvedDate = payload[0]?.payload?.date ?? label
-  return <ChartTooltipContent label={resolvedDate ? formatShortDate(resolvedDate) : 'Estimated 1RM'} rows={rows} />
+  return <ChartTooltipContent label={resolvedDate ? formatShortDate(resolvedDate) : 'Estimated 1RM'} maxWidth={maxWidth} rows={rows} />
 }
 
 interface E1rmTrendChartProps {
@@ -85,6 +88,7 @@ interface E1rmTrendChartProps {
 export function E1rmTrendChart({ compact = false, data, exerciseId }: E1rmTrendChartProps) {
   const preferredUnit = usePreferredUnit()
   const weightRoundingLbs = usePreferredWeightRounding()
+  const chartContainerRef = useRef<HTMLDivElement>(null)
   const { rows, series } = useMemo(() => {
     const filteredPoints = exerciseId
       ? data.filter((point) => point.exerciseId === exerciseId)
@@ -167,49 +171,68 @@ export function E1rmTrendChart({ compact = false, data, exerciseId }: E1rmTrendC
     </div>
   ) : null
   const chart = (
-    <MeasuredChartContainer allowOverflow className={compact ? 'h-24 w-full' : 'h-72 w-full'}>
-      {({ width, height }) => (
-        <LineChart width={width} height={height} data={rows} margin={compact ? { top: 8, right: 12, bottom: 8, left: 8 } : { top: 8, right: 12, bottom: 8, left: 0 }}>
-          {!compact ? <CartesianGrid strokeDasharray="3 3" className="opacity-30" /> : null}
-          <XAxis dataKey="label" hide={compact} minTickGap={20} tickLine={false} axisLine={false} />
-          <YAxis hide={compact} tickFormatter={(value) => formatCompactRoundedWeight(Number(value), preferredUnit, weightRoundingLbs)} width={48} tickLine={false} axisLine={false} />
-          <Tooltip
-            allowEscapeViewBox={{ x: true, y: true }}
-            content={(props) => (
-              <E1rmTooltip
-                active={props.active}
-                label={typeof props.label === 'string' ? props.label : undefined}
-                payload={props.payload as unknown as Array<{
+    <div ref={chartContainerRef} className="relative">
+      <MeasuredChartContainer allowOverflow className={compact ? 'h-24 w-full' : 'h-72 w-full'}>
+        {({ width, height }) => (
+          <LineChart width={width} height={height} data={rows} margin={compact ? { top: 8, right: 12, bottom: 8, left: 8 } : { top: 8, right: 12, bottom: 8, left: 0 }}>
+            {!compact ? <CartesianGrid strokeDasharray="3 3" className="opacity-30" /> : null}
+            <XAxis dataKey="label" hide={compact} minTickGap={20} tickLine={false} axisLine={false} />
+            <YAxis hide={compact} tickFormatter={(value) => formatCompactRoundedWeight(Number(value), preferredUnit, weightRoundingLbs)} width={48} tickLine={false} axisLine={false} />
+            <Tooltip
+              allowEscapeViewBox={CHART_TOOLTIP_ALLOW_ESCAPE_VIEW_BOX}
+              content={(props) => {
+                const payload = props.payload as unknown as Array<{
                   color?: string
                   dataKey?: string
                   name?: string
                   payload?: { date?: string; exerciseName?: string }
                   value?: number | string | Array<number | string>
-                }> | undefined}
-                preferredUnit={preferredUnit}
-                weightRoundingLbs={weightRoundingLbs}
-              />
-            )}
-            cursor={{ className: 'stroke-border/60' }}
-            offset={18}
-            wrapperStyle={{ pointerEvents: 'none', zIndex: 30 }}
-          />
-          {series.map((entry) => (
-            <Line
-              key={entry.key}
-              type="monotone"
-              dataKey={entry.key}
-              name={entry.exerciseName}
-              stroke={entry.color}
-              strokeWidth={compact ? 2.5 : 2}
-              dot={!compact}
-              connectNulls
-              activeDot={{ r: 4 }}
+                }> | undefined
+
+                return (
+                  <RechartsViewportTooltipPortal
+                    active={props.active}
+                    chartContainerRef={chartContainerRef}
+                    coordinate={props.coordinate && Number.isFinite(props.coordinate.x) && Number.isFinite(props.coordinate.y)
+                      ? { x: props.coordinate.x, y: props.coordinate.y }
+                      : undefined}
+                    label={props.label}
+                    offset={18}
+                    payload={payload ?? []}
+                    renderContent={({ label, maxWidth, payload }) => (
+                      <E1rmTooltip
+                        active
+                        label={typeof label === 'string' ? label : undefined}
+                        maxWidth={maxWidth}
+                        payload={payload}
+                        preferredUnit={preferredUnit}
+                        weightRoundingLbs={weightRoundingLbs}
+                      />
+                    )}
+                  />
+                )
+              }}
+              cursor={{ className: 'stroke-border/60' }}
+              offset={18}
+              wrapperStyle={HIDDEN_RECHARTS_TOOLTIP_WRAPPER_STYLE}
             />
-          ))}
-        </LineChart>
-      )}
-    </MeasuredChartContainer>
+            {series.map((entry) => (
+              <Line
+                key={entry.key}
+                type="monotone"
+                dataKey={entry.key}
+                name={entry.exerciseName}
+                stroke={entry.color}
+                strokeWidth={compact ? 2.5 : 2}
+                dot={!compact}
+                connectNulls
+                activeDot={{ r: 4 }}
+              />
+            ))}
+          </LineChart>
+        )}
+      </MeasuredChartContainer>
+    </div>
   )
 
   return (

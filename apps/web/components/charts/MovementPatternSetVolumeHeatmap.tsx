@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import type { MovementPatternWeeklySetSummary } from '@/types/analytics'
 import { ChartTooltipContent } from './ChartTooltipContent'
 import { formatDisplayLoad, formatMovementPattern, formatShortDate } from './chart-utils'
+import { resolveElementCenterTooltipAnchor, ViewportTooltipPortal } from './ViewportTooltipPortal'
 
 interface MovementPatternSetVolumeHeatmapProps {
   data: MovementPatternWeeklySetSummary[]
@@ -25,10 +26,8 @@ const MOVEMENT_PATTERN_ORDER = [
 ] as const
 
 interface ActiveCellTooltip {
+  anchorElement: HTMLElement
   cellKey: string
-  left: number
-  placement: 'bottom' | 'top'
-  top: number
 }
 
 function getPatternSortIndex(movementPattern: string) {
@@ -102,20 +101,9 @@ export function MovementPatternSetVolumeHeatmap({
   }, [data, weekStarts.length])
 
   function showTooltip(element: HTMLElement, cellKey: string) {
-    const rect = element.getBoundingClientRect()
-    const tooltipHalfWidth = 112
-    const viewportWidth = window.innerWidth
-    const left = Math.min(
-      Math.max(rect.left + rect.width / 2, tooltipHalfWidth + 8),
-      viewportWidth - tooltipHalfWidth - 8,
-    )
-    const hasRoomAbove = rect.top > 140
-
     setActiveTooltip({
+      anchorElement: element,
       cellKey,
-      left,
-      placement: hasRoomAbove ? 'top' : 'bottom',
-      top: hasRoomAbove ? rect.top - 12 : rect.bottom + 12,
     })
   }
 
@@ -131,7 +119,6 @@ export function MovementPatternSetVolumeHeatmap({
     <div
       ref={scrollContainerRef}
       className="max-w-full min-w-0 overflow-x-auto overscroll-x-contain pb-2 touch-pan-x"
-      onScroll={() => setActiveTooltip(null)}
       tabIndex={0}
     >
       <div className="grid gap-1.5" style={{ gridTemplateColumns, minWidth }}>
@@ -184,25 +171,23 @@ export function MovementPatternSetVolumeHeatmap({
           </div>
         ))}
       </div>
-      {activeTooltip && activeEntry ? (
-        <div
-          className="pointer-events-none fixed z-50"
-          style={{
-            left: activeTooltip.left,
-            top: activeTooltip.top,
-            transform: activeTooltip.placement === 'top' ? 'translate(-50%, -100%)' : 'translate(-50%, 0)',
-          }}
-        >
+      <ViewportTooltipPortal
+        active={activeTooltip !== null && activeEntry !== undefined}
+        boundaryAxis="horizontal"
+        resolveAnchor={() => resolveElementCenterTooltipAnchor(activeTooltip?.anchorElement ?? null)}
+        resolveBoundaryElement={() => scrollContainerRef.current}
+        renderContent={({ maxWidth }) => activeEntry ? (
           <ChartTooltipContent
             id={`movement-pattern-tooltip-${activeEntry.weekStart}-${activeEntry.movementPattern}`}
             label={`${formatMovementPattern(activeEntry.movementPattern)} - ${formatShortDate(activeEntry.weekStart)}`}
+            maxWidth={maxWidth}
             rows={[
               { label: 'Sets', value: formatSetCount(activeEntry.totalSets) },
               { label: 'Volume', value: formatDisplayLoad(activeEntry.totalVolume, preferredUnit) },
             ]}
           />
-        </div>
-      ) : null}
+        ) : null}
+      />
     </div>
   )
 }

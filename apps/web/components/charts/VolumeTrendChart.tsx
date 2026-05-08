@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import { usePreferredUnit } from '@/hooks/usePreferredUnit'
 import { ChartTooltipContent } from './ChartTooltipContent'
 import {
@@ -14,18 +14,21 @@ import {
 } from 'recharts'
 import { aggregateWeeklyVolume } from '@/lib/analytics'
 import type { AnalyticsVolumePoint } from '@/types/analytics'
-import { CHART_COLORS, formatCompactDisplayLoad, formatDisplayLoad, formatShortDate } from './chart-utils'
+import { CHART_COLORS, CHART_TOOLTIP_ALLOW_ESCAPE_VIEW_BOX, formatCompactDisplayLoad, formatDisplayLoad, formatShortDate } from './chart-utils'
 import { MeasuredChartContainer } from './MeasuredChartContainer'
+import { HIDDEN_RECHARTS_TOOLTIP_WRAPPER_STYLE, RechartsViewportTooltipPortal } from './RechartsViewportTooltip'
 import { ScrollableChartFrame } from './ScrollableChartFrame'
 
 function VolumeTooltip({
   active,
   label,
+  maxWidth,
   payload,
   preferredUnit,
 }: {
   active?: boolean
   label?: string
+  maxWidth?: number
   payload?: Array<{
     color?: string
     name?: string
@@ -59,7 +62,7 @@ function VolumeTooltip({
     }, [])
 
   const resolvedWeekStart = payload[0]?.payload?.weekStart ?? label
-  return <ChartTooltipContent label={resolvedWeekStart ? `Week of ${formatShortDate(resolvedWeekStart)}` : 'Weekly Volume'} rows={rows} />
+  return <ChartTooltipContent label={resolvedWeekStart ? `Week of ${formatShortDate(resolvedWeekStart)}` : 'Weekly Volume'} maxWidth={maxWidth} rows={rows} />
 }
 
 interface VolumeTrendChartProps {
@@ -70,6 +73,7 @@ interface VolumeTrendChartProps {
 
 export function VolumeTrendChart({ compact = false, data, exerciseId }: VolumeTrendChartProps) {
   const preferredUnit = usePreferredUnit()
+  const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartData = useMemo(() => {
     const filteredPoints = exerciseId
       ? data.filter((point) => point.exerciseId === exerciseId)
@@ -134,41 +138,60 @@ export function VolumeTrendChart({ compact = false, data, exerciseId }: VolumeTr
   const scrollKey = `${exerciseId ?? 'all'}-${chartData.rows.length}-${chartData.series.length}`
 
   const chart = (
-    <MeasuredChartContainer allowOverflow className={compact ? 'h-28 w-full' : 'h-72 w-full'}>
-      {({ width, height }) => (
-        <BarChart width={width} height={height} data={chartData.rows} margin={compact ? { top: 8, right: 8, bottom: 8, left: 8 } : { top: 8, right: 12, bottom: 8, left: 0 }}>
-          {!compact ? <CartesianGrid strokeDasharray="3 3" className="opacity-30" /> : null}
-          <XAxis dataKey="label" hide={compact} tickLine={false} axisLine={false} minTickGap={16} />
-          <YAxis hide={compact} tickFormatter={(value) => formatCompactDisplayLoad(Number(value), preferredUnit)} width={48} tickLine={false} axisLine={false} />
-          <Tooltip
-            allowEscapeViewBox={{ x: true, y: true }}
-            content={(props) => (
-              <VolumeTooltip
-                active={props.active}
-                label={typeof props.label === 'string' ? props.label : undefined}
-                payload={props.payload as unknown as Array<{
+    <div ref={chartContainerRef} className="relative">
+      <MeasuredChartContainer allowOverflow className={compact ? 'h-28 w-full' : 'h-72 w-full'}>
+        {({ width, height }) => (
+          <BarChart width={width} height={height} data={chartData.rows} margin={compact ? { top: 8, right: 8, bottom: 8, left: 8 } : { top: 8, right: 12, bottom: 8, left: 0 }}>
+            {!compact ? <CartesianGrid strokeDasharray="3 3" className="opacity-30" /> : null}
+            <XAxis dataKey="label" hide={compact} tickLine={false} axisLine={false} minTickGap={16} />
+            <YAxis hide={compact} tickFormatter={(value) => formatCompactDisplayLoad(Number(value), preferredUnit)} width={48} tickLine={false} axisLine={false} />
+            <Tooltip
+              allowEscapeViewBox={CHART_TOOLTIP_ALLOW_ESCAPE_VIEW_BOX}
+              content={(props) => {
+                const payload = props.payload as unknown as Array<{
                   color?: string
                   name?: string
                   payload?: { weekStart?: string; exerciseName?: string }
                   value?: number | string | Array<number | string>
-                }> | undefined}
-                preferredUnit={preferredUnit}
-              />
+                }> | undefined
+
+                return (
+                  <RechartsViewportTooltipPortal
+                    active={props.active}
+                    chartContainerRef={chartContainerRef}
+                    coordinate={props.coordinate && Number.isFinite(props.coordinate.x) && Number.isFinite(props.coordinate.y)
+                      ? { x: props.coordinate.x, y: props.coordinate.y }
+                      : undefined}
+                    label={props.label}
+                    offset={18}
+                    payload={payload ?? []}
+                    renderContent={({ label, maxWidth, payload }) => (
+                      <VolumeTooltip
+                        active
+                        label={typeof label === 'string' ? label : undefined}
+                        maxWidth={maxWidth}
+                        payload={payload}
+                        preferredUnit={preferredUnit}
+                      />
+                    )}
+                  />
+                )
+              }}
+              offset={18}
+              wrapperStyle={HIDDEN_RECHARTS_TOOLTIP_WRAPPER_STYLE}
+            />
+            {!compact && chartData.series.length > 1 ? <Legend /> : null}
+            {compact ? (
+              <Bar dataKey="totalVolume" name="Weekly Volume" fill={CHART_COLORS[0]} radius={[6, 6, 0, 0]} />
+            ) : (
+              chartData.series.map((entry) => (
+                <Bar key={entry.key} dataKey={entry.key} name={entry.exerciseName} stackId="volume" fill={entry.color} radius={[6, 6, 0, 0]} />
+              ))
             )}
-            offset={18}
-            wrapperStyle={{ pointerEvents: 'none', zIndex: 30 }}
-          />
-          {!compact && chartData.series.length > 1 ? <Legend /> : null}
-          {compact ? (
-            <Bar dataKey="totalVolume" name="Weekly Volume" fill={CHART_COLORS[0]} radius={[6, 6, 0, 0]} />
-          ) : (
-            chartData.series.map((entry) => (
-              <Bar key={entry.key} dataKey={entry.key} name={entry.exerciseName} stackId="volume" fill={entry.color} radius={[6, 6, 0, 0]} />
-            ))
-          )}
-        </BarChart>
-      )}
-    </MeasuredChartContainer>
+          </BarChart>
+        )}
+      </MeasuredChartContainer>
+    </div>
   )
 
   return compact ? chart : (
