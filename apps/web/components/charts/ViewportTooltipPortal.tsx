@@ -40,6 +40,18 @@ interface ViewportTooltipPosition {
   top: number
 }
 
+interface TooltipBoundaryRect {
+  bottom: number
+  left: number
+  right: number
+  top: number
+}
+
+interface ViewportRect extends TooltipBoundaryRect {
+  height: number
+  width: number
+}
+
 interface ViewportTooltipPortalProps {
   active?: boolean
   boundaryAxis?: 'both' | 'horizontal'
@@ -89,9 +101,9 @@ function getVerticalTooltipBounds({
 }
 
 function intersectBoundaryRects(
-  current: DOMRect,
-  next: DOMRect,
-): Pick<DOMRect, 'bottom' | 'left' | 'right' | 'top'> {
+  current: TooltipBoundaryRect,
+  next: TooltipBoundaryRect,
+): TooltipBoundaryRect {
   return {
     bottom: Math.min(current.bottom, next.bottom),
     left: Math.max(current.left, next.left),
@@ -127,6 +139,23 @@ function getTooltipBoundaryRect(element: HTMLElement) {
   }
 
   return boundary
+}
+
+function isCoordinateWithinBoundary(
+  coordinate: TooltipCoordinate,
+  boundary: TooltipBoundaryRect,
+) {
+  return coordinate.x >= boundary.left
+    && coordinate.x <= boundary.right
+    && coordinate.y >= boundary.top
+    && coordinate.y <= boundary.bottom
+}
+
+function getVisibleBoundaryRect(
+  boundaryRect: TooltipBoundaryRect | undefined,
+  viewportRect: ViewportRect,
+) {
+  return boundaryRect ? intersectBoundaryRects(boundaryRect, viewportRect) : viewportRect
 }
 
 export function calculateTooltipMaxWidth({
@@ -225,14 +254,21 @@ export function resolveElementCenterTooltipAnchor(element: HTMLElement | null, o
   }
 }
 
-function getCurrentViewportRect() {
+function getCurrentViewportRect(): ViewportRect {
   const visualViewport = window.visualViewport
 
+  const left = visualViewport?.offsetLeft ?? 0
+  const top = visualViewport?.offsetTop ?? 0
+  const width = visualViewport?.width ?? window.innerWidth
+  const height = visualViewport?.height ?? window.innerHeight
+
   return {
-    height: visualViewport?.height ?? window.innerHeight,
-    left: visualViewport?.offsetLeft ?? 0,
-    top: visualViewport?.offsetTop ?? 0,
-    width: visualViewport?.width ?? window.innerWidth,
+    bottom: top + height,
+    height,
+    left,
+    right: left + width,
+    top,
+    width,
   }
 }
 
@@ -263,6 +299,13 @@ export function ViewportTooltipPortal({
     const boundaryElement = resolveBoundaryElement?.()
     const boundaryRect = boundaryElement ? getTooltipBoundaryRect(boundaryElement) : undefined
     const viewportRect = getCurrentViewportRect()
+    const visibleBoundaryRect = getVisibleBoundaryRect(boundaryRect, viewportRect)
+
+    if (!isCoordinateWithinBoundary(anchor, visibleBoundaryRect)) {
+      portal.style.visibility = 'hidden'
+      return
+    }
+
     const maxWidth = calculateTooltipMaxWidth({
       boundaryLeft: boundaryRect?.left,
       boundaryRight: boundaryRect?.right,
