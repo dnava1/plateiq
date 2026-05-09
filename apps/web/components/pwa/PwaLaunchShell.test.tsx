@@ -70,13 +70,12 @@ describe('PwaLaunchShell', () => {
     document.documentElement.removeAttribute('data-pwa-launch-slow')
   })
 
-  it('uses a full-screen launch shell with a dedicated centering frame so the card position stays stable', () => {
+  it('uses the full-screen launch shell so the centered card and background fill the standalone viewport', () => {
     mocks.getSessionUserIdWithTimeout.mockResolvedValue(null)
 
     const { container } = render(<PwaLaunchShell />)
 
     expect(container.firstElementChild).toHaveClass('pwa-launch-shell')
-    expect(container.querySelector('.pwa-launch-shell-frame')).toBeInTheDocument()
   })
 
   it('renders the launch spinner immediately so CSS can handle the delayed reveal', () => {

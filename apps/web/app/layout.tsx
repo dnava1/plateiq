@@ -155,19 +155,14 @@ export default async function RootLayout({
                 min-height: 100vh;
                 min-height: 100svh;
                 min-height: 100dvh;
+                align-items: center;
+                justify-content: center;
+                padding: calc(env(safe-area-inset-top) + 2rem) 1rem calc(env(safe-area-inset-bottom) + 2rem);
                 background: #fafafc;
                 overflow: hidden;
                 opacity: 0;
                 pointer-events: none;
                 transition: opacity 180ms ease;
-              }
-
-              #plateiq-pwa-boot-splash .plateiq-pwa-boot-frame {
-                position: absolute;
-                inset: 0;
-                display: grid;
-                place-items: center;
-                padding: 2rem 1rem;
               }
 
               #plateiq-pwa-boot-splash *,
@@ -326,7 +321,7 @@ export default async function RootLayout({
 
               html[data-pwa-boot='active'] #plateiq-pwa-boot-splash,
               html[data-pwa-boot='done'] #plateiq-pwa-boot-splash {
-                display: block;
+                display: flex;
               }
 
               html[data-pwa-boot='active'] #plateiq-pwa-boot-splash {
@@ -413,42 +408,40 @@ export default async function RootLayout({
       </head>
       <body className="min-h-dvh font-sans antialiased">
         <div id="plateiq-pwa-boot-splash" aria-hidden="true">
-          <div className="plateiq-pwa-boot-frame">
-            <div className="plateiq-pwa-boot-card">
-              <div className="plateiq-pwa-boot-card-header">
-                <div className="plateiq-pwa-boot-mark-frame">
-                  <div className="plateiq-pwa-boot-mark-glow" />
-                  <div className="plateiq-pwa-boot-mark-sheen" />
-                  <div className="plateiq-pwa-boot-splash__mark">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- raw img paints sooner than next/image for the standalone boot splash */}
-                    <img
-                      className="plateiq-pwa-boot-logo--light"
-                      src="/icons/plateiq-mark-light.svg"
-                      alt=""
-                      width="80"
-                      height="80"
-                      decoding="sync"
-                      draggable="false"
-                      fetchPriority="high"
-                    />
-                    {/* eslint-disable-next-line @next/next/no-img-element -- raw img paints sooner than next/image for the standalone boot splash */}
-                    <img
-                      className="plateiq-pwa-boot-logo--dark"
-                      src="/icons/plateiq-mark-dark.svg"
-                      alt=""
-                      width="80"
-                      height="80"
-                      decoding="sync"
-                      draggable="false"
-                      fetchPriority="high"
-                    />
-                  </div>
+          <div className="plateiq-pwa-boot-card">
+            <div className="plateiq-pwa-boot-card-header">
+              <div className="plateiq-pwa-boot-mark-frame">
+                <div className="plateiq-pwa-boot-mark-glow" />
+                <div className="plateiq-pwa-boot-mark-sheen" />
+                <div className="plateiq-pwa-boot-splash__mark">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- raw img paints sooner than next/image for the standalone boot splash */}
+                  <img
+                    className="plateiq-pwa-boot-logo--light"
+                    src="/icons/plateiq-mark-light.svg"
+                    alt=""
+                    width="80"
+                    height="80"
+                    decoding="sync"
+                    draggable="false"
+                    fetchPriority="high"
+                  />
+                  {/* eslint-disable-next-line @next/next/no-img-element -- raw img paints sooner than next/image for the standalone boot splash */}
+                  <img
+                    className="plateiq-pwa-boot-logo--dark"
+                    src="/icons/plateiq-mark-dark.svg"
+                    alt=""
+                    width="80"
+                    height="80"
+                    decoding="sync"
+                    draggable="false"
+                    fetchPriority="high"
+                  />
                 </div>
-                <div className="plateiq-pwa-boot-title-stack">
-                  <p className="plateiq-pwa-boot-title">PlateIQ</p>
-                  <div className="plateiq-pwa-boot-spinner-slot">
-                    <div className="plateiq-pwa-boot-spinner" />
-                  </div>
+              </div>
+              <div className="plateiq-pwa-boot-title-stack">
+                <p className="plateiq-pwa-boot-title">PlateIQ</p>
+                <div className="plateiq-pwa-boot-spinner-slot">
+                  <div className="plateiq-pwa-boot-spinner" />
                 </div>
               </div>
             </div>
