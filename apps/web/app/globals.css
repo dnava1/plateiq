@@ -228,8 +228,7 @@
   }
   .authenticated-app-shell {
     @apply relative min-h-dvh overflow-x-clip;
-    --authenticated-header-height: 0px;
-    --authenticated-header-offset: 0px;
+    --authenticated-header-pull-offset: 0px;
     --authenticated-shell-height-mode: dynamic;
   }
   .authenticated-app-header-slot {
@@ -355,6 +354,11 @@
       padding-top: 1rem;
       padding-top: max(env(safe-area-inset-top), 1rem);
     }
+    .authenticated-app-header-slot {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
   }
 }
 
@@ -369,11 +373,8 @@
       overflow: hidden;
     }
     .authenticated-app-header-slot {
-      height: max(calc(var(--authenticated-header-height) - var(--authenticated-header-offset)), 0px);
-      overflow: clip;
-    }
-    .authenticated-app-header-slot > [data-app-chrome='header'] {
-      transform: translateY(calc(-1 * var(--authenticated-header-offset)));
+      z-index: 50;
+      transform: translate3d(0, calc(-1 * var(--authenticated-header-pull-offset)), 0);
       will-change: transform;
     }
     .authenticated-app-scroll {

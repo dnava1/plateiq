@@ -82,13 +82,13 @@ export default async function NotFound() {
       <PreferenceSync />
       <AppRoutePrefetcher />
       <MobileShellHeaderController />
-      <div className="authenticated-app-header-slot" data-app-header-slot="true">
-        <Header />
-      </div>
       <div
         className="authenticated-app-scroll pb-safe-content relative flex flex-1 flex-col"
         data-app-scroll-region="true"
       >
+        <div className="authenticated-app-header-slot" data-app-header-slot="true">
+          <Header />
+        </div>
         <main className="app-shell relative flex flex-1 flex-col pt-6 md:pb-10 md:pt-8" data-app-shell-content="true">
           <MissingRouteContent
             description="Use Programs to manage exercises and training max context, or jump into Workouts to resume the current session."

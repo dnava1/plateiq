@@ -30,9 +30,11 @@ vi.mock('next/navigation', () => ({
 }))
 
 vi.mock('next/link', () => ({
-  default: ({ children, href, prefetch: _prefetch, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string; prefetch?: boolean }) => (
-    <a href={href} {...props}>{children}</a>
-  ),
+  default: ({ children, href, prefetch: _prefetch, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string; prefetch?: boolean }) => {
+    void _prefetch
+
+    return <a href={href} {...props}>{children}</a>
+  },
 }))
 
 vi.mock('@/components/brand/PlateIqMark', () => ({
@@ -92,7 +94,7 @@ describe('authenticated AppLayout', () => {
     expect(banner).toHaveAttribute('data-app-chrome', 'header')
     const headerSlot = container.querySelector('[data-app-header-slot="true"]')
     expect(headerSlot).toContainElement(banner)
-    expect(scrollRegion).not.toContainElement(banner)
+    expect(scrollRegion).toContainElement(banner)
     expect(main).toContainElement(screen.getByText('Dashboard children'))
     expect(main).not.toContainElement(banner)
     expect(screen.getByTestId('mobile-header-controller')).toBeInTheDocument()

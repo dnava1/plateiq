@@ -13,11 +13,15 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('next/link', () => ({
-  default: ({ href, children, prefetch: _prefetch, ...props }: { href: string; children: ReactNode; prefetch?: boolean } & HTMLAttributes<HTMLAnchorElement>) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
+  default: ({ href, children, prefetch: _prefetch, ...props }: { href: string; children: ReactNode; prefetch?: boolean } & HTMLAttributes<HTMLAnchorElement>) => {
+    void _prefetch
+
+    return (
+      <a href={href} {...props}>
+        {children}
+      </a>
+    )
+  },
 }))
 
 vi.mock('next/navigation', () => ({
@@ -108,7 +112,7 @@ describe('root NotFound route', () => {
     expect(banner).toHaveAttribute('data-app-chrome', 'header')
     const headerSlot = container.querySelector('[data-app-header-slot="true"]')
     expect(headerSlot).toContainElement(banner)
-    expect(scrollRegion).not.toContainElement(banner)
+    expect(scrollRegion).toContainElement(banner)
     expect(main).not.toContainElement(banner)
     expect(screen.getByTestId('mobile-header-controller')).toBeInTheDocument()
 

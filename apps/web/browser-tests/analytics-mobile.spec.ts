@@ -138,11 +138,11 @@ test.describe('analytics mobile layout', () => {
 
     const scrollRegion = page.locator('[data-app-scroll-region="true"]')
     await expect(scrollRegion).toBeVisible()
-    await page.evaluate(() => window.scrollTo(0, 600))
+    await scrollRegion.evaluate((element) => element.scrollTo({ top: 160 }))
     await expect.poll(async () => (
-      page.evaluate(() => document.scrollingElement?.scrollTop ?? 0)
-    )).toBe(0)
-    const anchoredChrome = await page.evaluate(() => {
+      scrollRegion.evaluate((element) => element.scrollTop)
+    )).toBeGreaterThan(80)
+    const scrolledChrome = await page.evaluate(() => {
       const header = document.querySelector('[data-app-chrome="header"] .app-shell > div')
       const tabs = document.querySelector('[data-app-chrome="tabs"] .app-shell > div')
 
@@ -159,10 +159,16 @@ test.describe('analytics mobile layout', () => {
         tabsBottomGap: window.innerHeight - tabsRect.bottom,
       }
     })
-    expect(anchoredChrome.rootScrollTop).toBe(0)
-    expect(anchoredChrome.headerBottom).toBeGreaterThan(0)
-    expect(anchoredChrome.tabsBottomGap).toBeGreaterThanOrEqual(0)
-    expect(anchoredChrome.tabsBottomGap).toBeLessThanOrEqual(48)
+    expect(scrolledChrome.rootScrollTop).toBe(0)
+    expect(scrolledChrome.headerBottom).toBeLessThanOrEqual(0)
+    expect(scrolledChrome.tabsBottomGap).toBeGreaterThanOrEqual(0)
+    expect(scrolledChrome.tabsBottomGap).toBeLessThanOrEqual(48)
+
+    await scrollRegion.evaluate((element) => element.scrollTo({ top: 0 }))
+    await expect.poll(async () => (
+      scrollRegion.evaluate((element) => element.scrollTop)
+    )).toBe(0)
+    await expect(page.getByText('Strength OS', { exact: true })).toBeVisible()
 
     await expect.poll(async () => (
       page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)
@@ -207,5 +213,55 @@ test.describe('analytics mobile layout', () => {
     await expect.poll(async () => (
       page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)
     )).toBeTruthy()
+  })
+})
+
+test.describe('analytics desktop chrome', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1180, height: 820 })
+    await loginAsVerificationUser(page)
+  })
+
+  test('keeps the combined header navigation visible while the document scrolls', async ({ page }) => {
+    await page.route('**/rest/v1/rpc/get_analytics_data', async (route) => {
+      const body = route.request().postDataJSON() as AnalyticsRequestBody
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(buildAnalyticsPayload(body)),
+      })
+    })
+
+    const initialAnalyticsResponse = waitForAnalyticsResponse(page)
+    await page.goto('/analytics')
+    await initialAnalyticsResponse
+    await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible()
+    await expect(page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Dashboard' })).toBeVisible()
+
+    await page.evaluate(() => window.scrollTo({ top: 520 }))
+    await expect.poll(async () => (
+      page.evaluate(() => document.scrollingElement?.scrollTop ?? 0)
+    )).toBeGreaterThan(100)
+
+    const headerChrome = await page.evaluate(() => {
+      const header = document.querySelector('[data-app-chrome="header"] .app-shell > div')
+
+      if (!header) {
+        throw new Error('Missing desktop header chrome.')
+      }
+
+      const rect = header.getBoundingClientRect()
+
+      return {
+        bottom: rect.bottom,
+        top: rect.top,
+      }
+    })
+
+    expect(headerChrome.top).toBeGreaterThanOrEqual(0)
+    expect(headerChrome.top).toBeLessThanOrEqual(32)
+    expect(headerChrome.bottom).toBeGreaterThan(48)
+    await expect(page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Settings' })).toBeVisible()
   })
 })
