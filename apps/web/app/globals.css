@@ -271,7 +271,7 @@
         var(--app-mobile-chrome-backdrop-strong) 44%,
         var(--app-mobile-chrome-backdrop) 58%,
         var(--app-mobile-chrome-backdrop-soft) 72%,
-        var(--app-mobile-chrome-backdrop-faint) 86%,
+        var(--app-mobile-chrome-backdrop-faint) 85%,
         transparent 100%
       );
     -webkit-backdrop-filter: var(--app-mobile-chrome-filter);
@@ -280,13 +280,14 @@
         180deg,
         #000 0%,
         #000 48%,
-        rgba(0, 0, 0, 0.9) 56%,
-        rgba(0, 0, 0, 0.72) 64%,
-        rgba(0, 0, 0, 0.5) 72%,
-        rgba(0, 0, 0, 0.32) 80%,
-        rgba(0, 0, 0, 0.2) 85%,
-        rgba(0, 0, 0, 0.12) 91%,
-        rgba(0, 0, 0, 0.06) 96%,
+        rgba(0, 0, 0, 0.92) 56%,
+        rgba(0, 0, 0, 0.82) 63%,
+        rgba(0, 0, 0, 0.7) 70%,
+        rgba(0, 0, 0, 0.52) 75%,
+        rgba(0, 0, 0, 0.34) 80%,
+        rgba(0, 0, 0, 0.18) 85%,
+        rgba(0, 0, 0, 0.09) 90%,
+        rgba(0, 0, 0, 0.04) 95%,
         transparent 100%
       );
     backdrop-filter: var(--app-mobile-chrome-filter);
@@ -295,13 +296,14 @@
         180deg,
         #000 0%,
         #000 48%,
-        rgba(0, 0, 0, 0.9) 56%,
-        rgba(0, 0, 0, 0.72) 64%,
-        rgba(0, 0, 0, 0.5) 72%,
-        rgba(0, 0, 0, 0.32) 80%,
-        rgba(0, 0, 0, 0.2) 85%,
-        rgba(0, 0, 0, 0.12) 91%,
-        rgba(0, 0, 0, 0.06) 96%,
+        rgba(0, 0, 0, 0.92) 56%,
+        rgba(0, 0, 0, 0.82) 63%,
+        rgba(0, 0, 0, 0.7) 70%,
+        rgba(0, 0, 0, 0.52) 75%,
+        rgba(0, 0, 0, 0.34) 80%,
+        rgba(0, 0, 0, 0.18) 85%,
+        rgba(0, 0, 0, 0.09) 90%,
+        rgba(0, 0, 0, 0.04) 95%,
         transparent 100%
       );
   }
@@ -497,7 +499,7 @@
           var(--app-mobile-chrome-backdrop-strong) 44%,
           var(--app-mobile-chrome-backdrop) 58%,
           var(--app-mobile-chrome-backdrop-soft) 72%,
-          var(--app-mobile-chrome-backdrop-faint) 86%,
+          var(--app-mobile-chrome-backdrop-faint) 85%,
           transparent 100%
         );
       -webkit-backdrop-filter: var(--app-mobile-chrome-filter);
@@ -506,13 +508,14 @@
           0deg,
           #000 0%,
           #000 48%,
-          rgba(0, 0, 0, 0.9) 56%,
-          rgba(0, 0, 0, 0.72) 64%,
-          rgba(0, 0, 0, 0.5) 72%,
-          rgba(0, 0, 0, 0.32) 80%,
-          rgba(0, 0, 0, 0.2) 85%,
-          rgba(0, 0, 0, 0.12) 91%,
-          rgba(0, 0, 0, 0.06) 96%,
+          rgba(0, 0, 0, 0.92) 56%,
+          rgba(0, 0, 0, 0.82) 63%,
+          rgba(0, 0, 0, 0.7) 70%,
+          rgba(0, 0, 0, 0.52) 75%,
+          rgba(0, 0, 0, 0.34) 80%,
+          rgba(0, 0, 0, 0.18) 85%,
+          rgba(0, 0, 0, 0.09) 90%,
+          rgba(0, 0, 0, 0.04) 95%,
           transparent 100%
         );
       backdrop-filter: var(--app-mobile-chrome-filter);
@@ -521,13 +524,14 @@
           0deg,
           #000 0%,
           #000 48%,
-          rgba(0, 0, 0, 0.9) 56%,
-          rgba(0, 0, 0, 0.72) 64%,
-          rgba(0, 0, 0, 0.5) 72%,
-          rgba(0, 0, 0, 0.32) 80%,
-          rgba(0, 0, 0, 0.2) 85%,
-          rgba(0, 0, 0, 0.12) 91%,
-          rgba(0, 0, 0, 0.06) 96%,
+          rgba(0, 0, 0, 0.92) 56%,
+          rgba(0, 0, 0, 0.82) 63%,
+          rgba(0, 0, 0, 0.7) 70%,
+          rgba(0, 0, 0, 0.52) 75%,
+          rgba(0, 0, 0, 0.34) 80%,
+          rgba(0, 0, 0, 0.18) 85%,
+          rgba(0, 0, 0, 0.09) 90%,
+          rgba(0, 0, 0, 0.04) 95%,
           transparent 100%
         );
     }
