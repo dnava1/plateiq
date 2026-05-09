@@ -162,28 +162,30 @@ export function PwaLaunchShell() {
 
   return (
     <div className="pwa-launch-shell" data-status={state.status}>
-      <Card className="pwa-launch-card surface-panel w-full max-w-xl py-0" role="status" aria-live="polite">
-        <CardHeader className="pwa-launch-card-header w-full items-center justify-items-center gap-5 px-6 py-8 text-center sm:px-8 sm:py-10">
-          <div className="relative mx-auto grid size-28 place-items-center rounded-[36px] border border-border/70 bg-background/80 shadow-[0_28px_80px_-40px_rgba(15,23,42,0.45)] dark:shadow-[0_28px_80px_-40px_rgba(0,0,0,0.85)]">
-            <div className="absolute inset-3 rounded-[28px] bg-primary/8 blur-2xl dark:bg-primary/12" />
-            <div className="absolute inset-4 rounded-[28px] border border-white/65 bg-linear-to-b from-white/85 via-white/45 to-white/10 dark:border-white/10 dark:from-white/10 dark:via-white/5 dark:to-transparent" />
-            <PlateIqMark className="relative size-20" preload />
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <CardTitle className="mx-auto text-center text-3xl tracking-tight sm:text-[2.15rem]">{state.title}</CardTitle>
-            <div className="pwa-launch-spinner-slot">
-              <Loader2 className="pwa-launch-spinner" aria-hidden="true" />
-              {state.status === 'launching' ? <span className="sr-only">Launching PlateIQ</span> : null}
+      <div className="pwa-launch-shell-frame">
+        <Card className="pwa-launch-card surface-panel w-full max-w-xl py-0" role="status" aria-live="polite">
+          <CardHeader className="pwa-launch-card-header w-full items-center justify-items-center gap-5 px-6 py-8 text-center sm:px-8 sm:py-10">
+            <div className="relative mx-auto grid size-28 place-items-center rounded-[36px] border border-border/70 bg-background/80 shadow-[0_28px_80px_-40px_rgba(15,23,42,0.45)] dark:shadow-[0_28px_80px_-40px_rgba(0,0,0,0.85)]">
+              <div className="absolute inset-3 rounded-[28px] bg-primary/8 blur-2xl dark:bg-primary/12" />
+              <div className="absolute inset-4 rounded-[28px] border border-white/65 bg-linear-to-b from-white/85 via-white/45 to-white/10 dark:border-white/10 dark:from-white/10 dark:via-white/5 dark:to-transparent" />
+              <PlateIqMark className="relative size-20" preload />
             </div>
-          </div>
-          {state.status === 'offline-unavailable' && state.detail ? (
-            <CardDescription className="mx-auto flex max-w-md items-start gap-2 rounded-full border border-border/70 bg-muted/45 px-4 py-2 text-sm text-muted-foreground">
-              <CloudOff className="mt-0.5 size-4 shrink-0 text-foreground" />
-              <span>{state.detail}</span>
-            </CardDescription>
-          ) : null}
-        </CardHeader>
-      </Card>
+            <div className="flex flex-col items-center gap-2">
+              <CardTitle className="mx-auto text-center text-3xl tracking-tight sm:text-[2.15rem]">{state.title}</CardTitle>
+              <div className="pwa-launch-spinner-slot">
+                <Loader2 className="pwa-launch-spinner" aria-hidden="true" />
+                {state.status === 'launching' ? <span className="sr-only">Launching PlateIQ</span> : null}
+              </div>
+            </div>
+            {state.status === 'offline-unavailable' && state.detail ? (
+              <CardDescription className="mx-auto flex max-w-md items-start gap-2 rounded-full border border-border/70 bg-muted/45 px-4 py-2 text-sm text-muted-foreground">
+                <CloudOff className="mt-0.5 size-4 shrink-0 text-foreground" />
+                <span>{state.detail}</span>
+              </CardDescription>
+            ) : null}
+          </CardHeader>
+        </Card>
+      </div>
     </div>
   )
 }

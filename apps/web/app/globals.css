@@ -227,15 +227,20 @@
     @apply mx-auto w-full max-w-6xl px-4 md:px-6;
   }
   .pwa-launch-shell {
-    @apply relative grid w-full place-items-center px-4;
+    @apply relative w-full;
     isolation: isolate;
     min-height: 100vh;
     min-height: 100svh;
     min-height: 100dvh;
-    padding-top: calc(env(safe-area-inset-top) + 2rem);
-    padding-bottom: calc(env(safe-area-inset-bottom) + 2rem);
     background: var(--app-background-canvas);
     overflow: clip;
+  }
+  .pwa-launch-shell-frame {
+    @apply grid w-full place-items-center px-4 py-8;
+    min-height: inherit;
+  }
+  .pwa-launch-shell[data-status='launching'] .pwa-launch-shell-frame {
+    @apply absolute inset-0;
   }
   .pwa-launch-shell[data-status='launching'] .pwa-launch-card {
     height: 17rem;
