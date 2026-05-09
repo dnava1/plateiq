@@ -33,7 +33,6 @@ test.describe('mobile app shell scrolling', () => {
 
       const headerSlotRect = headerSlot.getBoundingClientRect()
       const headerRect = header.getBoundingClientRect()
-      const scrollRegionRect = scrollRegionElement.getBoundingClientRect()
       const tabsChromeRect = tabsChrome.getBoundingClientRect()
       const tabsRect = tabs.getBoundingClientRect()
       const tabLinks = Array.from(tabs.querySelectorAll<HTMLElement>('a'))
@@ -75,10 +74,8 @@ test.describe('mobile app shell scrolling', () => {
         headerBackdropFilter: getBackdropFilter(headerBackdrop),
         headerBackdropMaskImage: getMaskImage(headerBackdrop),
         rootScrollTop: document.scrollingElement?.scrollTop ?? 0,
-        scrollRegionBottom: scrollRegionRect.bottom,
         scrollHeight: scrollRegionElement.scrollHeight,
         scrollRegionClientHeight: scrollRegionElement.clientHeight,
-        scrollRegionTopEdge: scrollRegionRect.top,
         scrollbarColor: scrollStyles.scrollbarColor,
         scrollbarThumbRadius: scrollbarThumb.borderRadius,
         scrollbarTrackRadius: scrollbarTrack.borderRadius,
@@ -115,7 +112,6 @@ test.describe('mobile app shell scrolling', () => {
     expect(initialMetrics.scrollHeight).toBeGreaterThan(initialMetrics.scrollRegionClientHeight)
     expect(initialMetrics.headerTop).toBeGreaterThanOrEqual(0)
     expect(initialMetrics.headerBottom).toBeGreaterThan(0)
-    expect(initialMetrics.scrollRegionTopEdge).toBeGreaterThanOrEqual(initialMetrics.headerBottom - 1)
     expect(Math.abs(initialMetrics.headerSlotLeft)).toBeLessThanOrEqual(1)
     expect(Math.abs(initialMetrics.headerSlotRight - initialMetrics.viewportWidth)).toBeLessThanOrEqual(1)
     expect(initialMetrics.headerPanelLeft).toBeGreaterThan(initialMetrics.headerSlotLeft)
@@ -143,7 +139,6 @@ test.describe('mobile app shell scrolling', () => {
     expect(initialMetrics.tabsBackdropMaskImage).toContain('gradient')
     expect(initialMetrics.tabsBottomGap).toBeGreaterThanOrEqual(0)
     expect(initialMetrics.tabsBottomGap).toBeLessThanOrEqual(48)
-    expect(initialMetrics.scrollRegionBottom).toBeLessThanOrEqual(initialMetrics.tabsTop + 1)
 
     await page.evaluate(() => window.scrollTo(0, 600))
     await expect.poll(async () => (

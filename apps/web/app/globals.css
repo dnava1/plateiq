@@ -243,9 +243,6 @@
   .authenticated-app-shell {
     @apply relative min-h-dvh overflow-x-clip;
     --authenticated-shell-height-mode: dynamic;
-    --authenticated-mobile-header-offset: calc(max(var(--app-safe-area-inset-top), 0.5rem) + 3.375rem);
-    --authenticated-mobile-nav-gap: max(var(--app-safe-area-inset-bottom), 0.375rem);
-    --authenticated-mobile-nav-offset: calc(var(--authenticated-mobile-nav-gap) + 3.875rem);
   }
   .authenticated-app-header-slot {
     flex: 0 0 auto;
@@ -456,22 +453,12 @@
       overflow: hidden;
     }
     .authenticated-app-scroll {
-      position: fixed;
-      inset-inline: 0;
-      top: var(--authenticated-mobile-header-offset);
-      bottom: var(--authenticated-mobile-nav-offset);
-      z-index: 0;
       min-height: 0;
       flex: 1 1 auto;
       overflow-x: clip;
       overflow-y: auto;
       overscroll-behavior-y: contain;
-      padding-top: 1.5rem;
-      scroll-padding-top: 1.5rem;
       -webkit-overflow-scrolling: touch;
-    }
-    .authenticated-app-scroll.pb-safe-content {
-      padding-bottom: 1.5rem;
     }
     .authenticated-app-header-slot::before {
       display: block;
@@ -551,7 +538,6 @@
 
   .authenticated-app-shell {
     --authenticated-shell-height-mode: standalone;
-    --authenticated-mobile-nav-gap: clamp(0.375rem, calc(var(--app-safe-area-inset-bottom) - 1.5rem), 0.75rem);
     height: 100lvh;
     min-height: 100lvh;
   }
@@ -564,7 +550,6 @@
 
 html[data-pwa-display-mode='standalone'] .authenticated-app-shell {
   --authenticated-shell-height-mode: standalone;
-  --authenticated-mobile-nav-gap: clamp(0.375rem, calc(var(--app-safe-area-inset-bottom) - 1.5rem), 0.75rem);
   height: 100lvh;
   min-height: 100lvh;
 }
