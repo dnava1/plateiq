@@ -22,7 +22,7 @@ test.describe('mobile app shell scrolling', () => {
     const initialMetrics = await page.evaluate(() => {
       const scrollRegionElement = document.querySelector<HTMLElement>('[data-app-scroll-region="true"]')
       const shell = document.querySelector<HTMLElement>('[data-authenticated-shell="true"]')
-      const header = document.querySelector<HTMLElement>('[data-app-chrome="header"] .app-shell > div')
+      const header = document.querySelector<HTMLElement>('[data-app-chrome="header"]')
       const tabs = document.querySelector<HTMLElement>('[data-app-chrome="tabs"] .app-shell > div')
 
       if (!scrollRegionElement || !shell || !header || !tabs) {
@@ -37,6 +37,7 @@ test.describe('mobile app shell scrolling', () => {
       return {
         headerTop: headerRect.top,
         headerBottom: headerRect.bottom,
+        headerHeight: headerRect.height,
         rootScrollTop: document.scrollingElement?.scrollTop ?? 0,
         scrollHeight: scrollRegionElement.scrollHeight,
         scrollRegionClientHeight: scrollRegionElement.clientHeight,
@@ -67,7 +68,7 @@ test.describe('mobile app shell scrolling', () => {
 
     const scrolledMetrics = await page.evaluate(() => {
       const scrollRegionElement = document.querySelector<HTMLElement>('[data-app-scroll-region="true"]')
-      const header = document.querySelector<HTMLElement>('[data-app-chrome="header"] .app-shell > div')
+      const header = document.querySelector<HTMLElement>('[data-app-chrome="header"]')
       const tabs = document.querySelector<HTMLElement>('[data-app-chrome="tabs"] .app-shell > div')
 
       if (!scrollRegionElement || !header || !tabs) {
@@ -87,7 +88,10 @@ test.describe('mobile app shell scrolling', () => {
 
     expect(scrolledMetrics.rootScrollTop).toBe(0)
     expect(scrolledMetrics.scrollRegionTop).toBeGreaterThan(0)
-    expect(scrolledMetrics.headerBottom).toBeGreaterThan(0)
+    expect(scrolledMetrics.headerBottom).toBeLessThan(initialMetrics.headerBottom)
+    if (scrolledMetrics.scrollRegionTop >= initialMetrics.headerHeight) {
+      expect(scrolledMetrics.headerBottom).toBeLessThanOrEqual(1)
+    }
     expect(scrolledMetrics.tabsBottomGap).toBeGreaterThanOrEqual(0)
     expect(scrolledMetrics.tabsBottomGap).toBeLessThanOrEqual(48)
 
@@ -139,7 +143,7 @@ test.describe('mobile app shell scrolling', () => {
     const standaloneMetrics = await page.evaluate(() => {
       const shell = document.querySelector<HTMLElement>('[data-authenticated-shell="true"]')
       const scrollRegionElement = document.querySelector<HTMLElement>('[data-app-scroll-region="true"]')
-      const header = document.querySelector<HTMLElement>('[data-app-chrome="header"] .app-shell > div')
+      const header = document.querySelector<HTMLElement>('[data-app-chrome="header"]')
 
       if (!shell || !scrollRegionElement || !header) {
         throw new Error('Missing standalone mobile shell elements.')
@@ -150,6 +154,7 @@ test.describe('mobile app shell scrolling', () => {
 
       return {
         headerBottom: headerRect.bottom,
+        headerHeight: headerRect.height,
         heightMode: shellStyles.getPropertyValue('--authenticated-shell-height-mode').trim(),
         rootScrollTop: document.scrollingElement?.scrollTop ?? 0,
         shellClientHeight: shell.clientHeight,
@@ -163,18 +168,69 @@ test.describe('mobile app shell scrolling', () => {
 
     const scrollRegion = page.locator('[data-app-scroll-region="true"]')
     await scrollRegion.evaluate((element) => element.scrollTo(0, Math.min(600, element.scrollHeight - element.clientHeight)))
+    let didScroll = false
+
+    try {
+      await expect.poll(async () => (
+        scrollRegion.evaluate((element) => element.scrollTop)
+      ), { timeout: 2000 }).toBeGreaterThan(0)
+      didScroll = true
+    } catch {
+      didScroll = false
+    }
+    await expect.poll(async () => (
+      page.evaluate(() => document.scrollingElement?.scrollTop ?? 0)
+    )).toBe(0)
+
+    const headerBottom = await page.evaluate(() => {
+      const header = document.querySelector<HTMLElement>('[data-app-chrome="header"]')
+
+      if (!header) {
+        throw new Error('Missing standalone mobile header.')
+      }
+
+      return header.getBoundingClientRect().bottom
+    })
+
+    if (didScroll) {
+      expect(headerBottom).toBeLessThan(standaloneMetrics.headerBottom)
+      if (await scrollRegion.evaluate((element) => element.scrollTop) >= standaloneMetrics.headerHeight) {
+        expect(headerBottom).toBeLessThanOrEqual(1)
+      }
+    } else {
+      expect(headerBottom).toBeGreaterThan(0)
+    }
+  })
+
+  test('resets the shared scroll region on authenticated route changes', async ({ page }) => {
+    await loginAsVerificationUser(page)
+    await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/)
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+    await page.evaluate(() => new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => resolve())
+      })
+    }))
+
+    const scrollRegion = page.locator('[data-app-scroll-region="true"]')
+    await scrollRegion.evaluate((element) => element.scrollTo(0, Math.min(600, element.scrollHeight - element.clientHeight)))
     await expect.poll(async () => (
       scrollRegion.evaluate((element) => element.scrollTop)
     )).toBeGreaterThan(0)
+
+    await page.getByRole('navigation', { name: 'App tabs' }).getByRole('link', { name: 'Analytics' }).click()
+    await expect(page).toHaveURL(/\/analytics(?:\?.*)?$/)
+    await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible()
+
     await expect.poll(async () => (
-      page.evaluate(() => document.scrollingElement?.scrollTop ?? 0)
+      page.locator('[data-app-scroll-region="true"]').evaluate((element) => element.scrollTop)
     )).toBe(0)
 
     const headerBottom = await page.evaluate(() => {
       const header = document.querySelector<HTMLElement>('[data-app-chrome="header"] .app-shell > div')
 
       if (!header) {
-        throw new Error('Missing standalone mobile header.')
+        throw new Error('Missing mobile header after route change.')
       }
 
       return header.getBoundingClientRect().bottom

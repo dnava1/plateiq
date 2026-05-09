@@ -61,6 +61,13 @@ test('redirects unauthenticated dashboard requests to continue @smoke', async ({
   await expect(page.locator('a[href="/login"], a[href="/create-account"]')).toHaveCount(0)
 })
 
+test('redirects signed-out unknown routes to continue', async ({ page }) => {
+  await page.goto('/totally-missing-route')
+
+  await expect(page).toHaveURL(/\/continue(?:\?.*next=%2Ftotally-missing-route.*)?$/)
+  await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible()
+})
+
 test('supports guest access and returns guests to continue after sign-out', async ({ page }) => {
   test.skip(hasTurnstileGuestGate && !hasTurnstileTestKey, 'Guest end-to-end coverage requires the Turnstile test key or no guest gate.')
 

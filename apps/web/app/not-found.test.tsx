@@ -7,6 +7,9 @@ const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   prefetch: vi.fn(),
   push: vi.fn(),
+  redirect: vi.fn((path: string) => {
+    throw new Error(`redirect:${path}`)
+  }),
 }))
 
 vi.mock('next/link', () => ({
@@ -18,6 +21,7 @@ vi.mock('next/link', () => ({
 }))
 
 vi.mock('next/navigation', () => ({
+  redirect: (path: string) => mocks.redirect(path),
   usePathname: () => '/dashboard',
   useRouter: () => ({
     prefetch: mocks.prefetch,
@@ -56,6 +60,10 @@ vi.mock('@/components/layout/AppRoutePrefetcher', () => ({
   AppRoutePrefetcher: () => <div data-testid="route-prefetcher" />,
 }))
 
+vi.mock('@/components/layout/MobileShellHeaderController', () => ({
+  MobileShellHeaderController: () => <div data-testid="mobile-header-controller" />,
+}))
+
 vi.mock('@/components/ui/button', () => ({
   buttonVariants: () => 'button',
 }))
@@ -74,6 +82,7 @@ describe('root NotFound route', () => {
     mocks.getUser.mockReset()
     mocks.prefetch.mockClear()
     mocks.push.mockClear()
+    mocks.redirect.mockClear()
   })
 
   it('reuses the authenticated shell contract for signed-in users', async () => {
@@ -97,8 +106,11 @@ describe('root NotFound route', () => {
     expect(main).toHaveClass('app-shell')
     const banner = screen.getByRole('banner')
     expect(banner).toHaveAttribute('data-app-chrome', 'header')
+    const headerSlot = container.querySelector('[data-app-header-slot="true"]')
+    expect(headerSlot).toContainElement(banner)
     expect(scrollRegion).not.toContainElement(banner)
     expect(main).not.toContainElement(banner)
+    expect(screen.getByTestId('mobile-header-controller')).toBeInTheDocument()
 
     const navigation = screen.getByRole('navigation', { name: 'App tabs' })
     expect(navigation).toBeInTheDocument()
@@ -107,21 +119,13 @@ describe('root NotFound route', () => {
     expect(screen.getByRole('link', { name: 'Go to Programs' })).toHaveAttribute('href', '/programs')
   })
 
-  it('keeps the public fallback path unchanged for signed-out users', async () => {
+  it('redirects signed-out users to continue for unknown routes', async () => {
     mocks.getUser.mockResolvedValue({
       data: {
         user: null,
       },
     })
 
-    const { container } = render(await NotFound())
-
-    expect(container.querySelector('[data-authenticated-shell="true"]')).toBeNull()
-    expect(screen.getByRole('main')).toHaveClass('auth-shell')
-    expect(container.querySelector('.auth-content')).toBeInTheDocument()
-    expect(screen.queryByRole('navigation', { name: 'App tabs' })).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Continue to PlateIQ' })).toHaveAttribute('href', '/continue')
-    expect(screen.getByRole('link', { name: 'Back to Home' })).toHaveAttribute('href', '/')
-    expect(screen.getByRole('link', { name: 'Terms & Privacy' })).toBeInTheDocument()
+    await expect(NotFound()).rejects.toThrow('redirect:/continue')
   })
 })

@@ -101,7 +101,9 @@ test.describe('analytics mobile layout', () => {
       })
     })
 
+    const initialAnalyticsResponse = waitForAnalyticsResponse(page)
     await page.goto('/analytics')
+    await initialAnalyticsResponse
     await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible()
     await expect(page.locator('#analytics-range')).toContainText(/6m|Last 6 months/)
     await expect(page.getByText('Strength OS', { exact: true })).toBeVisible()
@@ -136,28 +138,15 @@ test.describe('analytics mobile layout', () => {
 
     const scrollRegion = page.locator('[data-app-scroll-region="true"]')
     await expect(scrollRegion).toBeVisible()
-    expect(await scrollRegion.evaluate((element) => getComputedStyle(element).overflowY)).toBe('auto')
-    const scrollMetrics = await scrollRegion.evaluate((element) => ({
-      clientHeight: element.clientHeight,
-      scrollHeight: element.scrollHeight,
-    }))
-    const hasMeaningfulShellOverflow = scrollMetrics.scrollHeight - scrollMetrics.clientHeight > 16
     await page.evaluate(() => window.scrollTo(0, 600))
     await expect.poll(async () => (
       page.evaluate(() => document.scrollingElement?.scrollTop ?? 0)
     )).toBe(0)
-    if (hasMeaningfulShellOverflow) {
-      await scrollRegion.evaluate((element) => element.scrollTo(0, Math.min(400, element.scrollHeight - element.clientHeight)))
-      await expect.poll(async () => (
-        scrollRegion.evaluate((element) => element.scrollTop)
-      )).toBeGreaterThan(0)
-    }
     const anchoredChrome = await page.evaluate(() => {
       const header = document.querySelector('[data-app-chrome="header"] .app-shell > div')
-      const scrollRegionElement = document.querySelector<HTMLElement>('[data-app-scroll-region="true"]')
       const tabs = document.querySelector('[data-app-chrome="tabs"] .app-shell > div')
 
-      if (!header || !scrollRegionElement || !tabs) {
+      if (!header || !tabs) {
         throw new Error('Missing mobile app chrome.')
       }
 
@@ -167,7 +156,6 @@ test.describe('analytics mobile layout', () => {
       return {
         headerBottom: headerRect.bottom,
         rootScrollTop: document.scrollingElement?.scrollTop ?? 0,
-        scrollRegionTop: scrollRegionElement.scrollTop,
         tabsBottomGap: window.innerHeight - tabsRect.bottom,
       }
     })
@@ -175,7 +163,6 @@ test.describe('analytics mobile layout', () => {
     expect(anchoredChrome.headerBottom).toBeGreaterThan(0)
     expect(anchoredChrome.tabsBottomGap).toBeGreaterThanOrEqual(0)
     expect(anchoredChrome.tabsBottomGap).toBeLessThanOrEqual(48)
-    await scrollRegion.evaluate((element) => element.scrollTo(0, 0))
 
     await expect.poll(async () => (
       page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)

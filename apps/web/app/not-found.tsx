@@ -1,11 +1,12 @@
 import Link from 'next/link'
 import { SearchX } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 import { Header } from '@/components/layout/Header'
 import { MobileNav } from '@/components/layout/MobileNav'
 import { PreferenceSync } from '@/components/layout/PreferenceSync'
 import { AppRoutePrefetcher } from '@/components/layout/AppRoutePrefetcher'
-import { LegalLinks } from '@/components/layout/LegalLinks'
+import { MobileShellHeaderController } from '@/components/layout/MobileShellHeaderController'
 import { buttonVariants } from '@/components/ui/button'
 import {
   Empty,
@@ -71,23 +72,7 @@ export default async function NotFound() {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    return (
-      <main className="auth-shell">
-        <div className="auth-content">
-          <MissingRouteContent
-            description="Start from Continue to get into PlateIQ, then use Programs or Workouts for active training flows."
-            primaryHref="/continue"
-            primaryLabel="Continue to PlateIQ"
-            secondaryHref="/"
-            secondaryLabel="Back to Home"
-          />
-
-          <div className="mx-auto flex w-full max-w-xl justify-center px-2 text-center">
-            <LegalLinks className="justify-center" />
-          </div>
-        </div>
-      </main>
-    )
+    redirect('/continue')
   }
 
   return (
@@ -96,7 +81,10 @@ export default async function NotFound() {
       <div className="pointer-events-none absolute -right-32 top-[22%] size-96 rounded-full bg-secondary blur-3xl" />
       <PreferenceSync />
       <AppRoutePrefetcher />
-      <Header />
+      <MobileShellHeaderController />
+      <div className="authenticated-app-header-slot" data-app-header-slot="true">
+        <Header />
+      </div>
       <div
         className="authenticated-app-scroll pb-safe-content relative flex flex-1 flex-col"
         data-app-scroll-region="true"

@@ -25,6 +25,18 @@ export function AppRoutePrefetcher() {
   const { isAuthReady, isWarmDataReady } = useAppShellClientState()
 
   useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      document
+        .querySelector<HTMLElement>('[data-app-scroll-region="true"]')
+        ?.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+    })
+
+    return () => {
+      window.cancelAnimationFrame(frameId)
+    }
+  }, [pathname])
+
+  useEffect(() => {
     if (!isAuthReady || !isWarmDataReady) {
       return
     }

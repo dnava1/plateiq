@@ -228,7 +228,12 @@
   }
   .authenticated-app-shell {
     @apply relative min-h-dvh overflow-x-clip;
+    --authenticated-header-height: 0px;
+    --authenticated-header-offset: 0px;
     --authenticated-shell-height-mode: dynamic;
+  }
+  .authenticated-app-header-slot {
+    flex: 0 0 auto;
   }
   .authenticated-app-scroll {
     scroll-padding-top: 1rem;
@@ -362,6 +367,14 @@
       min-height: 100dvh;
       flex-direction: column;
       overflow: hidden;
+    }
+    .authenticated-app-header-slot {
+      height: max(calc(var(--authenticated-header-height) - var(--authenticated-header-offset)), 0px);
+      overflow: clip;
+    }
+    .authenticated-app-header-slot > [data-app-chrome='header'] {
+      transform: translateY(calc(-1 * var(--authenticated-header-offset)));
+      will-change: transform;
     }
     .authenticated-app-scroll {
       min-height: 0;
