@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/Header'
 import { MobileNav } from '@/components/layout/MobileNav'
 import { PreferenceSync } from '@/components/layout/PreferenceSync'
 import { AppRoutePrefetcher } from '@/components/layout/AppRoutePrefetcher'
+import { LegalLinks } from '@/components/layout/LegalLinks'
 import { buttonVariants } from '@/components/ui/button'
 import {
   Empty,
@@ -71,13 +72,21 @@ export default async function NotFound() {
 
   if (!user) {
     return (
-      <MissingRouteContent
-        description="Start from Continue to get into PlateIQ, then use Programs or Workouts for active training flows."
-        primaryHref="/continue"
-        primaryLabel="Continue to PlateIQ"
-        secondaryHref="/"
-        secondaryLabel="Back to Home"
-      />
+      <main className="auth-shell">
+        <div className="auth-content">
+          <MissingRouteContent
+            description="Start from Continue to get into PlateIQ, then use Programs or Workouts for active training flows."
+            primaryHref="/continue"
+            primaryLabel="Continue to PlateIQ"
+            secondaryHref="/"
+            secondaryLabel="Back to Home"
+          />
+
+          <div className="mx-auto flex w-full max-w-xl justify-center px-2 text-center">
+            <LegalLinks className="justify-center" />
+          </div>
+        </div>
+      </main>
     )
   }
 
@@ -87,19 +96,21 @@ export default async function NotFound() {
       <div className="pointer-events-none absolute -right-32 top-[22%] size-96 rounded-full bg-secondary blur-3xl" />
       <PreferenceSync />
       <AppRoutePrefetcher />
-      <Header />
-      <main
-        className="authenticated-app-scroll app-shell pb-safe-content relative flex flex-1 flex-col pt-6 md:pb-10 md:pt-8"
+      <div
+        className="authenticated-app-scroll pb-safe-content relative flex flex-1 flex-col"
         data-app-scroll-region="true"
       >
-        <MissingRouteContent
-          description="Use Programs to manage exercises and training max context, or jump into Workouts to resume the current session."
-          primaryHref="/programs"
-          primaryLabel="Go to Programs"
-          secondaryHref="/workouts"
-          secondaryLabel="Open Workouts"
-        />
-      </main>
+        <Header />
+        <main className="app-shell relative flex flex-1 flex-col pt-6 md:pb-10 md:pt-8" data-app-shell-content="true">
+          <MissingRouteContent
+            description="Use Programs to manage exercises and training max context, or jump into Workouts to resume the current session."
+            primaryHref="/programs"
+            primaryLabel="Go to Programs"
+            secondaryHref="/workouts"
+            secondaryLabel="Open Workouts"
+          />
+        </main>
+      </div>
       <MobileNav />
     </div>
   )

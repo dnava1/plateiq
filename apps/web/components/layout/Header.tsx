@@ -19,7 +19,7 @@ import {
   type AppNavHref,
 } from '@/components/layout/navigation'
 
-export function Header() {
+export function Header({ as: Root = 'header' }: { as?: 'div' | 'header' }) {
   const pathname = usePathname()
   const router = useRouter()
   const { pendingNavHref, setPendingNavHref } = useAppShellClientState()
@@ -66,7 +66,7 @@ export function Header() {
   }
 
   return (
-    <header className="pt-safe-header relative z-50 md:sticky md:top-0 md:pt-4">
+    <Root className="pt-safe-header relative z-50 md:sticky md:top-0 md:pt-4" data-app-chrome="header">
       <div className="app-shell">
         <div className="shadow-app-overlay flex w-full items-center gap-2 rounded-[22px] border border-border/70 bg-background/72 px-2.5 py-1.5 backdrop-blur-xl sm:gap-3 sm:px-4 md:rounded-[28px] md:px-3 md:py-3">
           <Link
@@ -159,6 +159,6 @@ export function Header() {
           </div>
         </div>
       </div>
-    </header>
+    </Root>
   )
 }

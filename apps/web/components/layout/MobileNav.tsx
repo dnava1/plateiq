@@ -55,7 +55,7 @@ export function MobileNav() {
   }
 
   return (
-    <nav aria-label="App tabs" className="pb-safe-nav fixed inset-x-0 bottom-0 z-50 md:hidden">
+    <nav aria-label="App tabs" className="pb-safe-nav fixed inset-x-0 bottom-0 z-50 md:hidden" data-app-chrome="tabs">
       <div className="app-shell">
         <div className="shadow-app-overlay grid w-full grid-cols-5 gap-1 rounded-[24px] border border-border/70 bg-background/78 p-1.5 backdrop-blur-xl">
           {APP_NAV_ITEMS.map(({ href, label, icon: Icon }) => {

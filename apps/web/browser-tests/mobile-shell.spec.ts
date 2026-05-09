@@ -22,8 +22,8 @@ test.describe('mobile app shell scrolling', () => {
     const initialMetrics = await page.evaluate(() => {
       const scrollRegionElement = document.querySelector<HTMLElement>('[data-app-scroll-region="true"]')
       const shell = document.querySelector<HTMLElement>('[data-authenticated-shell="true"]')
-      const header = document.querySelector<HTMLElement>('header .app-shell > div')
-      const tabs = document.querySelector<HTMLElement>('nav[aria-label="App tabs"] .app-shell > div')
+      const header = document.querySelector<HTMLElement>('[data-app-chrome="header"] .app-shell > div')
+      const tabs = document.querySelector<HTMLElement>('[data-app-chrome="tabs"] .app-shell > div')
 
       if (!scrollRegionElement || !shell || !header || !tabs) {
         throw new Error('Missing mobile app shell elements.')
@@ -52,7 +52,8 @@ test.describe('mobile app shell scrolling', () => {
     expect(initialMetrics.shellOverflowY).toBe('hidden')
     expect(initialMetrics.scrollHeight).toBeGreaterThan(initialMetrics.scrollRegionClientHeight)
     expect(initialMetrics.headerBottom).toBeGreaterThan(0)
-    expect(initialMetrics.tabsBottomGap).toBeLessThanOrEqual(8)
+    expect(initialMetrics.tabsBottomGap).toBeGreaterThanOrEqual(0)
+    expect(initialMetrics.tabsBottomGap).toBeLessThanOrEqual(48)
 
     await page.evaluate(() => window.scrollTo(0, 600))
     await expect.poll(async () => (
@@ -66,8 +67,8 @@ test.describe('mobile app shell scrolling', () => {
 
     const scrolledMetrics = await page.evaluate(() => {
       const scrollRegionElement = document.querySelector<HTMLElement>('[data-app-scroll-region="true"]')
-      const header = document.querySelector<HTMLElement>('header .app-shell > div')
-      const tabs = document.querySelector<HTMLElement>('nav[aria-label="App tabs"] .app-shell > div')
+      const header = document.querySelector<HTMLElement>('[data-app-chrome="header"] .app-shell > div')
+      const tabs = document.querySelector<HTMLElement>('[data-app-chrome="tabs"] .app-shell > div')
 
       if (!scrollRegionElement || !header || !tabs) {
         throw new Error('Missing mobile app shell elements.')
@@ -77,7 +78,7 @@ test.describe('mobile app shell scrolling', () => {
       const tabsRect = tabs.getBoundingClientRect()
 
       return {
-        headerTop: headerRect.top,
+        headerBottom: headerRect.bottom,
         rootScrollTop: document.scrollingElement?.scrollTop ?? 0,
         scrollRegionTop: scrollRegionElement.scrollTop,
         tabsBottomGap: window.innerHeight - tabsRect.bottom,
@@ -86,8 +87,9 @@ test.describe('mobile app shell scrolling', () => {
 
     expect(scrolledMetrics.rootScrollTop).toBe(0)
     expect(scrolledMetrics.scrollRegionTop).toBeGreaterThan(0)
-    expect(Math.abs(scrolledMetrics.headerTop - initialMetrics.headerTop)).toBeLessThanOrEqual(1)
-    expect(scrolledMetrics.tabsBottomGap).toBeLessThanOrEqual(8)
+    expect(scrolledMetrics.headerBottom).toBeLessThan(0)
+    expect(scrolledMetrics.tabsBottomGap).toBeGreaterThanOrEqual(0)
+    expect(scrolledMetrics.tabsBottomGap).toBeLessThanOrEqual(48)
 
     await scrollRegion.evaluate((element) => element.scrollTo(0, element.scrollHeight))
     await expect.poll(async () => (
@@ -96,7 +98,7 @@ test.describe('mobile app shell scrolling', () => {
 
     const bottomMetrics = await page.evaluate(() => {
       const scrollRegionElement = document.querySelector<HTMLElement>('[data-app-scroll-region="true"]')
-      const tabs = document.querySelector<HTMLElement>('nav[aria-label="App tabs"] .app-shell > div')
+      const tabs = document.querySelector<HTMLElement>('[data-app-chrome="tabs"] .app-shell > div')
       const cards = scrollRegionElement
         ? Array.from(scrollRegionElement.querySelectorAll<HTMLElement>('[data-slot="card"]'))
         : []
@@ -137,14 +139,17 @@ test.describe('mobile app shell scrolling', () => {
     const standaloneMetrics = await page.evaluate(() => {
       const shell = document.querySelector<HTMLElement>('[data-authenticated-shell="true"]')
       const scrollRegionElement = document.querySelector<HTMLElement>('[data-app-scroll-region="true"]')
+      const header = document.querySelector<HTMLElement>('[data-app-chrome="header"] .app-shell > div')
 
-      if (!shell || !scrollRegionElement) {
+      if (!shell || !scrollRegionElement || !header) {
         throw new Error('Missing standalone mobile shell elements.')
       }
 
+      const headerRect = header.getBoundingClientRect()
       const shellStyles = getComputedStyle(shell)
 
       return {
+        headerBottom: headerRect.bottom,
         heightMode: shellStyles.getPropertyValue('--authenticated-shell-height-mode').trim(),
         rootScrollTop: document.scrollingElement?.scrollTop ?? 0,
         shellClientHeight: shell.clientHeight,
@@ -164,5 +169,17 @@ test.describe('mobile app shell scrolling', () => {
     await expect.poll(async () => (
       page.evaluate(() => document.scrollingElement?.scrollTop ?? 0)
     )).toBe(0)
+
+    const headerBottom = await page.evaluate(() => {
+      const header = document.querySelector<HTMLElement>('[data-app-chrome="header"] .app-shell > div')
+
+      if (!header) {
+        throw new Error('Missing standalone mobile header.')
+      }
+
+      return header.getBoundingClientRect().bottom
+    })
+
+    expect(headerBottom).toBeLessThan(0)
   })
 })

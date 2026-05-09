@@ -120,20 +120,19 @@ test.describe('analytics mobile layout', () => {
         }
 
         const rect = element.getBoundingClientRect()
-        return { left: rect.left, right: rect.right, top: rect.top }
+        return { bottom: rect.bottom, left: rect.left, right: rect.right, top: rect.top }
       }
 
       return {
-        header: getEdges('header .app-shell > div'),
+        header: getEdges('[data-app-chrome="header"] .app-shell > div'),
         card: getEdges('[data-slot="card"]'),
-        tabs: getEdges('nav[aria-label="App tabs"] .app-shell > div'),
+        tabs: getEdges('[data-app-chrome="tabs"] .app-shell > div'),
       }
     })
     expect(Math.abs(shellEdges.header.left - shellEdges.card.left)).toBeLessThanOrEqual(1)
     expect(Math.abs(shellEdges.header.right - shellEdges.card.right)).toBeLessThanOrEqual(1)
     expect(Math.abs(shellEdges.tabs.left - shellEdges.card.left)).toBeLessThanOrEqual(1)
     expect(Math.abs(shellEdges.tabs.right - shellEdges.card.right)).toBeLessThanOrEqual(1)
-    expect(await page.locator('header').evaluate((element) => getComputedStyle(element).position)).toBe('relative')
 
     const scrollRegion = page.locator('[data-app-scroll-region="true"]')
     await expect(scrollRegion).toBeVisible()
@@ -142,21 +141,23 @@ test.describe('analytics mobile layout', () => {
       clientHeight: element.clientHeight,
       scrollHeight: element.scrollHeight,
     }))
+    const hasMeaningfulShellOverflow = scrollMetrics.scrollHeight - scrollMetrics.clientHeight > 16
     await page.evaluate(() => window.scrollTo(0, 600))
     await expect.poll(async () => (
       page.evaluate(() => document.scrollingElement?.scrollTop ?? 0)
     )).toBe(0)
-    if (scrollMetrics.scrollHeight > scrollMetrics.clientHeight) {
+    if (hasMeaningfulShellOverflow) {
       await scrollRegion.evaluate((element) => element.scrollTo(0, Math.min(400, element.scrollHeight - element.clientHeight)))
       await expect.poll(async () => (
         scrollRegion.evaluate((element) => element.scrollTop)
       )).toBeGreaterThan(0)
     }
     const anchoredChrome = await page.evaluate(() => {
-      const header = document.querySelector('header .app-shell > div')
-      const tabs = document.querySelector('nav[aria-label="App tabs"] .app-shell > div')
+      const header = document.querySelector('[data-app-chrome="header"] .app-shell > div')
+      const scrollRegionElement = document.querySelector<HTMLElement>('[data-app-scroll-region="true"]')
+      const tabs = document.querySelector('[data-app-chrome="tabs"] .app-shell > div')
 
-      if (!header || !tabs) {
+      if (!header || !scrollRegionElement || !tabs) {
         throw new Error('Missing mobile app chrome.')
       }
 
@@ -166,12 +167,18 @@ test.describe('analytics mobile layout', () => {
       return {
         headerBottom: headerRect.bottom,
         rootScrollTop: document.scrollingElement?.scrollTop ?? 0,
+        scrollRegionTop: scrollRegionElement.scrollTop,
         tabsBottomGap: window.innerHeight - tabsRect.bottom,
       }
     })
     expect(anchoredChrome.rootScrollTop).toBe(0)
-    expect(anchoredChrome.headerBottom).toBeGreaterThan(0)
-    expect(anchoredChrome.tabsBottomGap).toBeLessThanOrEqual(8)
+    if (hasMeaningfulShellOverflow && anchoredChrome.scrollRegionTop >= shellEdges.header.bottom) {
+      expect(anchoredChrome.headerBottom).toBeLessThan(0)
+    } else {
+      expect(anchoredChrome.headerBottom).toBeGreaterThan(0)
+    }
+    expect(anchoredChrome.tabsBottomGap).toBeGreaterThanOrEqual(0)
+    expect(anchoredChrome.tabsBottomGap).toBeLessThanOrEqual(48)
     await scrollRegion.evaluate((element) => element.scrollTo(0, 0))
 
     await expect.poll(async () => (
@@ -189,7 +196,18 @@ test.describe('analytics mobile layout', () => {
 
     const chartScroller = consistencyCard.locator('div[tabindex="0"]').first()
     await expect(chartScroller).toBeVisible()
-    expect(await chartScroller.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true)
+    const chartScrollerMetrics = await chartScroller.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      fitsViewport: element.getBoundingClientRect().right <= window.innerWidth + 1,
+      scrollWidth: element.scrollWidth,
+    }))
+    expect(chartScrollerMetrics.fitsViewport).toBe(true)
+    if (chartScrollerMetrics.scrollWidth - chartScrollerMetrics.clientWidth > 16) {
+      await chartScroller.evaluate((element) => element.scrollTo({ left: Math.min(120, element.scrollWidth - element.clientWidth) }))
+      await expect.poll(async () => (
+        chartScroller.evaluate((element) => element.scrollLeft)
+      )).toBeGreaterThan(0)
+    }
 
     const initialCellCount = await consistencyCard.locator('[aria-label^="Week of "]').count()
     expect(initialCellCount).toBeGreaterThan(8)

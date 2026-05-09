@@ -1,9 +1,12 @@
+import type { AnchorHTMLAttributes } from 'react'
 import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import AppLayout from './layout'
 
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
+  prefetch: vi.fn(),
+  push: vi.fn(),
   redirect: vi.fn((path: string) => {
     throw new Error(`redirect:${path}`)
   }),
@@ -19,10 +22,28 @@ vi.mock('@/lib/supabase/server', () => ({
 
 vi.mock('next/navigation', () => ({
   redirect: (path: string) => mocks.redirect(path),
+  usePathname: () => '/dashboard',
+  useRouter: () => ({
+    prefetch: mocks.prefetch,
+    push: mocks.push,
+  }),
 }))
 
-vi.mock('@/components/layout/Header', () => ({
-  Header: () => <header>Mock header</header>,
+vi.mock('next/link', () => ({
+  default: ({ children, href, prefetch: _prefetch, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string; prefetch?: boolean }) => (
+    <a href={href} {...props}>{children}</a>
+  ),
+}))
+
+vi.mock('@/components/brand/PlateIqMark', () => ({
+  PlateIqMark: ({ className }: { className?: string }) => <span data-testid="plateiq-mark" className={className} />,
+}))
+
+vi.mock('@/hooks/useUser', () => ({
+  useUser: () => ({
+    data: undefined,
+    isLoading: true,
+  }),
 }))
 
 vi.mock('@/components/layout/MobileNav', () => ({
@@ -46,6 +67,8 @@ describe('authenticated AppLayout', () => {
         },
       },
     })
+    mocks.prefetch.mockClear()
+    mocks.push.mockClear()
     mocks.redirect.mockClear()
   })
 
@@ -55,13 +78,20 @@ describe('authenticated AppLayout', () => {
     const shell = container.querySelector('[data-authenticated-shell="true"]')
     expect(shell).toHaveClass('authenticated-app-shell')
 
+    const scrollRegion = container.querySelector('[data-app-scroll-region="true"]')
+    expect(scrollRegion).toHaveClass('authenticated-app-scroll')
+    expect(scrollRegion).toHaveClass('pb-safe-content')
+
     const main = screen.getByRole('main')
-    expect(main).toHaveAttribute('data-app-scroll-region', 'true')
-    expect(main).toHaveClass('authenticated-app-scroll')
     expect(main).toHaveClass('app-shell')
-    expect(main).toHaveClass('pb-safe-content')
-    expect(screen.getByText('Mock header')).toBeInTheDocument()
-    expect(screen.getByRole('navigation', { name: 'App tabs' })).toBeInTheDocument()
-    expect(screen.getByText('Dashboard children')).toBeInTheDocument()
+    const banner = screen.getByRole('banner')
+    expect(banner).toHaveAttribute('data-app-chrome', 'header')
+    expect(scrollRegion).toContainElement(banner)
+    expect(main).toContainElement(screen.getByText('Dashboard children'))
+    expect(main).not.toContainElement(banner)
+
+    const navigation = screen.getByRole('navigation', { name: 'App tabs' })
+    expect(navigation).toBeInTheDocument()
+    expect(scrollRegion).not.toContainElement(navigation)
   })
 })
