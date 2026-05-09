@@ -36,9 +36,11 @@ test.describe('mobile app shell scrolling', () => {
       const scrollRegionRect = scrollRegionElement.getBoundingClientRect()
       const tabsChromeRect = tabsChrome.getBoundingClientRect()
       const tabsRect = tabs.getBoundingClientRect()
-      const tabLinkHeights = Array.from(tabs.querySelectorAll<HTMLElement>('a')).map((link) => (
+      const tabLinks = Array.from(tabs.querySelectorAll<HTMLElement>('a'))
+      const tabLinkHeights = tabLinks.map((link) => (
         link.getBoundingClientRect().height
       ))
+      const firstTabLinkStyles = getComputedStyle(tabLinks[0])
       const headerBackdrop = getComputedStyle(headerSlot, '::before')
       const tabsBackdrop = getComputedStyle(tabsChrome, '::before')
       const scrollbarThumb = getComputedStyle(scrollRegionElement, '::-webkit-scrollbar-thumb')
@@ -66,6 +68,7 @@ test.describe('mobile app shell scrolling', () => {
         headerSlotRight: headerSlotRect.right,
         headerPanelLeft: headerRect.left,
         headerPanelRight: headerRect.right,
+        headerPanelRadius: getComputedStyle(header).borderRadius,
         headerBackdropDisplay: headerBackdrop.display,
         headerBackdropImage: headerBackdrop.backgroundImage,
         headerBackdropBottom: headerBackdrop.bottom,
@@ -87,7 +90,10 @@ test.describe('mobile app shell scrolling', () => {
         tabsHeight: tabsRect.height,
         tabsPanelLeft: tabsRect.left,
         tabsPanelRight: tabsRect.right,
+        tabsPanelRadius: getComputedStyle(tabs).borderRadius,
+        tabLinkJustifyContent: firstTabLinkStyles.justifyContent,
         tabLinkMinHeight: Math.min(...tabLinkHeights),
+        tabLinkMaxHeight: Math.max(...tabLinkHeights),
         tabsBackdropDisplay: tabsBackdrop.display,
         tabsBackdropImage: tabsBackdrop.backgroundImage,
         tabsBackdropTop: tabsBackdrop.top,
@@ -124,8 +130,11 @@ test.describe('mobile app shell scrolling', () => {
     expect(Math.abs(initialMetrics.tabsChromeRight - initialMetrics.viewportWidth)).toBeLessThanOrEqual(1)
     expect(initialMetrics.tabsPanelLeft).toBeGreaterThan(initialMetrics.tabsChromeLeft)
     expect(initialMetrics.tabsPanelRight).toBeLessThan(initialMetrics.tabsChromeRight)
-    expect(initialMetrics.tabsHeight).toBeLessThanOrEqual(60)
-    expect(initialMetrics.tabLinkMinHeight).toBeGreaterThanOrEqual(44)
+    expect(initialMetrics.tabsPanelRadius).toBe(initialMetrics.headerPanelRadius)
+    expect(initialMetrics.tabsHeight).toBeLessThanOrEqual(64)
+    expect(initialMetrics.tabLinkJustifyContent).toBe('center')
+    expect(initialMetrics.tabLinkMinHeight).toBe(48)
+    expect(initialMetrics.tabLinkMaxHeight).toBe(48)
     expect(initialMetrics.tabsBackdropDisplay).toBe('block')
     expect(initialMetrics.tabsBackdropTop).toBe('0px')
     expect(initialMetrics.tabsBackdropImage).toContain('gradient')
