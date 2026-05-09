@@ -87,7 +87,7 @@ test.describe('mobile app shell scrolling', () => {
 
     expect(scrolledMetrics.rootScrollTop).toBe(0)
     expect(scrolledMetrics.scrollRegionTop).toBeGreaterThan(0)
-    expect(scrolledMetrics.headerBottom).toBeLessThan(0)
+    expect(scrolledMetrics.headerBottom).toBeGreaterThan(0)
     expect(scrolledMetrics.tabsBottomGap).toBeGreaterThanOrEqual(0)
     expect(scrolledMetrics.tabsBottomGap).toBeLessThanOrEqual(48)
 
@@ -180,6 +180,6 @@ test.describe('mobile app shell scrolling', () => {
       return header.getBoundingClientRect().bottom
     })
 
-    expect(headerBottom).toBeLessThan(0)
+    expect(headerBottom).toBeGreaterThan(0)
   })
 })

@@ -86,7 +86,7 @@ describe('authenticated AppLayout', () => {
     expect(main).toHaveClass('app-shell')
     const banner = screen.getByRole('banner')
     expect(banner).toHaveAttribute('data-app-chrome', 'header')
-    expect(scrollRegion).toContainElement(banner)
+    expect(scrollRegion).not.toContainElement(banner)
     expect(main).toContainElement(screen.getByText('Dashboard children'))
     expect(main).not.toContainElement(banner)
 

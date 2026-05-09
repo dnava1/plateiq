@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('next/link', () => ({
-  default: ({ href, children, prefetch: _prefetch, ...props }: { href: string; children: ReactNode } & HTMLAttributes<HTMLAnchorElement>) => (
+  default: ({ href, children, prefetch: _prefetch, ...props }: { href: string; children: ReactNode; prefetch?: boolean } & HTMLAttributes<HTMLAnchorElement>) => (
     <a href={href} {...props}>
       {children}
     </a>
@@ -97,7 +97,7 @@ describe('root NotFound route', () => {
     expect(main).toHaveClass('app-shell')
     const banner = screen.getByRole('banner')
     expect(banner).toHaveAttribute('data-app-chrome', 'header')
-    expect(scrollRegion).toContainElement(banner)
+    expect(scrollRegion).not.toContainElement(banner)
     expect(main).not.toContainElement(banner)
 
     const navigation = screen.getByRole('navigation', { name: 'App tabs' })

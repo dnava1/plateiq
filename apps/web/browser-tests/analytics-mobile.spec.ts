@@ -172,11 +172,7 @@ test.describe('analytics mobile layout', () => {
       }
     })
     expect(anchoredChrome.rootScrollTop).toBe(0)
-    if (hasMeaningfulShellOverflow && anchoredChrome.scrollRegionTop >= shellEdges.header.bottom) {
-      expect(anchoredChrome.headerBottom).toBeLessThan(0)
-    } else {
-      expect(anchoredChrome.headerBottom).toBeGreaterThan(0)
-    }
+    expect(anchoredChrome.headerBottom).toBeGreaterThan(0)
     expect(anchoredChrome.tabsBottomGap).toBeGreaterThanOrEqual(0)
     expect(anchoredChrome.tabsBottomGap).toBeLessThanOrEqual(48)
     await scrollRegion.evaluate((element) => element.scrollTo(0, 0))
