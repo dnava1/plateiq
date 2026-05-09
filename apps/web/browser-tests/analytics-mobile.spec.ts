@@ -135,14 +135,44 @@ test.describe('analytics mobile layout', () => {
     expect(Math.abs(shellEdges.tabs.right - shellEdges.card.right)).toBeLessThanOrEqual(1)
     expect(await page.locator('header').evaluate((element) => getComputedStyle(element).position)).toBe('relative')
 
+    const scrollRegion = page.locator('[data-app-scroll-region="true"]')
+    await expect(scrollRegion).toBeVisible()
+    expect(await scrollRegion.evaluate((element) => getComputedStyle(element).overflowY)).toBe('auto')
+    const scrollMetrics = await scrollRegion.evaluate((element) => ({
+      clientHeight: element.clientHeight,
+      scrollHeight: element.scrollHeight,
+    }))
     await page.evaluate(() => window.scrollTo(0, 600))
     await expect.poll(async () => (
-      page.locator('header .app-shell > div').evaluate((element) => element.getBoundingClientRect().bottom)
-    )).toBeLessThan(0)
-    expect(await appTabs.evaluate((element) => (
-      window.innerHeight - element.querySelector('.app-shell > div')!.getBoundingClientRect().bottom
-    ))).toBeLessThanOrEqual(8)
-    await page.evaluate(() => window.scrollTo(0, 0))
+      page.evaluate(() => document.scrollingElement?.scrollTop ?? 0)
+    )).toBe(0)
+    if (scrollMetrics.scrollHeight > scrollMetrics.clientHeight) {
+      await scrollRegion.evaluate((element) => element.scrollTo(0, Math.min(400, element.scrollHeight - element.clientHeight)))
+      await expect.poll(async () => (
+        scrollRegion.evaluate((element) => element.scrollTop)
+      )).toBeGreaterThan(0)
+    }
+    const anchoredChrome = await page.evaluate(() => {
+      const header = document.querySelector('header .app-shell > div')
+      const tabs = document.querySelector('nav[aria-label="App tabs"] .app-shell > div')
+
+      if (!header || !tabs) {
+        throw new Error('Missing mobile app chrome.')
+      }
+
+      const headerRect = header.getBoundingClientRect()
+      const tabsRect = tabs.getBoundingClientRect()
+
+      return {
+        headerBottom: headerRect.bottom,
+        rootScrollTop: document.scrollingElement?.scrollTop ?? 0,
+        tabsBottomGap: window.innerHeight - tabsRect.bottom,
+      }
+    })
+    expect(anchoredChrome.rootScrollTop).toBe(0)
+    expect(anchoredChrome.headerBottom).toBeGreaterThan(0)
+    expect(anchoredChrome.tabsBottomGap).toBeLessThanOrEqual(8)
+    await scrollRegion.evaluate((element) => element.scrollTo(0, 0))
 
     await expect.poll(async () => (
       page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)

@@ -226,6 +226,13 @@
   .app-shell {
     @apply mx-auto w-full max-w-6xl px-4 md:px-6;
   }
+  .authenticated-app-shell {
+    @apply relative min-h-dvh overflow-x-clip;
+    --authenticated-shell-height-mode: dynamic;
+  }
+  .authenticated-app-scroll {
+    scroll-padding-top: 1rem;
+  }
   .pwa-launch-shell {
     @apply relative grid w-full place-items-center px-4;
     isolation: isolate;
@@ -346,6 +353,27 @@
   }
 }
 
+@media (width < 48rem) {
+  @layer utilities {
+    .authenticated-app-shell {
+      display: flex;
+      height: 100vh;
+      height: 100dvh;
+      min-height: 100dvh;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .authenticated-app-scroll {
+      min-height: 0;
+      flex: 1 1 auto;
+      overflow-x: clip;
+      overflow-y: auto;
+      overscroll-behavior-y: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+}
+
 @keyframes slide-up {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -373,6 +401,18 @@
   .auth-shell {
     min-height: 100lvh;
   }
+
+  .authenticated-app-shell {
+    --authenticated-shell-height-mode: standalone;
+    height: 100lvh;
+    min-height: 100lvh;
+  }
+}
+
+html[data-pwa-display-mode='standalone'] .authenticated-app-shell {
+  --authenticated-shell-height-mode: standalone;
+  height: 100lvh;
+  min-height: 100lvh;
 }
 
 @media (width >= 40rem) {

@@ -22,13 +22,16 @@ export default async function AppLayout({
   }
 
   return (
-    <div className="relative min-h-dvh overflow-x-clip">
+    <div className="authenticated-app-shell" data-authenticated-shell="true">
       <div className="pointer-events-none absolute -left-16 top-0 size-80 rounded-full bg-primary/10 blur-3xl" />
       <div className="pointer-events-none absolute -right-32 top-[22%] size-96 rounded-full bg-secondary blur-3xl" />
       <PreferenceSync />
       <AppRoutePrefetcher />
       <Header />
-      <main className="app-shell pb-safe-content relative flex flex-1 flex-col pt-6 md:pb-10 md:pt-8">
+      <main
+        className="authenticated-app-scroll app-shell pb-safe-content relative flex flex-1 flex-col pt-6 md:pb-10 md:pt-8"
+        data-app-scroll-region="true"
+      >
         {children}
       </main>
       <MobileNav />
