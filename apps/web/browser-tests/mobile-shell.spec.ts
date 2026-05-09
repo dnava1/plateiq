@@ -33,10 +33,16 @@ test.describe('mobile app shell scrolling', () => {
 
       const headerSlotRect = headerSlot.getBoundingClientRect()
       const headerRect = header.getBoundingClientRect()
+      const scrollRegionRect = scrollRegionElement.getBoundingClientRect()
       const tabsChromeRect = tabsChrome.getBoundingClientRect()
       const tabsRect = tabs.getBoundingClientRect()
+      const tabLinkHeights = Array.from(tabs.querySelectorAll<HTMLElement>('a')).map((link) => (
+        link.getBoundingClientRect().height
+      ))
       const headerBackdrop = getComputedStyle(headerSlot, '::before')
       const tabsBackdrop = getComputedStyle(tabsChrome, '::before')
+      const scrollbarThumb = getComputedStyle(scrollRegionElement, '::-webkit-scrollbar-thumb')
+      const scrollbarTrack = getComputedStyle(scrollRegionElement, '::-webkit-scrollbar-track')
       const getBackdropFilter = (style: CSSStyleDeclaration) => (
         style.getPropertyValue('backdrop-filter')
         || style.getPropertyValue('-webkit-backdrop-filter')
@@ -66,14 +72,22 @@ test.describe('mobile app shell scrolling', () => {
         headerBackdropFilter: getBackdropFilter(headerBackdrop),
         headerBackdropMaskImage: getMaskImage(headerBackdrop),
         rootScrollTop: document.scrollingElement?.scrollTop ?? 0,
+        scrollRegionBottom: scrollRegionRect.bottom,
         scrollHeight: scrollRegionElement.scrollHeight,
         scrollRegionClientHeight: scrollRegionElement.clientHeight,
+        scrollRegionTopEdge: scrollRegionRect.top,
+        scrollbarColor: scrollStyles.scrollbarColor,
+        scrollbarThumbRadius: scrollbarThumb.borderRadius,
+        scrollbarTrackRadius: scrollbarTrack.borderRadius,
+        scrollbarWidth: scrollStyles.scrollbarWidth,
         scrollRegionOverflowY: scrollStyles.overflowY,
         shellOverflowY: shellStyles.overflowY,
         tabsChromeLeft: tabsChromeRect.left,
         tabsChromeRight: tabsChromeRect.right,
+        tabsHeight: tabsRect.height,
         tabsPanelLeft: tabsRect.left,
         tabsPanelRight: tabsRect.right,
+        tabLinkMinHeight: Math.min(...tabLinkHeights),
         tabsBackdropDisplay: tabsBackdrop.display,
         tabsBackdropImage: tabsBackdrop.backgroundImage,
         tabsBackdropTop: tabsBackdrop.top,
@@ -88,9 +102,14 @@ test.describe('mobile app shell scrolling', () => {
     expect(initialMetrics.rootScrollTop).toBe(0)
     expect(initialMetrics.scrollRegionOverflowY).toBe('auto')
     expect(initialMetrics.shellOverflowY).toBe('hidden')
+    expect(initialMetrics.scrollbarColor).toContain('rgba')
+    expect(initialMetrics.scrollbarThumbRadius).toBe('999px')
+    expect(initialMetrics.scrollbarTrackRadius).toBe('999px')
+    expect(initialMetrics.scrollbarWidth).toBe('thin')
     expect(initialMetrics.scrollHeight).toBeGreaterThan(initialMetrics.scrollRegionClientHeight)
     expect(initialMetrics.headerTop).toBeGreaterThanOrEqual(0)
     expect(initialMetrics.headerBottom).toBeGreaterThan(0)
+    expect(initialMetrics.scrollRegionTopEdge).toBeGreaterThanOrEqual(initialMetrics.headerBottom - 1)
     expect(Math.abs(initialMetrics.headerSlotLeft)).toBeLessThanOrEqual(1)
     expect(Math.abs(initialMetrics.headerSlotRight - initialMetrics.viewportWidth)).toBeLessThanOrEqual(1)
     expect(initialMetrics.headerPanelLeft).toBeGreaterThan(initialMetrics.headerSlotLeft)
@@ -105,6 +124,8 @@ test.describe('mobile app shell scrolling', () => {
     expect(Math.abs(initialMetrics.tabsChromeRight - initialMetrics.viewportWidth)).toBeLessThanOrEqual(1)
     expect(initialMetrics.tabsPanelLeft).toBeGreaterThan(initialMetrics.tabsChromeLeft)
     expect(initialMetrics.tabsPanelRight).toBeLessThan(initialMetrics.tabsChromeRight)
+    expect(initialMetrics.tabsHeight).toBeLessThanOrEqual(60)
+    expect(initialMetrics.tabLinkMinHeight).toBeGreaterThanOrEqual(44)
     expect(initialMetrics.tabsBackdropDisplay).toBe('block')
     expect(initialMetrics.tabsBackdropTop).toBe('0px')
     expect(initialMetrics.tabsBackdropImage).toContain('gradient')
@@ -113,6 +134,7 @@ test.describe('mobile app shell scrolling', () => {
     expect(initialMetrics.tabsBackdropMaskImage).toContain('gradient')
     expect(initialMetrics.tabsBottomGap).toBeGreaterThanOrEqual(0)
     expect(initialMetrics.tabsBottomGap).toBeLessThanOrEqual(48)
+    expect(initialMetrics.scrollRegionBottom).toBeLessThanOrEqual(initialMetrics.tabsTop + 1)
 
     await page.evaluate(() => window.scrollTo(0, 600))
     await expect.poll(async () => (

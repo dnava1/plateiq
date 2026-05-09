@@ -57,7 +57,7 @@ export function MobileNav() {
   return (
     <nav aria-label="App tabs" className="pb-safe-nav fixed inset-x-0 bottom-0 z-50 md:hidden" data-app-chrome="tabs">
       <div className="app-shell">
-        <div className="shadow-app-overlay grid w-full grid-cols-5 gap-1 rounded-[24px] border border-border/70 bg-background/78 p-1.5 backdrop-blur-xl">
+        <div className="shadow-app-overlay grid w-full grid-cols-5 gap-1 rounded-[20px] border border-border/70 bg-background/78 p-1 backdrop-blur-xl">
           {APP_NAV_ITEMS.map(({ href, label, icon: Icon }) => {
             const isActive = isActiveNavPath(activePathname, href)
             return (
@@ -71,7 +71,7 @@ export function MobileNav() {
                 onPointerDown={handlePointerDown(href)}
                 onClick={handleClick(href)}
                 className={cn(
-                  'flex min-w-0 flex-col items-center gap-1 rounded-2xl px-1 py-2 text-[0.64rem] font-medium leading-none transition-all',
+                  'flex min-w-0 flex-col items-center gap-0.5 rounded-[16px] px-1 py-1.5 text-[0.62rem] font-medium leading-none transition-all',
                   isActive
                     ? 'bg-card text-foreground ring-1 ring-border/70 shadow-sm'
                     : 'text-muted-foreground'
@@ -79,11 +79,11 @@ export function MobileNav() {
               >
                 <span
                   className={cn(
-                    'flex size-8 items-center justify-center rounded-xl transition-colors',
+                    'flex size-6 items-center justify-center rounded-[9px] transition-colors',
                     isActive ? 'bg-primary/12 text-primary' : 'text-muted-foreground'
                   )}
                 >
-                  <Icon className="size-4" />
+                  <Icon className="size-3.5" />
                 </span>
                 <span className="w-full truncate text-center">{label}</span>
               </Link>
