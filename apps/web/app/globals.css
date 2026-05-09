@@ -544,7 +544,7 @@
 
   .pb-safe-nav {
     padding-bottom: 0.375rem;
-    padding-bottom: clamp(0.375rem, calc(var(--app-safe-area-inset-bottom) - 1.5rem), 0.75rem);
+    padding-bottom: clamp(1rem, calc(var(--app-safe-area-inset-bottom) - 1rem), 1.125rem);
   }
 }
 
@@ -556,7 +556,7 @@ html[data-pwa-display-mode='standalone'] .authenticated-app-shell {
 
 html[data-pwa-display-mode='standalone'] .pb-safe-nav {
   padding-bottom: 0.375rem;
-  padding-bottom: clamp(0.375rem, calc(var(--app-safe-area-inset-bottom) - 1.5rem), 0.75rem);
+  padding-bottom: clamp(1rem, calc(var(--app-safe-area-inset-bottom) - 1rem), 1.125rem);
 }
 
 @media (width >= 40rem) {

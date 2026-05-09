@@ -270,8 +270,8 @@ test.describe('mobile app shell scrolling', () => {
     expect(Math.abs(standaloneMetrics.shellClientHeight - standaloneMetrics.viewportHeight)).toBeLessThanOrEqual(1)
     expect(browserTabsBottomGap).toBeGreaterThanOrEqual(30)
     expect(standaloneMetrics.tabsBottomGap).toBeLessThan(browserTabsBottomGap)
-    expect(standaloneMetrics.tabsBottomGap).toBeGreaterThanOrEqual(6)
-    expect(standaloneMetrics.tabsBottomGap).toBeLessThanOrEqual(12)
+    expect(standaloneMetrics.tabsBottomGap).toBeGreaterThanOrEqual(16)
+    expect(standaloneMetrics.tabsBottomGap).toBeLessThanOrEqual(20)
 
     const scrollRegion = page.locator('[data-app-scroll-region="true"]')
     await scrollRegion.evaluate((element) => element.scrollTo(0, Math.min(600, element.scrollHeight - element.clientHeight)))
