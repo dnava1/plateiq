@@ -16,6 +16,7 @@ export interface ViewportTooltipAnchor extends TooltipCoordinate {
 type TooltipPlacement = 'bottom' | 'top'
 
 const TOOLTIP_BOUNDARY_PADDING = 8
+const APP_CHROME_SELECTORS = ['[data-app-chrome="header"]', '[data-app-chrome="tabs"]'] as const
 
 interface ViewportTooltipPositionOptions {
   anchorX: number
@@ -272,6 +273,57 @@ function getCurrentViewportRect(): ViewportRect {
   }
 }
 
+function getVisibleAppChromeRect(selector: string) {
+  const element = document.querySelector<HTMLElement>(selector)
+
+  if (!element) {
+    return null
+  }
+
+  const styles = window.getComputedStyle(element)
+
+  if (styles.display === 'none' || styles.visibility === 'hidden') {
+    return null
+  }
+
+  const rect = element.getBoundingClientRect()
+
+  if (rect.width <= 0 || rect.height <= 0) {
+    return null
+  }
+
+  return rect
+}
+
+function getChromeConstrainedViewportRect(viewportRect: ViewportRect): ViewportRect {
+  let top = viewportRect.top
+  let bottom = viewportRect.bottom
+
+  for (const selector of APP_CHROME_SELECTORS) {
+    const rect = getVisibleAppChromeRect(selector)
+
+    if (!rect || rect.bottom <= viewportRect.top || rect.top >= viewportRect.bottom) {
+      continue
+    }
+
+    if (rect.top <= viewportRect.top) {
+      top = Math.max(top, Math.min(rect.bottom, viewportRect.bottom))
+      continue
+    }
+
+    if (rect.bottom >= viewportRect.bottom) {
+      bottom = Math.min(bottom, Math.max(rect.top, viewportRect.top))
+    }
+  }
+
+  return {
+    ...viewportRect,
+    bottom,
+    height: Math.max(bottom - top, 0),
+    top,
+  }
+}
+
 export function ViewportTooltipPortal({
   active,
   boundaryAxis = 'both',
@@ -298,7 +350,7 @@ export function ViewportTooltipPortal({
 
     const boundaryElement = resolveBoundaryElement?.()
     const boundaryRect = boundaryElement ? getTooltipBoundaryRect(boundaryElement) : undefined
-    const viewportRect = getCurrentViewportRect()
+    const viewportRect = getChromeConstrainedViewportRect(getCurrentViewportRect())
     const visibleBoundaryRect = getVisibleBoundaryRect(boundaryRect, viewportRect)
 
     if (!isCoordinateWithinBoundary(anchor, visibleBoundaryRect)) {
@@ -352,7 +404,7 @@ export function ViewportTooltipPortal({
   }
 
   return createPortal(
-    <div ref={portalRef} className="pointer-events-none absolute z-50" style={{ left: 0, top: 0, visibility: 'hidden' }}>
+    <div ref={portalRef} className="pointer-events-none absolute z-40" style={{ left: 0, top: 0, visibility: 'hidden' }}>
       <div ref={tooltipRef}>{renderContent({})}</div>
     </div>,
     document.body,

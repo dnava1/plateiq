@@ -124,6 +124,84 @@ function TestViewportTooltipWithScrollableBoundary({
   )
 }
 
+function TestViewportTooltipWithAppChrome({ anchorTopRef }: { anchorTopRef: { current: number } }) {
+  const anchorRef = useRef<HTMLDivElement | null>(null)
+  const boundaryRef = useRef<HTMLDivElement | null>(null)
+
+  function handleHeaderRef(element: HTMLDivElement | null) {
+    if (element) {
+      assignRect(element, () => ({
+        bottom: 96,
+        height: 96,
+        left: 0,
+        right: 390,
+        top: 0,
+        width: 390,
+      }))
+    }
+  }
+
+  function handleTabsRef(element: HTMLDivElement | null) {
+    if (element) {
+      assignRect(element, () => ({
+        bottom: 844,
+        height: 144,
+        left: 0,
+        right: 390,
+        top: 700,
+        width: 390,
+      }))
+    }
+  }
+
+  function handleBoundaryRef(element: HTMLDivElement | null) {
+    boundaryRef.current = element
+
+    if (element) {
+      assignRect(element, () => ({
+        bottom: 844,
+        height: 844,
+        left: 16,
+        right: 374,
+        top: 0,
+        width: 358,
+      }))
+    }
+  }
+
+  function handleAnchorRef(element: HTMLDivElement | null) {
+    anchorRef.current = element
+
+    if (element) {
+      assignRect(element, () => ({
+        bottom: anchorTopRef.current + 20,
+        height: 20,
+        left: 172,
+        right: 212,
+        top: anchorTopRef.current,
+        width: 40,
+      }))
+    }
+  }
+
+  return (
+    <>
+      <div ref={handleHeaderRef} data-app-chrome="header">Header chrome</div>
+      <div ref={handleTabsRef} data-app-chrome="tabs">Tab chrome</div>
+      <div ref={handleBoundaryRef}>Boundary</div>
+      <div ref={handleAnchorRef}>Anchor</div>
+      <ViewportTooltipPortal
+        active
+        resolveAnchor={() => resolveElementCenterTooltipAnchor(anchorRef.current)}
+        resolveBoundaryElement={() => boundaryRef.current}
+        renderContent={() => (
+          <ChartTooltipContent label="Week of Apr 1" rows={[{ label: 'Sessions', value: '3' }]} />
+        )}
+      />
+    </>
+  )
+}
+
 describe('chart tooltip scroll behavior', () => {
   it('keeps the consistency tooltip mounted when the viewport scrolls', async () => {
     render(
@@ -202,6 +280,37 @@ describe('chart tooltip scroll behavior', () => {
 
     boundaryTopRef.current = -100
     anchorTopRef.current = -60
+    fireEvent.scroll(window)
+
+    await waitFor(() => {
+      expect(portal).toHaveStyle({ visibility: 'hidden' })
+    })
+  })
+
+  it('keeps the shared portal below fixed app chrome while chart content scrolls underneath', async () => {
+    const anchorTopRef = { current: 70 }
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 844 })
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 })
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 })
+
+    render(<TestViewportTooltipWithAppChrome anchorTopRef={anchorTopRef} />)
+
+    const portal = screen.getByRole('tooltip', { hidden: true }).parentElement?.parentElement
+    expect(portal).toHaveClass('z-40')
+    expect(portal).toHaveStyle({ visibility: 'hidden' })
+
+    anchorTopRef.current = 100
+    fireEvent.scroll(window)
+
+    await waitFor(() => {
+      expect(portal).toHaveStyle({
+        top: '132px',
+        transform: 'translate(-50%, 0)',
+        visibility: 'visible',
+      })
+    })
+
+    anchorTopRef.current = 730
     fireEvent.scroll(window)
 
     await waitFor(() => {
