@@ -63,7 +63,7 @@
   --app-mobile-chrome-backdrop-soft: oklch(0.985 0.003 285 / 10%);
   --app-mobile-chrome-backdrop: oklch(0.985 0.003 285 / 42%);
   --app-mobile-chrome-backdrop-strong: oklch(0.985 0.003 285 / 58%);
-  --app-mobile-chrome-filter: blur(24px) saturate(1.18);
+  --app-mobile-chrome-filter: blur(30px) saturate(1.18);
   --app-scrollbar-thumb: oklch(0.520 0.010 285 / 34%);
   --app-scrollbar-thumb-hover: oklch(0.420 0.012 285 / 46%);
   --pwa-theme-color: #fafafc;
@@ -119,7 +119,7 @@
   --app-mobile-chrome-backdrop-soft: oklch(0.130 0.006 270 / 10%);
   --app-mobile-chrome-backdrop: oklch(0.130 0.006 270 / 36%);
   --app-mobile-chrome-backdrop-strong: oklch(0.130 0.006 270 / 50%);
-  --app-mobile-chrome-filter: blur(24px) saturate(1.12);
+  --app-mobile-chrome-filter: blur(30px) saturate(1.12);
   --app-scrollbar-thumb: oklch(0.760 0.006 285 / 34%);
   --app-scrollbar-thumb-hover: oklch(0.860 0.004 285 / 46%);
   --pwa-theme-color: #06070a;
@@ -266,8 +266,9 @@
       linear-gradient(
         180deg,
         var(--app-mobile-chrome-backdrop-strong) 0%,
-        var(--app-mobile-chrome-backdrop) 42%,
-        var(--app-mobile-chrome-backdrop-soft) 76%,
+        var(--app-mobile-chrome-backdrop-strong) 44%,
+        var(--app-mobile-chrome-backdrop) 64%,
+        var(--app-mobile-chrome-backdrop-soft) 80%,
         transparent 100%
       );
     -webkit-backdrop-filter: var(--app-mobile-chrome-filter);
@@ -275,8 +276,10 @@
       linear-gradient(
         180deg,
         #000 0%,
-        rgba(0, 0, 0, 0.9) 42%,
-        rgba(0, 0, 0, 0.5) 76%,
+        #000 52%,
+        rgba(0, 0, 0, 0.88) 66%,
+        rgba(0, 0, 0, 0.64) 80%,
+        rgba(0, 0, 0, 0.28) 94%,
         transparent 100%
       );
     backdrop-filter: var(--app-mobile-chrome-filter);
@@ -284,8 +287,10 @@
       linear-gradient(
         180deg,
         #000 0%,
-        rgba(0, 0, 0, 0.9) 42%,
-        rgba(0, 0, 0, 0.5) 76%,
+        #000 52%,
+        rgba(0, 0, 0, 0.88) 66%,
+        rgba(0, 0, 0, 0.64) 80%,
+        rgba(0, 0, 0, 0.28) 94%,
         transparent 100%
       );
   }
@@ -478,8 +483,9 @@
         linear-gradient(
           0deg,
           var(--app-mobile-chrome-backdrop-strong) 0%,
-          var(--app-mobile-chrome-backdrop) 42%,
-          var(--app-mobile-chrome-backdrop-soft) 76%,
+          var(--app-mobile-chrome-backdrop-strong) 44%,
+          var(--app-mobile-chrome-backdrop) 64%,
+          var(--app-mobile-chrome-backdrop-soft) 80%,
           transparent 100%
         );
       -webkit-backdrop-filter: var(--app-mobile-chrome-filter);
@@ -487,8 +493,10 @@
         linear-gradient(
           0deg,
           #000 0%,
-          rgba(0, 0, 0, 0.9) 42%,
-          rgba(0, 0, 0, 0.5) 76%,
+          #000 52%,
+          rgba(0, 0, 0, 0.88) 66%,
+          rgba(0, 0, 0, 0.64) 80%,
+          rgba(0, 0, 0, 0.28) 94%,
           transparent 100%
         );
       backdrop-filter: var(--app-mobile-chrome-filter);
@@ -496,8 +504,10 @@
         linear-gradient(
           0deg,
           #000 0%,
-          rgba(0, 0, 0, 0.9) 42%,
-          rgba(0, 0, 0, 0.5) 76%,
+          #000 52%,
+          rgba(0, 0, 0, 0.88) 66%,
+          rgba(0, 0, 0, 0.64) 80%,
+          rgba(0, 0, 0, 0.28) 94%,
           transparent 100%
         );
     }
