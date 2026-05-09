@@ -142,7 +142,7 @@ test.describe('analytics mobile layout', () => {
     await expect.poll(async () => (
       scrollRegion.evaluate((element) => element.scrollTop)
     )).toBeGreaterThan(80)
-    const scrolledChrome = await page.evaluate(() => {
+    const anchoredChrome = await page.evaluate(() => {
       const header = document.querySelector('[data-app-chrome="header"] .app-shell > div')
       const tabs = document.querySelector('[data-app-chrome="tabs"] .app-shell > div')
 
@@ -155,14 +155,16 @@ test.describe('analytics mobile layout', () => {
 
       return {
         headerBottom: headerRect.bottom,
+        headerTop: headerRect.top,
         rootScrollTop: document.scrollingElement?.scrollTop ?? 0,
         tabsBottomGap: window.innerHeight - tabsRect.bottom,
       }
     })
-    expect(scrolledChrome.rootScrollTop).toBe(0)
-    expect(scrolledChrome.headerBottom).toBeLessThanOrEqual(0)
-    expect(scrolledChrome.tabsBottomGap).toBeGreaterThanOrEqual(0)
-    expect(scrolledChrome.tabsBottomGap).toBeLessThanOrEqual(48)
+    expect(anchoredChrome.rootScrollTop).toBe(0)
+    expect(anchoredChrome.headerTop).toBeGreaterThanOrEqual(0)
+    expect(anchoredChrome.headerBottom).toBeGreaterThan(48)
+    expect(anchoredChrome.tabsBottomGap).toBeGreaterThanOrEqual(0)
+    expect(anchoredChrome.tabsBottomGap).toBeLessThanOrEqual(48)
 
     await scrollRegion.evaluate((element) => element.scrollTo({ top: 0 }))
     await expect.poll(async () => (

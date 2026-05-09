@@ -64,10 +64,6 @@ vi.mock('@/components/layout/AppRoutePrefetcher', () => ({
   AppRoutePrefetcher: () => <div data-testid="route-prefetcher" />,
 }))
 
-vi.mock('@/components/layout/MobileShellHeaderController', () => ({
-  MobileShellHeaderController: () => <div data-testid="mobile-header-controller" />,
-}))
-
 vi.mock('@/components/ui/button', () => ({
   buttonVariants: () => 'button',
 }))
@@ -112,9 +108,8 @@ describe('root NotFound route', () => {
     expect(banner).toHaveAttribute('data-app-chrome', 'header')
     const headerSlot = container.querySelector('[data-app-header-slot="true"]')
     expect(headerSlot).toContainElement(banner)
-    expect(scrollRegion).toContainElement(banner)
+    expect(scrollRegion).not.toContainElement(banner)
     expect(main).not.toContainElement(banner)
-    expect(screen.getByTestId('mobile-header-controller')).toBeInTheDocument()
 
     const navigation = screen.getByRole('navigation', { name: 'App tabs' })
     expect(navigation).toBeInTheDocument()

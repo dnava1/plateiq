@@ -228,14 +228,22 @@
   }
   .authenticated-app-shell {
     @apply relative min-h-dvh overflow-x-clip;
-    --authenticated-header-pull-offset: 0px;
     --authenticated-shell-height-mode: dynamic;
   }
   .authenticated-app-header-slot {
     flex: 0 0 auto;
+    position: fixed;
+    inset-inline: 0;
+    top: 0;
+    z-index: 50;
+    pointer-events: none;
+  }
+  .authenticated-app-header-slot > [data-app-chrome='header'] {
+    pointer-events: auto;
   }
   .authenticated-app-scroll {
-    scroll-padding-top: 1rem;
+    padding-top: calc(max(env(safe-area-inset-top), 0.5rem) + 4.5rem);
+    scroll-padding-top: calc(max(env(safe-area-inset-top), 0.5rem) + 4.5rem);
   }
   .pwa-launch-shell {
     @apply relative grid w-full place-items-center px-4;
@@ -354,10 +362,9 @@
       padding-top: 1rem;
       padding-top: max(env(safe-area-inset-top), 1rem);
     }
-    .authenticated-app-header-slot {
-      position: sticky;
-      top: 0;
-      z-index: 50;
+    .authenticated-app-scroll {
+      padding-top: calc(max(env(safe-area-inset-top), 1rem) + 6rem);
+      scroll-padding-top: calc(max(env(safe-area-inset-top), 1rem) + 6rem);
     }
   }
 }
@@ -371,11 +378,6 @@
       min-height: 100dvh;
       flex-direction: column;
       overflow: hidden;
-    }
-    .authenticated-app-header-slot {
-      z-index: 50;
-      transform: translate3d(0, calc(-1 * var(--authenticated-header-pull-offset)), 0);
-      will-change: transform;
     }
     .authenticated-app-scroll {
       min-height: 0;
