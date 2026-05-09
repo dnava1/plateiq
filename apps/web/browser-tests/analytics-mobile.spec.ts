@@ -200,8 +200,11 @@ test.describe('analytics mobile layout', () => {
       )).toBeGreaterThan(0)
     }
 
-    const initialCellCount = await consistencyCard.locator('[aria-label^="Week of "]').count()
-    expect(initialCellCount).toBeGreaterThan(8)
+    let initialCellCount = 0
+    await expect.poll(async () => {
+      initialCellCount = await consistencyCard.locator('[aria-label^="Week of "]').count()
+      return initialCellCount
+    }).toBeGreaterThan(8)
 
     const analyticsResponsePromise = waitForAnalyticsResponse(page)
     await selectDateRange(page, 'Last month')
@@ -209,8 +212,9 @@ test.describe('analytics mobile layout', () => {
 
     await expect(page.locator('#analytics-range')).toContainText('Last month')
 
-    const updatedCellCount = await consistencyCard.locator('[aria-label^="Week of "]').count()
-    expect(updatedCellCount).toBeLessThan(initialCellCount)
+    await expect.poll(async () => (
+      consistencyCard.locator('[aria-label^="Week of "]').count()
+    )).toBeLessThan(initialCellCount)
 
     await expect.poll(async () => (
       page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)

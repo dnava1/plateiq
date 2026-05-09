@@ -22,15 +22,33 @@ test.describe('mobile app shell scrolling', () => {
     const initialMetrics = await page.evaluate(() => {
       const scrollRegionElement = document.querySelector<HTMLElement>('[data-app-scroll-region="true"]')
       const shell = document.querySelector<HTMLElement>('[data-authenticated-shell="true"]')
-      const header = document.querySelector<HTMLElement>('[data-app-chrome="header"]')
+      const headerSlot = document.querySelector<HTMLElement>('[data-app-header-slot="true"]')
+      const header = document.querySelector<HTMLElement>('[data-app-chrome="header"] .app-shell > div')
+      const tabsChrome = document.querySelector<HTMLElement>('[data-app-chrome="tabs"]')
       const tabs = document.querySelector<HTMLElement>('[data-app-chrome="tabs"] .app-shell > div')
 
-      if (!scrollRegionElement || !shell || !header || !tabs) {
+      if (!scrollRegionElement || !shell || !headerSlot || !header || !tabsChrome || !tabs) {
         throw new Error('Missing mobile app shell elements.')
       }
 
+      const headerSlotRect = headerSlot.getBoundingClientRect()
       const headerRect = header.getBoundingClientRect()
+      const tabsChromeRect = tabsChrome.getBoundingClientRect()
       const tabsRect = tabs.getBoundingClientRect()
+      const headerBackdrop = getComputedStyle(headerSlot, '::before')
+      const tabsBackdrop = getComputedStyle(tabsChrome, '::before')
+      const getBackdropFilter = (style: CSSStyleDeclaration) => (
+        style.getPropertyValue('backdrop-filter')
+        || style.getPropertyValue('-webkit-backdrop-filter')
+        || (style as CSSStyleDeclaration & { webkitBackdropFilter?: string }).webkitBackdropFilter
+        || ''
+      )
+      const getMaskImage = (style: CSSStyleDeclaration) => (
+        style.getPropertyValue('mask-image')
+        || style.getPropertyValue('-webkit-mask-image')
+        || (style as CSSStyleDeclaration & { webkitMaskImage?: string }).webkitMaskImage
+        || ''
+      )
       const scrollStyles = getComputedStyle(scrollRegionElement)
       const shellStyles = getComputedStyle(shell)
 
@@ -38,13 +56,32 @@ test.describe('mobile app shell scrolling', () => {
         headerTop: headerRect.top,
         headerBottom: headerRect.bottom,
         headerHeight: headerRect.height,
+        headerSlotLeft: headerSlotRect.left,
+        headerSlotRight: headerSlotRect.right,
+        headerPanelLeft: headerRect.left,
+        headerPanelRight: headerRect.right,
+        headerBackdropDisplay: headerBackdrop.display,
+        headerBackdropImage: headerBackdrop.backgroundImage,
+        headerBackdropBottom: headerBackdrop.bottom,
+        headerBackdropFilter: getBackdropFilter(headerBackdrop),
+        headerBackdropMaskImage: getMaskImage(headerBackdrop),
         rootScrollTop: document.scrollingElement?.scrollTop ?? 0,
         scrollHeight: scrollRegionElement.scrollHeight,
         scrollRegionClientHeight: scrollRegionElement.clientHeight,
         scrollRegionOverflowY: scrollStyles.overflowY,
         shellOverflowY: shellStyles.overflowY,
+        tabsChromeLeft: tabsChromeRect.left,
+        tabsChromeRight: tabsChromeRect.right,
+        tabsPanelLeft: tabsRect.left,
+        tabsPanelRight: tabsRect.right,
+        tabsBackdropDisplay: tabsBackdrop.display,
+        tabsBackdropImage: tabsBackdrop.backgroundImage,
+        tabsBackdropTop: tabsBackdrop.top,
+        tabsBackdropFilter: getBackdropFilter(tabsBackdrop),
+        tabsBackdropMaskImage: getMaskImage(tabsBackdrop),
         tabsBottomGap: window.innerHeight - tabsRect.bottom,
         tabsTop: tabsRect.top,
+        viewportWidth: window.innerWidth,
       }
     })
 
@@ -52,7 +89,28 @@ test.describe('mobile app shell scrolling', () => {
     expect(initialMetrics.scrollRegionOverflowY).toBe('auto')
     expect(initialMetrics.shellOverflowY).toBe('hidden')
     expect(initialMetrics.scrollHeight).toBeGreaterThan(initialMetrics.scrollRegionClientHeight)
+    expect(initialMetrics.headerTop).toBeGreaterThanOrEqual(0)
     expect(initialMetrics.headerBottom).toBeGreaterThan(0)
+    expect(Math.abs(initialMetrics.headerSlotLeft)).toBeLessThanOrEqual(1)
+    expect(Math.abs(initialMetrics.headerSlotRight - initialMetrics.viewportWidth)).toBeLessThanOrEqual(1)
+    expect(initialMetrics.headerPanelLeft).toBeGreaterThan(initialMetrics.headerSlotLeft)
+    expect(initialMetrics.headerPanelRight).toBeLessThan(initialMetrics.headerSlotRight)
+    expect(initialMetrics.headerBackdropDisplay).toBe('block')
+    expect(initialMetrics.headerBackdropBottom).toBe('0px')
+    expect(initialMetrics.headerBackdropImage).toContain('gradient')
+    expect(initialMetrics.headerBackdropFilter).toContain('blur')
+    expect(initialMetrics.headerBackdropFilter).not.toContain('brightness')
+    expect(initialMetrics.headerBackdropMaskImage).toContain('gradient')
+    expect(Math.abs(initialMetrics.tabsChromeLeft)).toBeLessThanOrEqual(1)
+    expect(Math.abs(initialMetrics.tabsChromeRight - initialMetrics.viewportWidth)).toBeLessThanOrEqual(1)
+    expect(initialMetrics.tabsPanelLeft).toBeGreaterThan(initialMetrics.tabsChromeLeft)
+    expect(initialMetrics.tabsPanelRight).toBeLessThan(initialMetrics.tabsChromeRight)
+    expect(initialMetrics.tabsBackdropDisplay).toBe('block')
+    expect(initialMetrics.tabsBackdropTop).toBe('0px')
+    expect(initialMetrics.tabsBackdropImage).toContain('gradient')
+    expect(initialMetrics.tabsBackdropFilter).toContain('blur')
+    expect(initialMetrics.tabsBackdropFilter).not.toContain('brightness')
+    expect(initialMetrics.tabsBackdropMaskImage).toContain('gradient')
     expect(initialMetrics.tabsBottomGap).toBeGreaterThanOrEqual(0)
     expect(initialMetrics.tabsBottomGap).toBeLessThanOrEqual(48)
 
@@ -68,7 +126,7 @@ test.describe('mobile app shell scrolling', () => {
 
     const scrolledMetrics = await page.evaluate(() => {
       const scrollRegionElement = document.querySelector<HTMLElement>('[data-app-scroll-region="true"]')
-      const header = document.querySelector<HTMLElement>('[data-app-chrome="header"]')
+      const header = document.querySelector<HTMLElement>('[data-app-chrome="header"] .app-shell > div')
       const tabs = document.querySelector<HTMLElement>('[data-app-chrome="tabs"] .app-shell > div')
 
       if (!scrollRegionElement || !header || !tabs) {
@@ -80,20 +138,21 @@ test.describe('mobile app shell scrolling', () => {
 
       return {
         headerBottom: headerRect.bottom,
+        headerTop: headerRect.top,
         rootScrollTop: document.scrollingElement?.scrollTop ?? 0,
         scrollRegionTop: scrollRegionElement.scrollTop,
         tabsBottomGap: window.innerHeight - tabsRect.bottom,
+        tabsTop: tabsRect.top,
       }
     })
 
     expect(scrolledMetrics.rootScrollTop).toBe(0)
     expect(scrolledMetrics.scrollRegionTop).toBeGreaterThan(0)
-    expect(scrolledMetrics.headerBottom).toBeLessThan(initialMetrics.headerBottom)
-    if (scrolledMetrics.scrollRegionTop >= initialMetrics.headerHeight) {
-      expect(scrolledMetrics.headerBottom).toBeLessThanOrEqual(1)
-    }
+    expect(Math.abs(scrolledMetrics.headerTop - initialMetrics.headerTop)).toBeLessThanOrEqual(1)
+    expect(Math.abs(scrolledMetrics.headerBottom - initialMetrics.headerBottom)).toBeLessThanOrEqual(1)
     expect(scrolledMetrics.tabsBottomGap).toBeGreaterThanOrEqual(0)
     expect(scrolledMetrics.tabsBottomGap).toBeLessThanOrEqual(48)
+    expect(Math.abs(scrolledMetrics.tabsTop - initialMetrics.tabsTop)).toBeLessThanOrEqual(1)
 
     await scrollRegion.evaluate((element) => element.scrollTo(0, element.scrollHeight))
     await expect.poll(async () => (
@@ -128,6 +187,20 @@ test.describe('mobile app shell scrolling', () => {
 
     await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/)
     await page.evaluate(() => {
+      document.documentElement.style.setProperty('--app-safe-area-inset-bottom', '34px')
+    })
+
+    const browserTabsBottomGap = await page.evaluate(() => {
+      const tabs = document.querySelector<HTMLElement>('[data-app-chrome="tabs"] .app-shell > div')
+
+      if (!tabs) {
+        throw new Error('Missing browser mobile tabs.')
+      }
+
+      return window.innerHeight - tabs.getBoundingClientRect().bottom
+    })
+
+    await page.evaluate(() => {
       document.documentElement.dataset.pwaDisplayMode = 'standalone'
     })
     await expect.poll(async () => (
@@ -143,21 +216,25 @@ test.describe('mobile app shell scrolling', () => {
     const standaloneMetrics = await page.evaluate(() => {
       const shell = document.querySelector<HTMLElement>('[data-authenticated-shell="true"]')
       const scrollRegionElement = document.querySelector<HTMLElement>('[data-app-scroll-region="true"]')
-      const header = document.querySelector<HTMLElement>('[data-app-chrome="header"]')
+      const header = document.querySelector<HTMLElement>('[data-app-chrome="header"] .app-shell > div')
+      const tabs = document.querySelector<HTMLElement>('[data-app-chrome="tabs"] .app-shell > div')
 
-      if (!shell || !scrollRegionElement || !header) {
+      if (!shell || !scrollRegionElement || !header || !tabs) {
         throw new Error('Missing standalone mobile shell elements.')
       }
 
       const headerRect = header.getBoundingClientRect()
+      const tabsRect = tabs.getBoundingClientRect()
       const shellStyles = getComputedStyle(shell)
 
       return {
         headerBottom: headerRect.bottom,
         headerHeight: headerRect.height,
+        headerTop: headerRect.top,
         heightMode: shellStyles.getPropertyValue('--authenticated-shell-height-mode').trim(),
         rootScrollTop: document.scrollingElement?.scrollTop ?? 0,
         shellClientHeight: shell.clientHeight,
+        tabsBottomGap: window.innerHeight - tabsRect.bottom,
         viewportHeight: window.innerHeight,
       }
     })
@@ -165,41 +242,37 @@ test.describe('mobile app shell scrolling', () => {
     expect(standaloneMetrics.heightMode).toBe('standalone')
     expect(standaloneMetrics.rootScrollTop).toBe(0)
     expect(Math.abs(standaloneMetrics.shellClientHeight - standaloneMetrics.viewportHeight)).toBeLessThanOrEqual(1)
+    expect(browserTabsBottomGap).toBeGreaterThanOrEqual(30)
+    expect(standaloneMetrics.tabsBottomGap).toBeLessThan(browserTabsBottomGap)
+    expect(standaloneMetrics.tabsBottomGap).toBeGreaterThanOrEqual(6)
+    expect(standaloneMetrics.tabsBottomGap).toBeLessThanOrEqual(12)
 
     const scrollRegion = page.locator('[data-app-scroll-region="true"]')
     await scrollRegion.evaluate((element) => element.scrollTo(0, Math.min(600, element.scrollHeight - element.clientHeight)))
-    let didScroll = false
-
-    try {
-      await expect.poll(async () => (
-        scrollRegion.evaluate((element) => element.scrollTop)
-      ), { timeout: 2000 }).toBeGreaterThan(0)
-      didScroll = true
-    } catch {
-      didScroll = false
-    }
+    await expect.poll(async () => (
+      scrollRegion.evaluate((element) => element.scrollTop)
+    )).toBeGreaterThan(0)
     await expect.poll(async () => (
       page.evaluate(() => document.scrollingElement?.scrollTop ?? 0)
     )).toBe(0)
 
-    const headerBottom = await page.evaluate(() => {
-      const header = document.querySelector<HTMLElement>('[data-app-chrome="header"]')
+    const headerPosition = await page.evaluate(() => {
+      const header = document.querySelector<HTMLElement>('[data-app-chrome="header"] .app-shell > div')
 
       if (!header) {
         throw new Error('Missing standalone mobile header.')
       }
 
-      return header.getBoundingClientRect().bottom
+      const rect = header.getBoundingClientRect()
+
+      return {
+        bottom: rect.bottom,
+        top: rect.top,
+      }
     })
 
-    if (didScroll) {
-      expect(headerBottom).toBeLessThan(standaloneMetrics.headerBottom)
-      if (await scrollRegion.evaluate((element) => element.scrollTop) >= standaloneMetrics.headerHeight) {
-        expect(headerBottom).toBeLessThanOrEqual(1)
-      }
-    } else {
-      expect(headerBottom).toBeGreaterThan(0)
-    }
+    expect(Math.abs(headerPosition.top - standaloneMetrics.headerTop)).toBeLessThanOrEqual(1)
+    expect(Math.abs(headerPosition.bottom - standaloneMetrics.headerBottom)).toBeLessThanOrEqual(1)
   })
 
   test('resets the shared scroll region on authenticated route changes', async ({ page }) => {
