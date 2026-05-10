@@ -223,7 +223,6 @@ export function ProgramCard({ program }: ProgramCardProps) {
           <CardContent className="pt-0">
             <TrainingMaxPanel
               title="Program Training Maxes"
-              description="Set or revisit the current training maxes for the exact primary lifts this program depends on."
               className="bg-background/55"
               badgeLabel="Selected lifts"
               emptyStateHint="Choose the primary lifts this program depends on in the builder before setting training maxes here."

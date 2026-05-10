@@ -22,7 +22,6 @@ import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -43,6 +42,14 @@ interface EditableCycleProgressionRow extends CycleProgressionPreviewRow {
 }
 
 const PREVIEW_OVERRIDE_EPSILON_LBS = 0.05
+const REDUNDANT_PROGRESSION_REASONS = new Set([
+  'Cycle completion applies one base increment for the next block.',
+  'Weekly progression rolls forward as one base increment at cycle completion.',
+  'Wave loading rolls into the next cycle with one base increment.',
+  'Percentage-driven progression uses one base increment for the next cycle.',
+  'Custom progression uses the configured base increment for the next cycle.',
+  'The base increment is applied for the next cycle.',
+])
 
 function getIncrementBadge(rowIncrementLbs: number, preferredUnit: PreferredUnit) {
   if (rowIncrementLbs === 0) {
@@ -168,11 +175,6 @@ export function CompleteCycleDialog({ program }: CompleteCycleDialogProps) {
               <DialogTitle>Cycle Checkpoint</DialogTitle>
               {activeCycle ? <Badge variant="outline">Cycle {activeCycle.cycle_number}</Badge> : null}
             </div>
-            <DialogDescription>
-              {usesTrainingMax
-                ? 'Review the suggested next-cycle training maxes, then keep them or overwrite them before you roll into the next block.'
-                : 'This is the current TM-first checkpoint for rolling the block forward. Broader cycle review can expand here later, but this is still where you confirm the next block today.'}
-            </DialogDescription>
           </DialogHeader>
 
           {!isOnline ? (
@@ -218,7 +220,9 @@ export function CompleteCycleDialog({ program }: CompleteCycleDialogProps) {
                           <p className="text-sm font-medium text-foreground">{row.exerciseName}</p>
                           {row.isOverride ? <Badge variant="outline">Manual override</Badge> : null}
                         </div>
-                        <p className="mt-1 text-sm text-muted-foreground">{row.reason}</p>
+                        {!REDUNDANT_PROGRESSION_REASONS.has(row.reason) ? (
+                          <p className="mt-1 text-sm text-muted-foreground">{row.reason}</p>
+                        ) : null}
                       </div>
                       <Badge variant={appliedIncrementBadge.variant}>{appliedIncrementBadge.label}</Badge>
                     </div>

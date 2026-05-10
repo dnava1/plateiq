@@ -38,7 +38,6 @@ import { Badge } from '@/components/ui/badge'
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
@@ -216,21 +215,13 @@ export function AnalyticsDashboard() {
   return (
     <div className="page-shell max-w-6xl">
       <section className="page-header">
-        <div className="flex flex-col gap-3">
-          <span className="eyebrow">Insights</span>
-          <div className="flex flex-col gap-2">
-            <h1 className="page-title">Analytics</h1>
-          </div>
-        </div>
+        <h1 className="page-title">Analytics</h1>
       </section>
 
       <div className="flex flex-col gap-6">
         <Card className="surface-panel">
           <CardHeader className="gap-2">
             <CardTitle className="text-base">Filters</CardTitle>
-            <CardDescription>
-              Filter by date range and exercise.
-            </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 pt-0 lg:grid-cols-[minmax(0,18rem)_minmax(0,18rem)_1fr] lg:items-end">
             <div className="flex flex-col gap-2">
@@ -343,7 +334,6 @@ export function AnalyticsDashboard() {
 
                 <ChartCard
                   title="Estimated 1RM Trend"
-                  description={selectedExerciseName ?? 'Estimated 1RM progression for the currently filtered lifts.'}
                   emptyMessage="Comparable loaded-strength history is required to plot estimated 1RM trend lines."
                   emptyStateNote={analytics.coverage.metrics.e1rmTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.e1rmTrend.reasonCodes)}
                   headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.e1rmTrend} />}
@@ -355,7 +345,6 @@ export function AnalyticsDashboard() {
 
                 <ChartCard
                   title="Movement Balance"
-                  description="Set share by movement pattern in the current filter window."
                   emptyMessage="Logged work sets are required to compare movement balance."
                   emptyStateNote={analytics.coverage.metrics.volumeTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.volumeTrend.reasonCodes)}
                   headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.volumeTrend} />}
@@ -368,9 +357,6 @@ export function AnalyticsDashboard() {
                 {shouldRenderBodyweightLane ? (
                   <ChartCard
                     title="Bodyweight Exercise Review"
-                    description={selectedExerciseName
-                      ? `${selectedExerciseName} bodyweight review work is shown through session rep trends and weekly rep volume.`
-                      : 'Strict bodyweight movements get full rep-trend and weekly-volume charts, separate from loaded strength analytics.'}
                     emptyMessage="No bodyweight exercise review data landed in this filter window."
                     emptyStateNote={analytics.coverage.metrics.bodyweightLane.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.bodyweightLane.reasonCodes)}
                     headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.bodyweightLane} />}
@@ -411,12 +397,7 @@ export function AnalyticsDashboard() {
                     </div>
 
                     <div className="min-w-0 rounded-[20px] border border-border/70 bg-background/45 p-4 md:p-5">
-                      <div className="flex flex-col gap-1">
-                        <span className="eyebrow">Rep Best Trend</span>
-                        <p className="text-sm text-muted-foreground">
-                          Track the top strict-rep set from each logged session.
-                        </p>
-                      </div>
+                      <span className="eyebrow">Rep Best Trend</span>
                       <div className="mt-4 min-w-0">
                         <LazyBodyweightRepTrendChart
                           data={analytics.bodyweightLane.repTrend}
@@ -426,12 +407,7 @@ export function AnalyticsDashboard() {
                     </div>
 
                     <div className="min-w-0 rounded-[20px] border border-border/70 bg-background/45 p-4 md:p-5">
-                      <div className="flex flex-col gap-1">
-                        <span className="eyebrow">Weekly Rep Volume</span>
-                        <p className="text-sm text-muted-foreground">
-                          See how much strict bodyweight work accumulated each week and how often it showed up.
-                        </p>
-                      </div>
+                      <span className="eyebrow">Weekly Rep Volume</span>
                       <div className="mt-4 min-w-0">
                         <LazyBodyweightWeeklyVolumeChart data={analytics.bodyweightLane.weeklyVolumeTrend} />
                       </div>
@@ -478,7 +454,6 @@ export function AnalyticsDashboard() {
 
                 <ChartCard
                   title="Estimated 1RM Trend"
-                  description={selectedExerciseName ?? 'Line-level strength progression from the current filter.'}
                   emptyMessage="Comparable loaded-strength history is required to render strength trend lines."
                   emptyStateNote={analytics.coverage.metrics.e1rmTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.e1rmTrend.reasonCodes)}
                   headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.e1rmTrend} />}
@@ -491,7 +466,6 @@ export function AnalyticsDashboard() {
 
                 <ChartCard
                   title="Recent PRs"
-                  description="The freshest estimated 1RM highs in the current filter window."
                   emptyMessage="No recent PRs were detected in this filter window."
                   emptyStateNote={analytics.coverage.metrics.prHistory.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.prHistory.reasonCodes)}
                   headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.prHistory} />}
@@ -520,7 +494,6 @@ export function AnalyticsDashboard() {
                 <div className="grid gap-4 xl:grid-cols-2">
                 <ChartCard
                   title="Weekly Volume"
-                  description={selectedExerciseName ?? 'Logged weekly volume across the current filter window.'}
                   emptyMessage="Logged work sets are required to build the volume chart."
                   emptyStateNote={analytics.coverage.metrics.volumeTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.volumeTrend.reasonCodes)}
                   headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.volumeTrend} />}
@@ -533,7 +506,6 @@ export function AnalyticsDashboard() {
 
                 <ChartCard
                   title="Movement Pattern Set Volume"
-                  description="Weekly work sets grouped by the primary movement patterns used in movement balance."
                   emptyMessage="Logged work sets with movement patterns are required to build this heatmap."
                   emptyStateNote={analytics.coverage.metrics.volumeTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.volumeTrend.reasonCodes)}
                   headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.volumeTrend} />}
@@ -554,7 +526,6 @@ export function AnalyticsDashboard() {
 
                 <ChartCard
                   title="Movement Balance"
-                  description="Set share by movement pattern."
                   emptyMessage="Movement balance appears after enough logged work sets land in this range."
                   emptyStateNote={analytics.coverage.metrics.volumeTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.volumeTrend.reasonCodes)}
                   headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.volumeTrend} />}
@@ -566,9 +537,6 @@ export function AnalyticsDashboard() {
 
                 <ChartCard
                   title="Volume Pulse"
-                  description={averageWeeklyVolume > 0
-                    ? `Current week ${formatDisplayLoad(currentWeekVolume, preferredUnit)} vs ${formatDisplayLoad(averageWeeklyVolume, preferredUnit)} trailing average.`
-                    : 'Weekly activity for the selected filter window.'}
                   emptyMessage="Weekly activity appears after completed work sets are logged."
                   emptyStateNote={analytics.coverage.metrics.volumeTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analytics.coverage.metrics.volumeTrend.reasonCodes)}
                   headerBadge={<CoverageBadge coverage={analytics.coverage.metrics.volumeTrend} />}

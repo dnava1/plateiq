@@ -617,7 +617,7 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
                 {fallbackCycle ? <Badge variant="outline">Cycle {fallbackCycle.cycle_number}</Badge> : null}
               </div>
             </div>
-            <Button type="button" size="sm" variant="ghost" onClick={exitActiveWorkout}>
+            <Button type="button" size="lg" variant="outline" onClick={exitActiveWorkout} className="w-full md:w-auto">
               <ArrowLeft data-icon="inline-start" />
               Back to workouts
             </Button>
@@ -677,15 +677,9 @@ export function ActiveWorkoutPanel({ program }: ActiveWorkoutPanelProps) {
                     {isRestTimerForCurrentWorkout && remainingRestSeconds !== null ? (
                       <>
                         <p className="text-3xl font-semibold tracking-[-0.06em] text-foreground">{formatDurationClock(remainingRestSeconds)}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {isRestComplete
-                            ? 'Rest is complete. Start the next set when you are ready.'
-                            : 'Stay with the timer, then hit the next set.'}
-                        </p>
                       </>
                     ) : (
                       <>
-                        <p className="text-sm text-muted-foreground">Set a rest timer and keep the workout moving.</p>
                         <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
                           <RestDurationPicker
                             id="manual-rest-timer"

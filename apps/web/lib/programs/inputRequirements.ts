@@ -10,7 +10,7 @@ interface CurrentMaxInputSnapshot {
 
 export interface RequiredInputCopy {
   badgeLabel: string
-  description: string
+  description?: string
   emptyStateHint: string
   loadingMessage: string
   missingActionMessage: string
@@ -39,14 +39,13 @@ export function resolveRequiredInputCopy(inputMode: ExecutionMaxInputMode): Requ
     case '1rm':
       return {
         badgeLabel: 'Required lifts',
-        emptyStateHint: 'Choose the lifts this program depends on before setting 1RM inputs here.',
-        loadingMessage: 'Loading the required 1RM inputs for this program.',
+        emptyStateHint: 'Choose the lifts this program depends on before setting 1RM maxes here.',
+        loadingMessage: 'Loading the required 1RM maxes for this program.',
         missingActionMessage: 'Set current estimated 1RMs for',
-        readyMessage: 'All required 1RM inputs are set for this program.',
-        title: 'Required 1RM Inputs',
-        toastLoadingMessage: 'Required 1RM inputs are still loading for this program.',
+        readyMessage: 'All required 1RM maxes are set for this program.',
+        title: 'Required 1RM Maxes',
+        toastLoadingMessage: 'Required 1RM maxes are still loading for this program.',
         toastMissingActionMessage: 'Set current estimated 1RMs for',
-        description: 'Set the current estimated 1RM for every lift in this program before you save it. Each dialog can still accept a training max directly if that is what you have.',
       }
     case 'mixed':
       return {
@@ -58,7 +57,6 @@ export function resolveRequiredInputCopy(inputMode: ExecutionMaxInputMode): Requ
         title: 'Required Max Inputs',
         toastLoadingMessage: 'Required max inputs are still loading for this program.',
         toastMissingActionMessage: 'Set the required max inputs for',
-        description: 'Set the current TM or estimated 1RM for every lift in this program before you save it.',
       }
     default:
       return {
@@ -70,7 +68,6 @@ export function resolveRequiredInputCopy(inputMode: ExecutionMaxInputMode): Requ
         title: 'Required Training Maxes',
         toastLoadingMessage: 'Training max requirements are still loading for this program.',
         toastMissingActionMessage: 'Set current training maxes for',
-        description: 'Set the current training max for every lift in this program before you save it.',
       }
   }
 }

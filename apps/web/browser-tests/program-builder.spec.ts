@@ -145,7 +145,7 @@ async function clickBuilderNext(main: Locator) {
     return
   }
 
-  const reviewProgressionButton = main.locator('button:visible').filter({ hasText: /^Review Progression$/ })
+  const reviewProgressionButton = main.locator('button:visible').filter({ hasText: /^Progression$/ })
 
   if (await reviewProgressionButton.count()) {
     await reviewProgressionButton.click()
@@ -160,7 +160,7 @@ async function reachProgressionStep(page: Page) {
   const visibleParagraphs = main.locator('p:visible')
 
   await clickBuilderNext(main)
-  await expect(visibleParagraphs.filter({ hasText: 'Name each training day so the rest of the build stays easy to scan.' })).toBeVisible()
+  await expect(page.locator('#day-0')).toBeVisible()
 
   await clickBuilderNext(main)
   const firstDaySummary = visibleParagraphs.filter({ hasText: /^Day 1 of \d+$/ })
@@ -196,7 +196,7 @@ async function configureSingleDayScratchProgram(page: Page, name: string) {
 
     await clickBuilderNext(main)
 
-    if (await main.getByText('Name each training day so the rest of the build stays easy to scan.').isVisible({ timeout: 2000 }).catch(() => false)) {
+    if (await page.locator('#day-0').isVisible({ timeout: 2000 }).catch(() => false)) {
       return
     }
   }
@@ -278,7 +278,7 @@ test.describe('program builder browser flow', () => {
 
     await reachProgressionStep(page)
 
-    await expect(main.getByText('Deload decisions stay user-controlled and can be handled during the current cycle checkpoint instead of being saved as part of the progression rule.')).toBeVisible()
+    await expect(main.getByText('Deload decisions stay user-controlled and can be handled during the cycle checkpoint')).toBeVisible()
     await expect(main.getByText('Deload Trigger', { exact: true })).toHaveCount(0)
     await expect(main.getByText('Deload Strategy', { exact: true })).toHaveCount(0)
 
@@ -395,7 +395,7 @@ test.describe('program builder browser flow', () => {
 
     await main.getByRole('button', { name: 'Review', exact: true }).click()
 
-    await expect(main.getByText('Required 1RM Inputs', { exact: true })).toBeVisible()
+    await expect(main.getByText('Required 1RM Maxes', { exact: true })).toBeVisible()
     await expect(main.getByText('Set current estimated 1RMs for Bench Press before you save this program.')).toBeVisible()
     await expect(main.getByRole('button', { name: 'Create Program' })).toBeDisabled()
     await expect(main.getByRole('button', { name: 'Set 1RM', exact: true })).toBeVisible()

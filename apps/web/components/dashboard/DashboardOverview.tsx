@@ -170,12 +170,7 @@ export function DashboardOverview() {
     return (
       <div className="page-shell max-w-6xl">
         <section className="page-header">
-          <div className="flex flex-col gap-3">
-            <span className="eyebrow">Overview</span>
-            <div className="flex flex-col gap-2">
-              <h1 className="page-title">Dashboard</h1>
-            </div>
-          </div>
+          <h1 className="page-title">Dashboard</h1>
         </section>
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
@@ -215,12 +210,7 @@ export function DashboardOverview() {
     return (
       <div className="page-shell max-w-6xl">
         <section className="page-header">
-          <div className="flex flex-col gap-3">
-            <span className="eyebrow">Overview</span>
-            <div className="flex flex-col gap-2">
-              <h1 className="page-title">Dashboard</h1>
-            </div>
-          </div>
+          <h1 className="page-title">Dashboard</h1>
         </section>
 
         <Card className="surface-panel">
@@ -251,15 +241,7 @@ export function DashboardOverview() {
   return (
     <div className="page-shell max-w-6xl">
       <section className="page-header">
-        <div className="flex flex-col gap-3">
-          <span className="eyebrow">Overview</span>
-          <div className="flex flex-col gap-2">
-            <h1 className="page-title">Dashboard</h1>
-            <p className="page-copy">
-              Track current state across the active program and see what needs attention next.
-            </p>
-          </div>
-        </div>
+        <h1 className="page-title">Dashboard</h1>
       </section>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
@@ -354,9 +336,6 @@ export function DashboardOverview() {
           <Card className="surface-panel">
             <CardHeader className="gap-2">
               <CardTitle className="text-base">Current Training Maxes</CardTitle>
-              <CardDescription>
-                Supporting context for TM-driven programs. Manage setup and checkpoint updates in Programs, or confirm day-of values in Workouts.
-              </CardDescription>
               <CardAction>
                 <Link href="/programs" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
                   Manage in Programs
@@ -396,7 +375,6 @@ export function DashboardOverview() {
           <div className="grid gap-4 xl:grid-cols-3">
             <ChartCard
               title="Strength Trend"
-              description="Recent estimated 1RM movement from logged loaded-strength work."
               emptyMessage="Log loaded-strength work to light up the strength trend."
               emptyStateNote={analyticsSnapshot?.coverage.metrics.e1rmTrend.status === 'ready' ? undefined : describeAnalyticsCoverageReasons(analyticsSnapshot?.coverage.metrics.e1rmTrend.reasonCodes ?? [])}
               headerBadge={analyticsSnapshot ? <CoverageBadge coverage={analyticsSnapshot.coverage.metrics.e1rmTrend} /> : null}
@@ -441,9 +419,6 @@ export function DashboardOverview() {
           <Card className="surface-panel">
             <CardHeader className="gap-2">
               <CardTitle className="text-base">Recent PRs</CardTitle>
-              <CardDescription>
-                Newly established estimated 1RM highs from your logged loaded-strength work.
-              </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
               {areSecondaryQueriesLoading ? (
@@ -490,9 +465,6 @@ export function DashboardOverview() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <CardTitle className="text-base">Bodyweight Exercise Review</CardTitle>
-                    <CardDescription>
-                      Strict bodyweight movements get their own rep-based review lane.
-                    </CardDescription>
                   </div>
                   {analyticsSnapshot ? <CoverageBadge coverage={analyticsSnapshot.coverage.metrics.bodyweightLane} /> : null}
                 </div>
@@ -523,9 +495,6 @@ export function DashboardOverview() {
           <Card className="surface-panel">
             <CardHeader className="gap-2">
               <CardTitle className="text-base">Recent Activity</CardTitle>
-              <CardDescription>
-                The latest workout rows returned by the dashboard aggregate.
-              </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
               {isDashboardLoading ? (

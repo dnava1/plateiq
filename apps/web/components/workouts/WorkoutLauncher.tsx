@@ -343,7 +343,6 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
             <p className="text-sm text-muted-foreground">{cycleLabel} · {formatWeekCycle(template.cycle_length_weeks)}</p>
           </div>
           <div className="metric-tile flex flex-col gap-2">
-            <span className="eyebrow">Week</span>
             <div className="flex items-center justify-between gap-2">
               <Button
                 type="button"
@@ -383,14 +382,12 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
                 <ChevronRight />
               </Button>
             </div>
-            <p className="text-sm text-muted-foreground">{"Adjust the week if you're catching up or repeating a session."}</p>
           </div>
         </div>
 
         <Card className="surface-panel">
           <CardHeader>
             <CardTitle className="text-base">Choose your day</CardTitle>
-            <CardDescription>Select the session you’re training and launch the logger.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3 pt-0">
             {daysForCurrentWeek.map((day, index) => {
@@ -432,15 +429,19 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
               )
             })}
           </CardContent>
-          <CardFooter className="justify-between gap-2">
-            <div className="text-sm text-muted-foreground">
-              {selectedWorkout?.completed_at
-                ? 'This session is already completed for the selected week.'
-                : selectedWorkout
-                  ? 'Resume the in-progress workout from where you left off.'
-                  : 'Create the workout row online once, then you can keep logging offline.'}
-            </div>
-            <Button type="button" size="sm" onClick={handleStartWorkout} disabled={Boolean(selectedWorkout?.completed_at) || ensureWorkout.isPending}>
+          <CardFooter className="flex-col items-stretch gap-3 sm:items-center">
+            {selectedWorkout?.completed_at ? (
+              <div className="w-full text-sm text-muted-foreground sm:text-center">
+                This session is already completed for the selected week.
+              </div>
+            ) : null}
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleStartWorkout}
+              disabled={Boolean(selectedWorkout?.completed_at) || ensureWorkout.isPending}
+              className="w-full sm:w-auto sm:min-w-28"
+            >
               {selectedWorkout && !selectedWorkout.completed_at ? <RotateCcw data-icon="inline-start" /> : <Play data-icon="inline-start" />}
               {ensureWorkout.isPending ? 'Starting…' : selectedWorkout && !selectedWorkout.completed_at ? 'Resume' : 'Start'}
             </Button>
@@ -456,7 +457,7 @@ export function WorkoutLauncher({ program }: WorkoutLauncherProps) {
               <Badge variant="outline">Week {currentWeekNumber}</Badge>
             </div>
             <CardDescription>
-              Preview the generated plan before you start. Support blocks are already folded in for the active program config.
+              Preview the generated plan before you start.
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-0">

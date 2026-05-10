@@ -482,7 +482,7 @@ describe('ActiveWorkoutPanel', () => {
     })
   }, 10000)
 
-  it('keeps the rest timer copy but hides the completed-rest badge when rest has elapsed', () => {
+  it('hides the completed-rest badge when rest has elapsed', () => {
     mocks.sessionState.restTimer = {
       durationSeconds: 90,
       endsAt: Date.now() - 1000,
@@ -503,7 +503,8 @@ describe('ActiveWorkoutPanel', () => {
     )
 
     expect(screen.queryByText('Rest complete')).not.toBeInTheDocument()
-    expect(screen.getByText('Rest is complete. Start the next set when you are ready.')).toBeInTheDocument()
+    expect(screen.queryByText('Rest is complete. Start the next set when you are ready.')).not.toBeInTheDocument()
+    expect(screen.getByText('0:00')).toBeInTheDocument()
   })
 
   it('updates the remaining workout-only percentage for an in-progress block', async () => {

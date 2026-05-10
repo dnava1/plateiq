@@ -206,7 +206,7 @@ test.describe('authenticated dashboard and analytics flows', () => {
     await expect(resumeDayButton).toBeVisible()
     await expect(resumeDayButton).toContainText('4/8 sets logged')
     await resumeDayButton.click()
-    await expect(page.getByText('Resume the in-progress workout from where you left off.')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Resume', exact: true })).toBeVisible()
 
     await page.getByRole('button', { name: 'Resume', exact: true }).click()
 

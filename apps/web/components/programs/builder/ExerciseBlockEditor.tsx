@@ -235,9 +235,6 @@ export function ExerciseBlockEditor({ block, index, usesTrainingMax, onChange, o
           </span>
           <div className="flex flex-col gap-1">
             <p className="text-sm font-medium text-foreground">Exercise Block</p>
-            <p className="text-xs leading-5 text-muted-foreground">
-              Choose the exercise, set the role, then define the load prescription.
-            </p>
           </div>
         </div>
 

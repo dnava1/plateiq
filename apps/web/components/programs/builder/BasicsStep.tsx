@@ -51,12 +51,12 @@ const METHOD_OPTIONS: Array<{
   {
     value: 'general',
     label: 'General Program',
-    description: 'Keep the builder centered on flexible loading, effort, bodyweight, or fixed-weight work without making training max the default frame.',
+    description: 'Keep the builder centered on flexible loading, effort, bodyweight, or fixed-weight work.',
   },
   {
     value: 'tm_driven',
     label: 'Training-Max Driven',
-    description: 'Center the builder on training-max percentages and keep TM-specific setup visible where the method depends on it.',
+    description: 'Keep the builder centered on training-max percentages.',
   },
 ]
 
@@ -155,12 +155,6 @@ export function BasicsStep() {
             </Radio.Root>
           ))}
         </RadioGroup>
-
-        {!draft.uses_training_max && (
-          <p className="text-xs leading-5 text-muted-foreground">
-            You can still choose fixed-weight, bodyweight, effort-based, or other non-TM prescriptions later at the exercise level.
-          </p>
-        )}
 
         {draft.uses_training_max && (
           <div className="grid grid-cols-1 gap-4 animate-slide-up motion-reduce:animate-none">

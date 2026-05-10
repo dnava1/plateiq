@@ -74,9 +74,6 @@ export function TemplatePicker({ selectedKey, onSelect, onOpenChange }: Template
                 {filteredTemplates.length} shown
               </Badge>
             </div>
-            <p className="text-xs leading-5 text-muted-foreground">
-              Filter by difficulty or training frequency, then select a template to jump into setup below.
-            </p>
           </div>
 
           <div className="relative">
@@ -86,7 +83,7 @@ export function TemplatePicker({ selectedKey, onSelect, onOpenChange }: Template
               id={searchFieldId}
               type="search"
               role="searchbox"
-              placeholder="Search templates, lifts, or variation notes"
+              placeholder="Search templates"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               className="h-10 rounded-2xl bg-background/80 pl-9 pr-10"
@@ -226,14 +223,11 @@ export function TemplatePicker({ selectedKey, onSelect, onOpenChange }: Template
           <h3 className="eyebrow">Build From Scratch</h3>
           <Badge variant="secondary">Custom</Badge>
         </div>
-        <p className="text-sm leading-6 text-muted-foreground">
-          Open the builder once, then decide inside basics whether the block stays general or becomes training-max driven.
-        </p>
         <div className="grid gap-3">
           <ScratchBuilderLink
             href="/programs/builder"
             title="Open Program Builder"
-            description="Start with the split, exercises, and progression, then switch training-max behavior on only if the method actually needs it."
+            description="Create your own fully customized program."
             icon={Hammer}
             onOpenChange={onOpenChange}
           />

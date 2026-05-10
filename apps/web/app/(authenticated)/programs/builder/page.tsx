@@ -37,12 +37,9 @@ function BuilderPageFallback() {
   return (
     <div className="page-shell max-w-5xl">
       <section role="status" aria-live="polite" className="page-header">
-        <div className="flex flex-col gap-3">
-          <span className="eyebrow">Program Editor</span>
-          <div className="flex flex-col gap-2">
-            <h1 className="page-title">Preparing editor</h1>
-            <p className="page-copy">Loading the program setup workspace.</p>
-          </div>
+        <div className="flex flex-col gap-2">
+          <h1 className="page-title">Preparing editor</h1>
+          <p className="page-copy">Loading the program setup workspace.</p>
         </div>
       </section>
 
@@ -197,30 +194,21 @@ function BuilderPageContent() {
 
   const builderMode = programId ? 'program' : requestedTemplate ? 'template' : 'scratch'
   const editableDaySlots = resolveEditableProgramDaySlots(draft)
-  const eyebrow = builderMode === 'scratch' ? 'Program Builder' : 'Program Editor'
   const pageTitle = builderMode === 'scratch'
     ? 'Build a Program'
     : builderMode === 'template'
       ? 'Customize a Program'
       : 'Edit Your Program'
-  const pageCopy = builderMode === 'scratch'
-    ? 'Start with the basics, choose whether the block uses training max inside the flow, and move between sections without bypassing validation.'
-    : builderMode === 'template'
-      ? 'Start from a built-in plan, inspect the full structure, and tailor it before you save your copy.'
-      : 'Update the split, exercises, and progression for this saved program in the same builder flow.'
 
   if (templateKey && !requestedTemplate) {
     return (
       <div className="page-shell max-w-5xl">
         <section className="page-header">
-          <div className="flex flex-col gap-3">
-            <span className="eyebrow">Program Editor</span>
-            <div className="flex flex-col gap-2">
-              <h1 className="page-title">Program unavailable</h1>
-              <p className="page-copy">
-                The selected template could not be loaded, so there is nothing to edit here.
-              </p>
-            </div>
+          <div className="flex flex-col gap-2">
+            <h1 className="page-title">Program unavailable</h1>
+            <p className="page-copy">
+              The selected template could not be loaded, so there is nothing to edit here.
+            </p>
           </div>
 
           <Link href="/programs" className={buttonVariants({ variant: 'outline', size: 'lg' })}>
@@ -240,14 +228,11 @@ function BuilderPageContent() {
     return (
       <div className="page-shell max-w-5xl">
         <section className="page-header">
-          <div className="flex flex-col gap-3">
-            <span className="eyebrow">Program Editor</span>
-            <div className="flex flex-col gap-2">
-              <h1 className="page-title">Program not found</h1>
-              <p className="page-copy">
-                That program could not be loaded for this account.
-              </p>
-            </div>
+          <div className="flex flex-col gap-2">
+            <h1 className="page-title">Program not found</h1>
+            <p className="page-copy">
+              That program could not be loaded for this account.
+            </p>
           </div>
 
           <Link href="/programs" className={buttonVariants({ variant: 'outline', size: 'lg' })}>
@@ -266,13 +251,7 @@ function BuilderPageContent() {
   return (
     <div className="page-shell max-w-5xl">
       <section className="page-header">
-        <div className="flex flex-col gap-3">
-          <span className="eyebrow">{eyebrow}</span>
-          <div className="flex flex-col gap-2">
-            <h1 className="page-title">{pageTitle}</h1>
-            <p className="page-copy">{pageCopy}</p>
-          </div>
-        </div>
+        <h1 className="page-title">{pageTitle}</h1>
 
         <Link href="/programs" className={buttonVariants({ variant: 'outline', size: 'lg' })}>
           <ArrowLeft data-icon="inline-start" />

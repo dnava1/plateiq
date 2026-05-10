@@ -33,15 +33,7 @@ export default function WorkoutsPage() {
   return (
     <div className="page-shell max-w-6xl">
       <section className="page-header">
-        <div className="flex flex-col gap-3">
-          <span className="eyebrow">Gym Mode</span>
-          <div className="flex flex-col gap-2">
-            <h1 className="page-title">Workouts</h1>
-            <p className="page-copy">
-              Run today&apos;s session, keep the next action obvious, and stay focused on execution from launch through completion.
-            </p>
-          </div>
-        </div>
+        <h1 className="page-title">Workouts</h1>
       </section>
 
       <div className="flex flex-col gap-6">

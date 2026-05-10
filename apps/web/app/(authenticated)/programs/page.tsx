@@ -7,7 +7,6 @@ import { resolveProgramNeedsTrainingMaxForExecution } from '@/lib/programs/metho
 import { TrainingMaxPanel } from '@/components/exercises/TrainingMaxPanel'
 import { ProgramConfigForm } from '@/components/programs/ProgramConfigForm'
 import { ProgramCard } from '@/components/programs/ProgramCard'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Empty,
@@ -24,7 +23,6 @@ export default function ProgramsPage() {
   const [formOpen, setFormOpen] = useState(false)
   const { data: programs, isLoading } = usePrograms()
   const { data: trainingMaxes = [], isLoading: areTrainingMaxesLoading } = useCurrentTrainingMaxes()
-  const count = programs?.length ?? 0
 
   const activePrograms = programs?.filter((p) => p.is_active) ?? []
   const otherPrograms = programs?.filter((p) => !p.is_active) ?? []
@@ -36,20 +34,7 @@ export default function ProgramsPage() {
   return (
     <div className="page-shell max-w-5xl">
       <section className="page-header">
-        <div className="flex flex-col gap-3">
-          <span className="eyebrow">Programming</span>
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="page-title">Programs</h1>
-              <Badge variant="outline" className="rounded-full px-2.5">
-                {count} total
-              </Badge>
-            </div>
-            <p className="page-copy">
-              Plan the next block, review saved programs, or open the builder and choose the loading model only where it actually belongs.
-            </p>
-          </div>
-        </div>
+        <h1 className="page-title">Programs</h1>
 
         <Button onClick={() => setFormOpen(true)} size="lg">
           <PlusIcon data-icon="inline-start" />

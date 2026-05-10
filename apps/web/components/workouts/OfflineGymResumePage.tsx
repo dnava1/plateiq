@@ -473,7 +473,6 @@ export function OfflineGymResumePage() {
             <Card className="surface-panel border-primary/25 bg-primary/6">
               <CardHeader>
                 <CardTitle className="text-base">Rest timer</CardTitle>
-                <CardDescription>{restTimer?.label ?? 'Current rest'}</CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-4xl font-semibold tracking-[-0.06em] text-foreground">

@@ -82,15 +82,14 @@ export function ExercisesStep() {
           {isFirstDay ? 'Back' : 'Prev'}
         </Button>
         <div className="text-center">
-          <p className="text-sm font-semibold text-foreground">{day.label}</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm font-semibold text-foreground">
             {showsCycleWeeks
-              ? `Week ${currentSlot.weekNumber} - ${currentSlot.weekLabel} - Session ${currentDayIndex + 1} of ${editableDaySlots.length}`
+              ? `Week ${currentSlot.weekNumber} - ${currentSlot.weekLabel} - Day ${currentDayIndex + 1} of ${editableDaySlots.length}`
               : `Day ${currentDayIndex + 1} of ${editableDaySlots.length}`}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={goToNextExerciseDay}>
-          {isLastDay ? 'Review Progression' : 'Next'}
+          {isLastDay ? 'Progression' : 'Next'}
           <ChevronRight className="size-4" data-icon="inline-end" />
         </Button>
       </div>
@@ -109,7 +108,7 @@ export function ExercisesStep() {
           ))
         ) : (
           <div className="rounded-[24px] border border-dashed border-border/80 bg-card/72 p-5 text-sm leading-6 text-muted-foreground">
-            Add at least one exercise block for {day.label} before continuing. Each block can reuse an exercise from the library or create a custom one on the spot.
+            Add at least one exercise block for {day.label} before continuing.
           </div>
         )}
       </div>

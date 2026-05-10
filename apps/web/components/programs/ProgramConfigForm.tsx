@@ -32,7 +32,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 
@@ -204,9 +203,6 @@ export function ProgramConfigForm({ open, onOpenChange }: ProgramConfigFormProps
         <DialogHeader className="gap-2 pr-8">
           <div className="flex flex-col gap-1.5">
             <DialogTitle>Start a Program</DialogTitle>
-            <DialogDescription>
-              Pick a template and adjust its setup here. If the program depends on training maxes or estimated 1RMs, set those inputs before you create it.
-            </DialogDescription>
           </div>
         </DialogHeader>
 

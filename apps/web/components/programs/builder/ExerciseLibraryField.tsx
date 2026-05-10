@@ -122,14 +122,9 @@ export function ExerciseLibraryField({
           value={displayedQuery}
           onChange={(event) => handleQueryChange(event.target.value)}
           placeholder="Search your exercise library"
-          aria-describedby={`${fieldId}-help`}
           className="pl-9"
         />
       </div>
-
-      <p id={`${fieldId}-help`} className="text-xs leading-5 text-muted-foreground">
-        Search your existing exercise library, or create a new custom exercise and add it to this block immediately.
-      </p>
 
       <div className="rounded-[20px] border border-border/70 bg-background/60 p-2">
         {isLoading ? (

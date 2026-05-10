@@ -405,7 +405,7 @@ describe('ReviewStep', () => {
 
     render(<ReviewStep />)
 
-    expect(screen.getByText('Required 1RM Inputs')).toBeInTheDocument()
+    expect(screen.getByText('Required 1RM Maxes')).toBeInTheDocument()
     expect(screen.getByText('Set current estimated 1RMs for Bench Press before you save this program.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Create Program' })).toBeDisabled()
   })

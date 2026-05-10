@@ -59,10 +59,6 @@ export function DaysStep() {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-3">
-        <p className="text-sm text-muted-foreground">
-          Name each training day so the rest of the build stays easy to scan.
-        </p>
-
         {canEnableWeekOverrides ? (
           <div className="rounded-[24px] border border-border/70 bg-card/70 p-4 shadow-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

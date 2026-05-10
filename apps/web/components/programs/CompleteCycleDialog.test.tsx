@@ -48,6 +48,7 @@ describe('CompleteCycleDialog', () => {
       reason: 'Cycle completion applies one base increment for the next block.',
       expectedBadge: '+10 lbs',
       expectedNextTmValue: 310,
+      shouldShowReason: false,
     },
     {
       currentTmLbs: 300,
@@ -56,8 +57,9 @@ describe('CompleteCycleDialog', () => {
       reason: 'Best AMRAP performance missed the target by 2 reps, so the training max holds for the next cycle while you decide whether to deload manually.',
       expectedBadge: 'Hold',
       expectedNextTmValue: 300,
+      shouldShowReason: true,
     },
-  ])('renders the preview rows for the next cycle', async ({ currentTmLbs, incrementLbs, newTmLbs, reason, expectedBadge, expectedNextTmValue }) => {
+  ])('renders the preview rows for the next cycle', async ({ currentTmLbs, incrementLbs, newTmLbs, reason, expectedBadge, expectedNextTmValue, shouldShowReason }) => {
     useCycleCompletionPreviewMock.mockReturnValue({
       activeCycle: { id: 7, cycle_number: 4 },
       inputMode: 'tm',
@@ -101,7 +103,11 @@ describe('CompleteCycleDialog', () => {
     expect(screen.getAllByText('300 lbs').length).toBeGreaterThan(0)
     expect(screen.getAllByText(expectedBadge)).toHaveLength(2)
     expect(screen.getByLabelText(/next cycle tm \(lbs\)/i)).toHaveValue(expectedNextTmValue)
-    expect(screen.getByText(reason)).toBeInTheDocument()
+    if (shouldShowReason) {
+      expect(screen.getByText(reason)).toBeInTheDocument()
+    } else {
+      expect(screen.queryByText(reason)).not.toBeInTheDocument()
+    }
     expect(screen.queryByText(/The suggestion follows the saved progression rule/i)).not.toBeInTheDocument()
   })
 
@@ -135,7 +141,7 @@ describe('CompleteCycleDialog', () => {
     await user.click(screen.getByRole('button', { name: /cycle checkpoint/i }))
 
     expect(screen.getByRole('heading', { name: 'Cycle Checkpoint' })).toBeInTheDocument()
-    expect(screen.getByText(/This is the current TM-first checkpoint for rolling the block forward/i)).toBeInTheDocument()
+    expect(screen.queryByText(/This is the current TM-first checkpoint for rolling the block forward/i)).not.toBeInTheDocument()
     expect(screen.getByText(/Training max is not the organizing model for this program/i)).toBeInTheDocument()
   })
 

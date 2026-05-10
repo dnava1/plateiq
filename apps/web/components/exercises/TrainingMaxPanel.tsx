@@ -22,7 +22,7 @@ import type { ExecutionMaxInputMode } from '@/lib/programs/trainingMax'
 
 interface TrainingMaxPanelProps {
   title?: string
-  description: string
+  description?: string
   className?: string
   emptyStateHint?: string
   badgeLabel?: string
@@ -118,7 +118,7 @@ export function TrainingMaxPanel({
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex min-w-0 flex-1 flex-col gap-2">
               <CardTitle className="text-base">{title}</CardTitle>
-              <CardDescription>{description}</CardDescription>
+              {description ? <CardDescription>{description}</CardDescription> : null}
             </div>
             <Badge variant="secondary">{badgeLabel}</Badge>
           </div>

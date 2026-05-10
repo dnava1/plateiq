@@ -555,15 +555,7 @@ export default function SettingsPage() {
   return (
     <div className="page-shell max-w-5xl">
       <section className="page-header">
-        <div className="flex flex-col gap-3">
-          <span className="eyebrow">Preferences</span>
-          <div className="flex flex-col gap-2">
-            <h1 className="page-title">Settings</h1>
-            <p className="page-copy">
-              Account, units, and preferences.
-            </p>
-          </div>
-        </div>
+        <h1 className="page-title">Settings</h1>
       </section>
 
       <div className="flex w-full max-w-3xl flex-col gap-6">
@@ -612,9 +604,6 @@ export default function SettingsPage() {
         <Card className="surface-panel">
           <CardHeader>
             <CardTitle>Appearance</CardTitle>
-            <CardDescription>
-              Choose your preferred color scheme.
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <ThemeToggle />

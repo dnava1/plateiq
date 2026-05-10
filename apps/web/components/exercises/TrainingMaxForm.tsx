@@ -198,8 +198,6 @@ export function TrainingMaxForm({
             {currentTm
               ? `${dialogCopy.currentValueLabel}: ${formatWeight(currentTm, unit, weightRoundingLbs)}`
               : 'No saved max input yet'}
-            {' '}
-            Choose Training Max or Estimated 1RM below.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="mt-6 flex flex-col gap-4">
@@ -275,8 +273,8 @@ export function TrainingMaxForm({
                 <p id="training-max-percentage-error" className="text-sm text-destructive">{errors.tmPercentage.message}</p>
               )}
               {weight > 0 && tmPercentageRatio !== null && (
-                <Card className="border-border/70 bg-card/70">
-                  <CardContent className="flex flex-col gap-1.5 pt-4">
+                <Card className="border-border/70 bg-card/70 py-3">
+                  <CardContent className="flex flex-col items-center gap-1.5 text-center">
                     <p className="text-sm">
                       <span className="text-muted-foreground">Calculated TM:</span>{' '}
                       <span className="font-bold text-foreground">{formatWeight(calculatedTmLbs, unit, weightRoundingLbs)}</span>

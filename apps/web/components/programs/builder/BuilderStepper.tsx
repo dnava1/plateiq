@@ -26,7 +26,6 @@ export function BuilderStepper({
       <div className="flex items-center justify-between md:hidden">
         <p className="text-sm font-medium text-foreground">
           Step {stepNumber} of {BUILDER_STEPS.length}
-          {currentStep === 'exercises' && totalDays ? ` - Session ${(currentDayIndex ?? 0) + 1}/${totalDays}` : ''}
         </p>
         <p className="text-xs text-muted-foreground">{BUILDER_STEPS[currentIdx].label}</p>
       </div>
