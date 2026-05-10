@@ -31,23 +31,23 @@ export function ChartCard({
   emptyMessage,
   emptyStateNote,
   headerBadge,
-  heightClassName = 'h-64',
+  heightClassName = 'h-72',
   isEmpty,
   isLoading,
   title,
 }: ChartCardProps) {
   return (
-    <Card className={cn('surface-panel min-w-0 overflow-visible', className)}>
-      <CardHeader className="gap-2">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0 space-y-2">
+    <Card className={cn('surface-panel min-w-0 gap-3 overflow-visible', className)}>
+      <CardHeader>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div className={cn('min-w-0', description ? 'space-y-1.5' : null)}>
             <CardTitle className="text-base">{title}</CardTitle>
             {description ? <CardDescription>{description}</CardDescription> : null}
           </div>
           {headerBadge ? <div className="shrink-0">{headerBadge}</div> : null}
         </div>
       </CardHeader>
-      <CardContent className="pt-0">
+      <CardContent className="min-w-0 pt-0">
         {isLoading ? (
           <div className={cn('flex flex-col gap-3', heightClassName)}>
             <Skeleton className="h-4 w-32" />
