@@ -113,6 +113,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     return cacheScope ? createIdbPersister(cacheScope) : null
   }, [cacheScope])
   const isWarmDataReady = !cacheScope || restoredCacheScope === cacheScope
+  const shouldPreserveBootHints = isOfflineCapableBootPath
+    && !authScope
+    && bootNetworkReachability !== 'reachable'
 
   useEffect(() => {
     if (!cacheScopeHint || !isOfflineCapableBootPath || isAuthReady) {
@@ -213,6 +216,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
 
     if (!authScope) {
+      if (shouldPreserveBootHints) {
+        return
+      }
+
       window.localStorage.removeItem('plateiq-query-cache:last-user')
       window.localStorage.removeItem('plateiq-offline-workout:last-user')
       return
@@ -220,7 +227,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
     window.localStorage.setItem('plateiq-query-cache:last-user', authScope)
     window.localStorage.setItem('plateiq-offline-workout:last-user', authScope)
-  }, [authScope, isAuthReady, pathname])
+  }, [authScope, isAuthReady, pathname, shouldPreserveBootHints])
 
   useEffect(() => {
     if (!isAuthReady) {

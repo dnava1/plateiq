@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 const serviceWorkerSource = readFileSync(resolve(process.cwd(), 'public/sw.js'), 'utf8')
 
 describe('service worker cache safety', () => {
-  it('routes same-origin non-public navigations through the cached launch shell fallback', () => {
+  it('routes same-origin non-public navigations back through the launch shell with explicit next-path intent', () => {
     expect(serviceWorkerSource).toContain('const API_PATH_PREFIXES = [')
     expect(serviceWorkerSource).not.toContain('const AUTHENTICATED_ROUTE_PREFIXES = [')
     expect(serviceWorkerSource).toContain("'/api/'")
@@ -13,9 +13,10 @@ describe('service worker cache safety', () => {
     expect(serviceWorkerSource).toContain('const publicDocumentPath = getPublicDocumentPath(url.pathname);')
     expect(serviceWorkerSource).toContain('event.respondWith(handlePublicNavigation(request, publicDocumentPath));')
     expect(serviceWorkerSource).toContain('event.respondWith(handleNonPublicNavigation(request));')
-    expect(serviceWorkerSource).toContain('return serveCachedLaunchShell();')
-    expect(serviceWorkerSource).toContain('const cachedLaunchResponse = await cache.match(LAUNCH_URL);')
-    expect(serviceWorkerSource).not.toContain('Response.redirect(')
+    expect(serviceWorkerSource).toContain('return Response.redirect(buildOfflineLaunchUrl(requestUrl).toString(), 302);')
+    expect(serviceWorkerSource).toContain('function buildOfflineLaunchUrl(requestUrl) {')
+    expect(serviceWorkerSource).toContain("launchUrl.searchParams.set('next', `${requestUrl.pathname}${requestUrl.search}`);")
+    expect(serviceWorkerSource).toContain('Response.redirect(')
   })
 
   it('does not add authenticated documents to the public precache list', () => {

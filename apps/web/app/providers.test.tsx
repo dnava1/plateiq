@@ -247,6 +247,59 @@ describe('Providers', () => {
     expect(window.localStorage.getItem('plateiq-offline-workout:last-user')).toBe('user-b')
   })
 
+  it('preserves cached user hints during offline-capable boot while reachability is not yet confirmed online', async () => {
+    mocks.cacheScopeHint = 'user-123'
+    mocks.pathname = '/launch'
+    mocks.probeSameOriginNetworkReachability.mockResolvedValue('unknown')
+    mocks.getSession.mockResolvedValue({
+      data: {
+        session: null,
+      },
+      error: null,
+    })
+    window.localStorage.setItem('plateiq-query-cache:last-user', 'user-123')
+    window.localStorage.setItem('plateiq-offline-workout:last-user', 'user-123')
+
+    render(
+      <Providers>
+        <div>child content</div>
+      </Providers>,
+    )
+
+    await waitFor(() => {
+      expect(mocks.probeSameOriginNetworkReachability).toHaveBeenCalledTimes(1)
+    })
+
+    expect(window.localStorage.getItem('plateiq-query-cache:last-user')).toBe('user-123')
+    expect(window.localStorage.getItem('plateiq-offline-workout:last-user')).toBe('user-123')
+  })
+
+  it('clears cached user hints on launch once the device is confirmed online and signed out', async () => {
+    mocks.cacheScopeHint = 'user-123'
+    mocks.pathname = '/launch'
+    mocks.probeSameOriginNetworkReachability.mockResolvedValue('reachable')
+    mocks.getSession.mockResolvedValue({
+      data: {
+        session: null,
+      },
+      error: null,
+    })
+    window.localStorage.setItem('plateiq-query-cache:last-user', 'user-123')
+    window.localStorage.setItem('plateiq-offline-workout:last-user', 'user-123')
+
+    render(
+      <Providers>
+        <div>child content</div>
+      </Providers>,
+    )
+
+    await waitFor(() => {
+      expect(window.localStorage.getItem('plateiq-query-cache:last-user')).toBeNull()
+    })
+
+    expect(window.localStorage.getItem('plateiq-offline-workout:last-user')).toBeNull()
+  })
+
   it('falls back to the plain query provider when no cached auth scope hint exists', () => {
     render(
       <Providers>

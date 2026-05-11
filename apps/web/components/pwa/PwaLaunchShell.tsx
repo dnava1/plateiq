@@ -10,6 +10,7 @@ import {
   probeSameOriginNetworkReachability,
 } from '@/lib/auth/session-user'
 import { PlateIqMark } from '@/components/brand/PlateIqMark'
+import { OfflineAuthenticatedShell } from '@/components/pwa/OfflineAuthenticatedShell'
 import { getActiveWorkoutSnapshot, getOfflineWorkoutPack } from '@/lib/offline-workout-store'
 import { getPersistedQueryCacheMetadata, isPersistedQueryCacheMetadataFresh } from '@/lib/query-persistence'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -44,6 +45,21 @@ function getRequestedLaunchPath(searchParams: LaunchSearchParamsLike) {
   return '/dashboard'
 }
 
+function normalizeOfflineLaunchUrl(requestedPath: string) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const launchUrl = new URL('/launch', window.location.origin)
+  launchUrl.searchParams.set('next', sanitizeNextPath(requestedPath, '/dashboard'))
+  const normalizedLocation = `${launchUrl.pathname}${launchUrl.search}`
+  const currentLocation = `${window.location.pathname}${window.location.search}`
+
+  if (normalizedLocation !== currentLocation) {
+    window.history.replaceState(window.history.state, '', normalizedLocation)
+  }
+}
+
 export function PwaLaunchShell() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -53,6 +69,7 @@ export function PwaLaunchShell() {
     status: 'launching',
     title: 'PlateIQ',
   })
+  const [offlineShellPath, setOfflineShellPath] = useState<string | null>(null)
   const [pendingNavigation, setPendingNavigation] = useState<PendingLaunchNavigation | null>(null)
   const launchRequestIdRef = useRef(0)
 
@@ -68,6 +85,7 @@ export function PwaLaunchShell() {
     let isActive = true
     const requestedPath = getRequestedLaunchPath(searchParams)
     const requestId = ++launchRequestIdRef.current
+    setOfflineShellPath(null)
 
     void (async () => {
       const localScopeHint = getStoredAuthScopeHint()
@@ -86,6 +104,7 @@ export function PwaLaunchShell() {
 
       if (!resolvedUserId) {
         if (isNetworkReachable) {
+          setOfflineShellPath(null)
           setPendingNavigation({
             nextPath: '/continue',
             requestId,
@@ -93,6 +112,7 @@ export function PwaLaunchShell() {
           return
         }
 
+        setPendingNavigation(null)
         setState({
           detail: 'Open PlateIQ online once so this device can prepare your cached shell and offline data.',
           status: 'offline-unavailable',
@@ -102,6 +122,7 @@ export function PwaLaunchShell() {
       }
 
       if (hasConfirmedOnlineAuth) {
+        setOfflineShellPath(null)
         setState({
           detail: null,
           status: 'launching',
@@ -128,6 +149,7 @@ export function PwaLaunchShell() {
       const hasOfflineWorkoutState = Boolean(activeWorkout || offlineWorkoutPack)
 
       if (!isNetworkReachable && !hasFreshWarmSnapshot && !hasOfflineWorkoutState) {
+        setPendingNavigation(null)
         setState({
           detail: 'Open PlateIQ online once so this device can refresh your cached shell, or save a workout pack before going offline.',
           status: 'offline-unavailable',
@@ -136,10 +158,34 @@ export function PwaLaunchShell() {
         return
       }
 
-      const nextPath = !isNetworkReachable && hasOfflineWorkoutState && (!hasFreshWarmSnapshot || requestedPath === '/workouts')
-        ? '/gym'
-        : requestedPath
+      if (!isNetworkReachable && hasOfflineWorkoutState && (!hasFreshWarmSnapshot || requestedPath === '/workouts')) {
+        setOfflineShellPath(null)
+        setState({
+          detail: null,
+          status: 'launching',
+          title: 'PlateIQ',
+        })
 
+        setPendingNavigation({
+          nextPath: '/gym',
+          requestId,
+        })
+        return
+      }
+
+      if (!isNetworkReachable && hasFreshWarmSnapshot) {
+        normalizeOfflineLaunchUrl(requestedPath)
+        setPendingNavigation(null)
+        setState({
+          detail: null,
+          status: 'launching',
+          title: 'PlateIQ',
+        })
+        setOfflineShellPath(requestedPath)
+        return
+      }
+
+      setOfflineShellPath(null)
       setState({
         detail: null,
         status: 'launching',
@@ -147,7 +193,7 @@ export function PwaLaunchShell() {
       })
 
       setPendingNavigation({
-        nextPath,
+        nextPath: requestedPath,
         requestId,
       })
     })().catch(() => {
@@ -156,6 +202,7 @@ export function PwaLaunchShell() {
       }
 
       if (launchRequestIdRef.current === requestId) {
+        setOfflineShellPath(null)
         setPendingNavigation(null)
       }
 
@@ -186,6 +233,10 @@ export function PwaLaunchShell() {
       window.clearTimeout(timeoutId)
     }
   }, [isWarmDataReady, pendingNavigation, router])
+
+  if (offlineShellPath && isWarmDataReady) {
+    return <OfflineAuthenticatedShell initialPath={offlineShellPath} />
+  }
 
   return (
     <div className="pwa-launch-shell" data-status={state.status}>

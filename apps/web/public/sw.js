@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'plateiq-shell-v7';
+const CACHE_VERSION = 'plateiq-shell-v8';
 const OFFLINE_URL = '/offline.html';
 const LAUNCH_URL = '/launch';
 const PRECACHE_URLS = [
@@ -120,22 +120,19 @@ function getPublicDocumentPath(pathname) {
 }
 
 async function handleNonPublicNavigation(request) {
+  const requestUrl = new URL(request.url);
+
   try {
     return await fetch(request);
   } catch {
-    return serveCachedLaunchShell();
+    return Response.redirect(buildOfflineLaunchUrl(requestUrl).toString(), 302);
   }
 }
 
-async function serveCachedLaunchShell() {
-  const cache = await caches.open(CACHE_VERSION);
-  const cachedLaunchResponse = await cache.match(LAUNCH_URL);
-
-  if (cachedLaunchResponse) {
-    return cachedLaunchResponse;
-  }
-
-  return caches.match(OFFLINE_URL);
+function buildOfflineLaunchUrl(requestUrl) {
+  const launchUrl = new URL(LAUNCH_URL, self.location.origin);
+  launchUrl.searchParams.set('next', `${requestUrl.pathname}${requestUrl.search}`);
+  return launchUrl;
 }
 
 async function precacheShell(cache) {

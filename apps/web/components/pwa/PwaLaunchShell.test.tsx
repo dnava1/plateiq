@@ -5,6 +5,7 @@ import { PwaLaunchShell } from './PwaLaunchShell'
 const mocks = vi.hoisted(() => ({
   getActiveWorkoutSnapshot: vi.fn(),
   getOfflineWorkoutPack: vi.fn(),
+  offlineShell: vi.fn(({ initialPath }: { initialPath: string }) => <div data-testid="offline-shell">{initialPath}</div>),
   getPersistedQueryCacheMetadata: vi.fn(),
   probeSameOriginNetworkReachability: vi.fn(),
   getSessionUserIdWithTimeout: vi.fn(),
@@ -26,6 +27,10 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/components/layout/AppShellClientState', () => ({
   useAppShellClientState: () => mocks.shellState,
+}))
+
+vi.mock('@/components/pwa/OfflineAuthenticatedShell', () => ({
+  OfflineAuthenticatedShell: (props: { initialPath: string }) => mocks.offlineShell(props),
 }))
 
 vi.mock('@/lib/auth/session-user', () => ({
@@ -58,6 +63,7 @@ describe('PwaLaunchShell', () => {
   beforeEach(() => {
     mocks.getActiveWorkoutSnapshot.mockReset()
     mocks.getOfflineWorkoutPack.mockReset()
+    mocks.offlineShell.mockClear()
     mocks.getPersistedQueryCacheMetadata.mockReset()
     mocks.probeSameOriginNetworkReachability.mockReset()
     mocks.getSessionUserIdWithTimeout.mockReset()
@@ -287,8 +293,34 @@ describe('PwaLaunchShell', () => {
     render(<PwaLaunchShell />)
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/dashboard')
+      expect(screen.getByTestId('offline-shell')).toHaveTextContent('/dashboard')
     })
+
+    expect(mocks.replace).not.toHaveBeenCalled()
+  })
+
+  it('normalizes legacy authenticated-route launch mounts back onto the launch URL before rendering the cached shell', async () => {
+    mocks.probeSameOriginNetworkReachability.mockResolvedValue('unreachable')
+    mocks.getStoredAuthScopeHint.mockReturnValue('user-123')
+    mocks.getSessionUserIdWithTimeout.mockResolvedValue(null)
+    mocks.getPersistedQueryCacheMetadata.mockResolvedValue({
+      schemaVersion: 4,
+      stale: false,
+      updatedAt: new Date().toISOString(),
+      userId: 'user-123',
+    })
+    mocks.getActiveWorkoutSnapshot.mockResolvedValue(null)
+    mocks.getOfflineWorkoutPack.mockResolvedValue(null)
+    window.history.replaceState(null, '', '/analytics')
+
+    render(<PwaLaunchShell />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('offline-shell')).toHaveTextContent('/analytics')
+    })
+
+    expect(window.location.pathname).toBe('/launch')
+    expect(window.location.search).toBe('?next=%2Fanalytics')
   })
 
   it('does not trust the cached scope hint when the reachability probe is indeterminate', async () => {

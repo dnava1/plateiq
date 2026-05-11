@@ -19,11 +19,20 @@ import {
   type AppNavHref,
 } from '@/components/layout/navigation'
 
-export function Header({ as: Root = 'header' }: { as?: 'div' | 'header' }) {
+export function Header({
+  as: Root = 'header',
+  onNavigate,
+  pathnameOverride,
+}: {
+  as?: 'div' | 'header'
+  onNavigate?: (href: AppNavHref) => void
+  pathnameOverride?: string
+}) {
   const pathname = usePathname()
   const router = useRouter()
   const { pendingNavHref, setPendingNavHref } = useAppShellClientState()
-  const activePathname = pendingNavHref ?? pathname
+  const resolvedPathname = pathnameOverride ?? pathname
+  const activePathname = pathnameOverride ?? pendingNavHref ?? resolvedPathname
   const { data: user, isLoading: isUserLoading } = useUser()
   const isIdentityLoading = isUserLoading || !user
   const isGuest = isAnonymousUser(user)
@@ -31,13 +40,13 @@ export function Header({ as: Root = 'header' }: { as?: 'div' | 'header' }) {
     anonymousDisplayName: 'Guest',
   })
   const prefetchRoute = (href: AppNavHref) => {
-    if (!isActiveNavPath(pathname, href)) {
+    if (!onNavigate && !isActiveNavPath(resolvedPathname, href)) {
       router.prefetch(href)
     }
   }
 
   const markPendingRoute = (href: AppNavHref) => {
-    if (!isActiveNavPath(pathname, href)) {
+    if (!onNavigate && !isActiveNavPath(resolvedPathname, href)) {
       setPendingNavHref(href)
     }
   }
@@ -45,7 +54,17 @@ export function Header({ as: Root = 'header' }: { as?: 'div' | 'header' }) {
   const handlePointerDown = (href: AppNavHref) => (event: PointerEvent<HTMLAnchorElement>) => {
     prefetchRoute(href)
 
-    if (isActiveNavPath(pathname, href) || !isPlainAppNavActivation(event)) {
+    if (isActiveNavPath(resolvedPathname, href) || !isPlainAppNavActivation(event)) {
+      return
+    }
+
+    if (onNavigate) {
+      if (!shouldCommitAppNavOnPointerDown(event)) {
+        return
+      }
+
+      event.preventDefault()
+      onNavigate(href)
       return
     }
 
@@ -60,7 +79,13 @@ export function Header({ as: Root = 'header' }: { as?: 'div' | 'header' }) {
   }
 
   const handleClick = (href: AppNavHref) => (event: MouseEvent<HTMLAnchorElement>) => {
-    if (!isActiveNavPath(pathname, href) && isPlainAppNavActivation(event)) {
+    if (!isActiveNavPath(resolvedPathname, href) && isPlainAppNavActivation(event)) {
+      if (onNavigate) {
+        event.preventDefault()
+        onNavigate(href)
+        return
+      }
+
       markPendingRoute(href)
     }
   }
