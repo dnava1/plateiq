@@ -40,13 +40,6 @@ const API_PATH_PREFIXES = [
   '/api/',
   '/auth/',
 ];
-const AUTHENTICATED_ROUTE_PREFIXES = [
-  '/analytics',
-  '/dashboard',
-  '/programs',
-  '/settings',
-  '/workouts',
-];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -90,12 +83,14 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (request.mode === 'navigate') {
-    if (isAuthenticatedNavigation(url)) {
-      event.respondWith(handleAuthenticatedNavigation(request, url));
+    const publicDocumentPath = getPublicDocumentPath(url.pathname);
+
+    if (publicDocumentPath) {
+      event.respondWith(handlePublicNavigation(request, publicDocumentPath));
       return;
     }
 
-    event.respondWith(handleNavigation(request, url));
+    event.respondWith(handleNonPublicNavigation(request));
     return;
   }
 
@@ -104,26 +99,8 @@ self.addEventListener('fetch', (event) => {
   }
 });
 
-async function handleNavigation(request, url) {
-  const publicDocumentPath = getPublicDocumentPath(url.pathname);
-
-  if (publicDocumentPath) {
-    return networkFirst(request, true, publicDocumentPath);
-  }
-
-  try {
-    return await fetch(request);
-  } catch {
-    return caches.match(OFFLINE_URL);
-  }
-}
-
-function isAuthenticatedNavigation(url) {
-  return AUTHENTICATED_ROUTE_PREFIXES.some((prefix) => (
-    prefix.endsWith('/')
-      ? url.pathname.startsWith(prefix)
-      : url.pathname === prefix || url.pathname.startsWith(`${prefix}/`)
-  ));
+async function handlePublicNavigation(request, fallbackPath) {
+  return networkFirst(request, true, fallbackPath);
 }
 
 function getPublicDocumentPath(pathname) {
@@ -142,14 +119,23 @@ function getPublicDocumentPath(pathname) {
   return null;
 }
 
-async function handleAuthenticatedNavigation(request, url) {
+async function handleNonPublicNavigation(request) {
   try {
     return await fetch(request);
   } catch {
-    const launchUrl = new URL(LAUNCH_URL, self.location.origin);
-    launchUrl.searchParams.set('next', `${url.pathname}${url.search}`);
-    return Response.redirect(launchUrl.toString(), 302);
+    return serveCachedLaunchShell();
   }
+}
+
+async function serveCachedLaunchShell() {
+  const cache = await caches.open(CACHE_VERSION);
+  const cachedLaunchResponse = await cache.match(LAUNCH_URL);
+
+  if (cachedLaunchResponse) {
+    return cachedLaunchResponse;
+  }
+
+  return caches.match(OFFLINE_URL);
 }
 
 async function precacheShell(cache) {

@@ -56,7 +56,7 @@ describe('AppRoutePrefetcher', () => {
     vi.useRealTimers()
   })
 
-  it('warms inactive app tab routes after the critical render path', () => {
+  it('warms startup-critical and inactive app tab routes after the critical render path', () => {
     render(<AppRoutePrefetcher />)
 
     expect(mocks.prefetch).not.toHaveBeenCalled()
@@ -65,12 +65,19 @@ describe('AppRoutePrefetcher', () => {
       vi.advanceTimersByTime(60)
     })
 
-    expect(mocks.prefetch).toHaveBeenCalledWith('/workouts')
+    expect(mocks.prefetch).toHaveBeenNthCalledWith(1, '/launch')
 
     act(() => {
-      vi.advanceTimersByTime(110 * 3)
+      vi.advanceTimersByTime(110)
     })
 
+    expect(mocks.prefetch).toHaveBeenNthCalledWith(2, '/gym')
+
+    act(() => {
+      vi.advanceTimersByTime(110 * 4)
+    })
+
+    expect(mocks.prefetch).toHaveBeenNthCalledWith(3, '/workouts')
     expect(mocks.prefetch).toHaveBeenCalledWith('/analytics')
     expect(mocks.prefetch).toHaveBeenCalledWith('/programs')
     expect(mocks.prefetch).toHaveBeenCalledWith('/settings')
@@ -92,12 +99,19 @@ describe('AppRoutePrefetcher', () => {
       vi.advanceTimersByTime(1)
     })
 
-    expect(mocks.prefetch).toHaveBeenCalledWith('/workouts')
+    expect(mocks.prefetch).toHaveBeenNthCalledWith(1, '/launch')
 
     act(() => {
-      vi.advanceTimersByTime(250 * 3)
+      vi.advanceTimersByTime(250)
     })
 
+    expect(mocks.prefetch).toHaveBeenNthCalledWith(2, '/gym')
+
+    act(() => {
+      vi.advanceTimersByTime(250 * 4)
+    })
+
+    expect(mocks.prefetch).toHaveBeenNthCalledWith(3, '/workouts')
     expect(mocks.prefetch).toHaveBeenCalledWith('/analytics')
     expect(mocks.prefetch).toHaveBeenCalledWith('/programs')
     expect(mocks.prefetch).toHaveBeenCalledWith('/settings')

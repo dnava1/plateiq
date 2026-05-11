@@ -8,6 +8,8 @@ import {
 } from 'lucide-react'
 
 export type AppNavHref = '/dashboard' | '/analytics' | '/workouts' | '/programs' | '/settings'
+export type StartupPrefetchHref = '/launch' | '/gym'
+export type AppPrefetchHref = AppNavHref | StartupPrefetchHref
 
 export interface AppNavItem {
   href: AppNavHref
@@ -30,6 +32,8 @@ const APP_NAV_PREFETCH_PRIORITY: Record<AppNavHref, readonly AppNavHref[]> = {
   '/programs': ['/workouts', '/dashboard', '/analytics', '/settings'],
   '/settings': ['/dashboard', '/workouts', '/analytics', '/programs'],
 }
+
+const STARTUP_ROUTE_PREFETCH_HREFS: readonly StartupPrefetchHref[] = ['/launch', '/gym']
 
 function isKnownAppNavHref(value: string): value is AppNavHref {
   return value in APP_NAV_PREFETCH_PRIORITY
@@ -57,6 +61,10 @@ export function getInactiveNavPrefetchHrefs(pathname: string) {
   const activeHref = getAppNavHref(pathname)
 
   return APP_NAV_PREFETCH_PRIORITY[activeHref].filter((href) => !isActiveNavPath(pathname, href))
+}
+
+export function getBackgroundPrefetchHrefs(pathname: string): readonly AppPrefetchHref[] {
+  return [...STARTUP_ROUTE_PREFETCH_HREFS, ...getInactiveNavPrefetchHrefs(pathname)]
 }
 
 export function getTapNavPrefetchHrefs(targetHref: AppNavHref) {

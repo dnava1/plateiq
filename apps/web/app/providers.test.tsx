@@ -143,6 +143,21 @@ describe('Providers', () => {
     expect(mocks.createIdbPersister).not.toHaveBeenCalled()
   })
 
+  it('defers hinted persisted restore on protected non-nav route boots until auth resolves', () => {
+    mocks.cacheScopeHint = 'user-123'
+    mocks.pathname = '/exercises'
+
+    render(
+      <Providers>
+        <div>child content</div>
+      </Providers>,
+    )
+
+    expect(screen.getByTestId('query-provider')).toBeInTheDocument()
+    expect(screen.queryByTestId('persist-provider')).not.toBeInTheDocument()
+    expect(mocks.createIdbPersister).not.toHaveBeenCalled()
+  })
+
   it('syncs both local hint keys to the authenticated user after a launch boot resolves', async () => {
     mocks.cacheScopeHint = 'stale-user'
     mocks.pathname = '/launch'

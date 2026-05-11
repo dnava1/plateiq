@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAppShellClientState } from '@/components/layout/AppShellClientState'
-import { getInactiveNavPrefetchHrefs } from '@/components/layout/navigation'
+import { getBackgroundPrefetchHrefs } from '@/components/layout/navigation'
 
 const FIRST_ROUTE_PREFETCH_DELAY_MS = 60
 const ROUTE_PREFETCH_GAP_MS = 110
@@ -49,7 +49,7 @@ export function AppRoutePrefetcher() {
       ? STANDALONE_ROUTE_PREFETCH_GAP_MS
       : ROUTE_PREFETCH_GAP_MS
     const timeoutIds: number[] = []
-    getInactiveNavPrefetchHrefs(pathname)
+    getBackgroundPrefetchHrefs(pathname)
       .forEach((href, index) => {
         const timeoutId = window.setTimeout(() => {
           if (document.visibilityState === 'hidden') {

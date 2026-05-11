@@ -67,11 +67,12 @@ describe('PwaLaunchShell', () => {
     }
     setOnline(true)
     vi.useRealTimers()
+    window.history.replaceState(null, '', '/launch')
     document.documentElement.removeAttribute('data-pwa-launch-slow')
   })
 
   it('uses the full-screen launch shell so the centered card and background fill the standalone viewport', () => {
-    mocks.getSessionUserIdWithTimeout.mockResolvedValue(null)
+    mocks.getSessionUserIdWithTimeout.mockReturnValue(new Promise(() => {}))
 
     const { container } = render(<PwaLaunchShell />)
 
@@ -143,6 +144,45 @@ describe('PwaLaunchShell', () => {
     mocks.searchParams = new URLSearchParams('next=%2Fdashboard')
     mocks.getStoredAuthScopeHint.mockReturnValue('user-123')
     mocks.getPersistedQueryCacheMetadata.mockResolvedValue(null)
+    mocks.getActiveWorkoutSnapshot.mockResolvedValue(null)
+    mocks.getOfflineWorkoutPack.mockResolvedValue({
+      activeCycle: {
+        cycleNumber: 1,
+        id: 7,
+      },
+      program: {
+        config: {},
+        id: 11,
+        name: 'Starter',
+        template_key: 'starter',
+      },
+      savedAt: '2026-05-08T10:00:00.000Z',
+      suggested: {
+        dayIndex: 0,
+        weekNumber: 1,
+      },
+      userId: 'user-123',
+      version: 1,
+      workouts: [],
+    })
+
+    render(<PwaLaunchShell />)
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/gym')
+    })
+  })
+
+  it('uses the current location as the launch destination when the cached launch shell is served directly on an authenticated route', async () => {
+    setOnline(false)
+    window.history.replaceState(null, '', '/workouts')
+    mocks.getStoredAuthScopeHint.mockReturnValue('user-123')
+    mocks.getPersistedQueryCacheMetadata.mockResolvedValue({
+      schemaVersion: 4,
+      stale: false,
+      updatedAt: '2026-05-09T08:00:00.000Z',
+      userId: 'user-123',
+    })
     mocks.getActiveWorkoutSnapshot.mockResolvedValue(null)
     mocks.getOfflineWorkoutPack.mockResolvedValue({
       activeCycle: {

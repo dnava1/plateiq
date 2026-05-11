@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { getAuthKind, sanitizeNextPath } from '@/lib/auth/auth-state'
+import { getAuthKind, isPublicAuthRoute, sanitizeNextPath } from '@/lib/auth/auth-state'
 
 export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -43,11 +43,8 @@ export async function updateSession(request: NextRequest) {
 
   const isRemovedAuthRoute = pathname === '/login' || pathname === '/create-account'
   const isContinueRoute = pathname === '/continue'
-  const isGymRoute = pathname === '/gym'
   const isUpgradeRoute = pathname === '/upgrade'
-  const isLegalRoute = pathname === '/legal'
-  const isCallbackRoute = pathname.startsWith('/auth/callback')
-  const isPublicRoute = pathname === '/' || isContinueRoute || isCallbackRoute || isGymRoute || isLegalRoute
+  const isPublicRoute = isPublicAuthRoute(pathname)
 
   if (isRemovedAuthRoute) {
     const url = request.nextUrl.clone()

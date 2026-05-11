@@ -22,6 +22,24 @@ interface PendingLaunchNavigation {
   requestId: number
 }
 
+interface LaunchSearchParamsLike {
+  get(name: string): string | null
+}
+
+function getRequestedLaunchPath(searchParams: LaunchSearchParamsLike) {
+  const requestedNextPath = searchParams.get('next')
+
+  if (requestedNextPath) {
+    return sanitizeNextPath(requestedNextPath, '/dashboard')
+  }
+
+  if (typeof window !== 'undefined' && window.location.pathname !== '/launch') {
+    return sanitizeNextPath(`${window.location.pathname}${window.location.search}`, '/dashboard')
+  }
+
+  return '/dashboard'
+}
+
 export function PwaLaunchShell() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -44,7 +62,7 @@ export function PwaLaunchShell() {
 
   useEffect(() => {
     let isActive = true
-    const requestedPath = sanitizeNextPath(searchParams.get('next'), '/dashboard')
+    const requestedPath = getRequestedLaunchPath(searchParams)
     const requestId = ++launchRequestIdRef.current
 
     void (async () => {

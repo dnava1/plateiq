@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { usePathname } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { getAuthScope } from '@/lib/auth/auth-state'
+import { getAuthScope, isLaunchRoutePath, isPublicAuthRoute } from '@/lib/auth/auth-state'
 import { getStoredAuthScopeHint } from '@/lib/auth/session-user'
 import { APP_NAV_ITEMS, isActiveNavPath, type AppNavHref } from '@/components/layout/navigation'
 import { useUiStore } from '@/store/uiStore'
@@ -87,7 +87,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const hydratedMutationScopeRef = useRef<string | null>(null)
   const isAuthenticatedAppPath = APP_NAV_ITEMS.some((item) => isActiveNavPath(pathname, item.href))
   const shouldDeferHintRestore = !isAuthReady
-    && (pathname === '/launch' || isAuthenticatedAppPath)
+    && (isLaunchRoutePath(pathname) || !isPublicAuthRoute(pathname))
     && typeof navigator !== 'undefined'
     && navigator.onLine
   const cacheScope = isAuthReady ? authScope : shouldDeferHintRestore ? null : cacheScopeHint
