@@ -31,44 +31,6 @@ function isAndroidDevice(userAgent: string) {
   return /Android/i.test(userAgent)
 }
 
-async function registerServiceWorker() {
-  if (!('serviceWorker' in navigator)) {
-    return
-  }
-
-  const registration = await navigator.serviceWorker.register('/sw.js', {
-    scope: '/',
-    updateViaCache: 'none',
-  })
-
-  if (registration.waiting) {
-    registration.waiting.postMessage({ type: 'SKIP_WAITING' })
-  }
-
-  registration.addEventListener('updatefound', () => {
-    const nextWorker = registration.installing
-
-    if (!nextWorker) {
-      return
-    }
-
-    nextWorker.addEventListener('statechange', () => {
-      if (nextWorker.state === 'installed' && navigator.serviceWorker.controller) {
-        nextWorker.postMessage({ type: 'SKIP_WAITING' })
-      }
-    })
-  })
-}
-
-async function unregisterServiceWorkers() {
-  if (!('serviceWorker' in navigator)) {
-    return
-  }
-
-  const registrations = await navigator.serviceWorker.getRegistrations()
-  await Promise.all(registrations.map((registration) => registration.unregister()))
-}
-
 type InstallMode = 'hidden' | 'prompt' | 'ios-safari' | 'ios-browser' | 'android-browser'
 
 interface PwaUiState {
@@ -134,16 +96,6 @@ export function PwaSupport() {
     const animationFrameId = window.requestAnimationFrame(() => {
       setUiState(resolvePwaUiState())
     })
-
-    if (process.env.NODE_ENV === 'production') {
-      void registerServiceWorker().catch(() => undefined)
-    } else {
-      void unregisterServiceWorkers().catch(() => undefined)
-    }
-
-    if ('storage' in navigator && 'persist' in navigator.storage) {
-      void navigator.storage.persist().catch(() => undefined)
-    }
 
     const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault()

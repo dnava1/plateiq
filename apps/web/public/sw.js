@@ -62,8 +62,36 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+    return;
+  }
+
+  if (event.data && event.data.type === 'PREPARE_OFFLINE_LAUNCH') {
+    event.waitUntil(
+      caches.open(CACHE_VERSION)
+        .then((cache) => precacheShell(cache))
+        .then(() => {
+          respondToMessage(event, {
+            cacheVersion: CACHE_VERSION,
+            ok: true,
+            type: 'OFFLINE_LAUNCH_READY',
+          });
+        })
+        .catch((error) => {
+          respondToMessage(event, {
+            message: error instanceof Error ? error.message : 'Unable to prepare the offline launch shell.',
+            ok: false,
+            type: 'OFFLINE_LAUNCH_ERROR',
+          });
+        })
+    );
   }
 });
+
+function respondToMessage(event, payload) {
+  if (event.ports && event.ports[0]) {
+    event.ports[0].postMessage(payload);
+  }
+}
 
 self.addEventListener('fetch', (event) => {
   const request = event.request;

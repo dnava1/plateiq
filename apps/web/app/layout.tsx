@@ -6,6 +6,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
 import { Providers } from './providers'
 import { DeferredClientChrome } from '@/components/layout/DeferredClientChrome'
+import { PwaBootstrap } from '@/components/pwa/PwaBootstrap'
 
 const manrope = Manrope({
   variable: '--font-manrope',
@@ -447,6 +448,7 @@ export default async function RootLayout({
             </div>
           </div>
         </div>
+        <PwaBootstrap />
         <Providers>{children}</Providers>
         <DeferredClientChrome />
         {isVercelProduction ? (

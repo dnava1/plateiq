@@ -19,6 +19,13 @@ describe('service worker cache safety', () => {
     expect(serviceWorkerSource).toContain('Response.redirect(')
   })
 
+  it('supports an explicit offline launch prepare handshake for eager bootstrap readiness', () => {
+    expect(serviceWorkerSource).toContain("event.data && event.data.type === 'PREPARE_OFFLINE_LAUNCH'")
+    expect(serviceWorkerSource).toContain("type: 'OFFLINE_LAUNCH_READY'")
+    expect(serviceWorkerSource).toContain("type: 'OFFLINE_LAUNCH_ERROR'")
+    expect(serviceWorkerSource).toContain('function respondToMessage(event, payload) {')
+  })
+
   it('does not add authenticated documents to the public precache list', () => {
     const precacheBlock = serviceWorkerSource.slice(
       serviceWorkerSource.indexOf('const PRECACHE_URLS = ['),
