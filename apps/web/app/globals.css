@@ -463,12 +463,6 @@
 @media (width < 48rem) {
   @layer utilities {
     .authenticated-app-shell {
-      --authenticated-mobile-header-lane-size: 3.375rem;
-      --authenticated-mobile-header-offset: calc(max(var(--app-safe-area-inset-top), 0.5rem) + var(--authenticated-mobile-header-lane-size));
-      --authenticated-mobile-nav-gap: max(var(--app-safe-area-inset-bottom), 0.375rem);
-      --authenticated-mobile-nav-lane-size: 3.625rem;
-      --authenticated-mobile-nav-offset: calc(var(--authenticated-mobile-nav-gap) + var(--authenticated-mobile-nav-lane-size));
-      --authenticated-mobile-scroll-padding: 1.5rem;
       display: flex;
       height: 100vh;
       height: 100dvh;
@@ -482,13 +476,7 @@
       overflow-x: clip;
       overflow-y: auto;
       overscroll-behavior-y: contain;
-      padding-top: calc(var(--authenticated-mobile-header-offset) + var(--authenticated-mobile-scroll-padding));
-      scroll-padding-top: calc(var(--authenticated-mobile-header-offset) + var(--authenticated-mobile-scroll-padding));
-      scroll-padding-bottom: calc(var(--authenticated-mobile-nav-offset) + var(--authenticated-mobile-scroll-padding));
       -webkit-overflow-scrolling: touch;
-    }
-    .authenticated-app-scroll.pb-safe-content {
-      padding-bottom: calc(var(--authenticated-mobile-nav-offset) + var(--authenticated-mobile-scroll-padding));
     }
     .authenticated-app-header-slot::before {
       display: block;
@@ -584,7 +572,6 @@
 
   .authenticated-app-shell {
     --authenticated-shell-height-mode: standalone;
-    --authenticated-mobile-nav-gap: clamp(1rem, calc(var(--app-safe-area-inset-bottom) - 1rem), 1.125rem);
     height: 100lvh;
     min-height: 100lvh;
   }
@@ -597,7 +584,6 @@
 
 html[data-pwa-display-mode='standalone'] .authenticated-app-shell {
   --authenticated-shell-height-mode: standalone;
-  --authenticated-mobile-nav-gap: clamp(1rem, calc(var(--app-safe-area-inset-bottom) - 1rem), 1.125rem);
   height: 100lvh;
   min-height: 100lvh;
 }

@@ -11,14 +11,6 @@ type MockExercise = {
   created_by_user_id?: string
 }
 
-type BuilderMobileShellMetrics = {
-  actionGap: number
-  rootScrollTop: number
-  scrollTop: number
-}
-
-type BuilderMethod = 'general' | 'tm_driven'
-
 async function installBuilderNetworkRoutes(page: Page) {
   let exercises: MockExercise[] = [
     { id: 1, name: 'Squat', analytics_track: 'standard', movement_pattern: 'squat', strength_lift_slug: 'back_squat' },
@@ -163,96 +155,6 @@ async function clickBuilderNext(main: Locator) {
   throw new Error('Unable to find the next builder action.')
 }
 
-async function getBuilderMobileShellMetrics(page: Page): Promise<BuilderMobileShellMetrics> {
-  return await page.evaluate(() => {
-    const scrollRegionElement = document.querySelector<HTMLElement>('[data-app-scroll-region="true"]')
-    const tabs = document.querySelector<HTMLElement>('[data-app-chrome="tabs"] .app-shell > div')
-    const nextButton = Array.from(document.querySelectorAll<HTMLButtonElement>('main button'))
-      .find((button) => button.offsetParent !== null && button.textContent?.trim() === 'Next')
-
-    if (!scrollRegionElement || !tabs || !nextButton) {
-      throw new Error('Missing builder mobile shell elements.')
-    }
-
-    const tabsRect = tabs.getBoundingClientRect()
-    const nextButtonRect = nextButton.getBoundingClientRect()
-
-    return {
-      actionGap: tabsRect.top - nextButtonRect.bottom,
-      rootScrollTop: document.scrollingElement?.scrollTop ?? 0,
-      scrollTop: scrollRegionElement.scrollTop,
-    }
-  })
-}
-
-async function assertBuilderBasicsActionReachable(
-  page: Page,
-  main: Locator,
-  builderMethod: BuilderMethod,
-  options?: {
-    standalone?: boolean
-  },
-) {
-  const scrollRegion = page.locator('[data-app-scroll-region="true"]')
-
-  await page.goto(`/programs/builder?method=${builderMethod}`)
-
-  await expect(page).toHaveURL(new RegExp(`/programs/builder\\?method=${builderMethod}$`))
-  await expect(main.getByRole('heading', { name: 'Build a Program' })).toBeVisible()
-
-  const trainingMaxLabel = main.getByText('Training Max Working Percentage', { exact: true })
-
-  if (builderMethod === 'general') {
-    await expect(trainingMaxLabel).toHaveCount(0)
-  } else {
-    await expect(trainingMaxLabel).toBeVisible()
-  }
-
-  if (options?.standalone) {
-    await page.evaluate(() => {
-      document.documentElement.style.setProperty('--app-safe-area-inset-bottom', '34px')
-      document.documentElement.dataset.pwaDisplayMode = 'standalone'
-    })
-
-    await expect.poll(async () => (
-      page.evaluate(() => {
-        const shell = document.querySelector<HTMLElement>('[data-authenticated-shell="true"]')
-
-        return shell
-          ? getComputedStyle(shell).getPropertyValue('--authenticated-shell-height-mode').trim()
-          : ''
-      })
-    )).toBe('standalone')
-  }
-
-  await page.evaluate(() => window.scrollTo(0, 600))
-  await expect.poll(async () => (
-    page.evaluate(() => document.scrollingElement?.scrollTop ?? 0)
-  )).toBe(0)
-
-  const initialMetrics = await getBuilderMobileShellMetrics(page)
-
-  expect(initialMetrics.rootScrollTop).toBe(0)
-
-  if (initialMetrics.actionGap <= 8) {
-    await scrollRegion.evaluate((element) => element.scrollTo(0, element.scrollHeight))
-
-    await expect.poll(async () => {
-      const metrics = await getBuilderMobileShellMetrics(page)
-
-      return metrics.actionGap
-    }).toBeGreaterThan(8)
-
-    const scrolledMetrics = await getBuilderMobileShellMetrics(page)
-
-    expect(scrolledMetrics.rootScrollTop).toBe(0)
-    expect(scrolledMetrics.scrollTop).toBeGreaterThan(0)
-    return
-  }
-
-  expect(initialMetrics.actionGap).toBeGreaterThan(8)
-}
-
 async function reachProgressionStep(page: Page) {
   const main = page.getByRole('main')
   const visibleParagraphs = main.locator('p:visible')
@@ -324,26 +226,6 @@ test.describe('program builder browser flow', () => {
 
     await expect(page).toHaveURL(/\/programs\/builder\?method=tm_driven/)
     await expect(main.getByText('Training Max Working Percentage', { exact: true })).toBeVisible()
-  })
-
-  test('keeps the builder basics action reachable above the mobile tabs for general and TM-driven entry points', async ({ page }) => {
-    const main = page.getByRole('main')
-
-    await page.setViewportSize({ width: 390, height: 844 })
-
-    for (const builderMethod of ['general', 'tm_driven'] as const) {
-      await assertBuilderBasicsActionReachable(page, main, builderMethod)
-    }
-  })
-
-  test('keeps the builder basics action reachable above the mobile tabs in standalone mode', async ({ page }) => {
-    const main = page.getByRole('main')
-
-    await page.setViewportSize({ width: 390, height: 844 })
-
-    for (const builderMethod of ['general', 'tm_driven'] as const) {
-      await assertBuilderBasicsActionReachable(page, main, builderMethod, { standalone: true })
-    }
   })
 
   test('lets users click later builder steps without bypassing validation', async ({ page }) => {
