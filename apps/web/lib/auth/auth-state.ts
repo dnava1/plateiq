@@ -6,7 +6,9 @@ type AuthUserLike = Pick<User, 'id' | 'is_anonymous'> | null | undefined
 
 const AUTH_CALLBACK_PATH = '/auth/callback'
 const LAUNCH_PATH = '/launch'
+const GYM_PATH = '/gym'
 const PUBLIC_AUTH_ROUTE_PATHS = new Set<string>(['/', '/continue', '/gym', LAUNCH_PATH, '/legal'])
+const OFFLINE_CAPABLE_BOOT_ROUTE_PATHS = new Set<string>([GYM_PATH, LAUNCH_PATH])
 
 export function getAuthKind(user: AuthUserLike): AuthKind {
   if (!user) {
@@ -42,6 +44,10 @@ function normalizePathname(pathname: string) {
 
 export function isLaunchRoutePath(pathname: string) {
   return normalizePathname(pathname) === LAUNCH_PATH
+}
+
+export function isOfflineCapableBootRoutePath(pathname: string) {
+  return OFFLINE_CAPABLE_BOOT_ROUTE_PATHS.has(normalizePathname(pathname))
 }
 
 export function isPublicAuthRoute(pathname: string) {

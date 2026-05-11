@@ -90,6 +90,17 @@ describe('query persistence helpers', () => {
     expect(Date.parse(metadata.updatedAt)).not.toBeNaN()
   })
 
+  it('does not mark persisted query metadata stale when the browser reports offline', () => {
+    Object.defineProperty(window.navigator, 'onLine', {
+      configurable: true,
+      value: false,
+    })
+
+    const metadata = buildPersistedQueryCacheMetadata('user-123')
+
+    expect(metadata.stale).toBe(false)
+  })
+
   it('treats persisted query metadata older than the max age as not fresh', () => {
     const freshMetadata: ReturnType<typeof buildPersistedQueryCacheMetadata> = {
       schemaVersion: QUERY_CACHE_SCHEMA_VERSION,

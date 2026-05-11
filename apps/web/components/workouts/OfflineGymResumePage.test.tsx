@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { OfflineGymResumePage } from './OfflineGymResumePage'
 
 const mocks = vi.hoisted(() => ({
+  fetch: vi.fn(),
   getSession: vi.fn(),
   getActiveWorkoutSnapshot: vi.fn(),
   getLastSnapshotUserId: vi.fn(),
@@ -18,6 +19,8 @@ vi.mock('next/navigation', () => ({
     replace: mocks.replace,
   }),
 }))
+
+vi.stubGlobal('fetch', (...args: Parameters<typeof fetch>) => mocks.fetch(...args))
 
 vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
@@ -153,6 +156,8 @@ describe('OfflineGymResumePage', () => {
       configurable: true,
       value: true,
     })
+    mocks.fetch.mockReset()
+    mocks.fetch.mockResolvedValue({ ok: true })
     mocks.getSession.mockReset()
     mocks.getSession.mockResolvedValue({
       data: {
@@ -209,12 +214,9 @@ describe('OfflineGymResumePage', () => {
     })
   })
 
-  it('falls back to the last offline user when session lookup stalls offline', async () => {
+  it('falls back to the last offline user when session lookup stalls during a false-online boot', async () => {
     vi.useFakeTimers()
-    Object.defineProperty(window.navigator, 'onLine', {
-      configurable: true,
-      value: false,
-    })
+    mocks.fetch.mockRejectedValue(new Error('offline'))
     mocks.getSession.mockReturnValue(new Promise(() => undefined))
     mocks.getLastSnapshotUserId.mockReturnValue('user-123')
     mocks.getActiveWorkoutSnapshot.mockResolvedValue(completedSnapshot)
@@ -230,12 +232,25 @@ describe('OfflineGymResumePage', () => {
     expect(screen.getByRole('button', { name: /complete workout/i })).toBeInTheDocument()
   })
 
-  it('leaves loading when offline session lookup stalls without saved data', async () => {
+  it('does not trust the last offline user when the reachability probe is indeterminate', async () => {
     vi.useFakeTimers()
-    Object.defineProperty(window.navigator, 'onLine', {
-      configurable: true,
-      value: false,
+    mocks.fetch.mockRejectedValue(Object.assign(new Error('aborted'), { name: 'AbortError' }))
+    mocks.getSession.mockReturnValue(new Promise(() => undefined))
+    mocks.getLastSnapshotUserId.mockReturnValue('user-123')
+
+    render(<OfflineGymResumePage />)
+
+    await act(async () => {
+      vi.advanceTimersByTime(1300)
     })
+
+    expect(screen.getByText('Sign in required')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /open sign-in/i })).toBeInTheDocument()
+  })
+
+  it('leaves loading when the network probe fails and no saved data exists', async () => {
+    vi.useFakeTimers()
+    mocks.fetch.mockRejectedValue(new Error('offline'))
     mocks.getSession.mockReturnValue(new Promise(() => undefined))
     mocks.getLastSnapshotUserId.mockReturnValue(null)
 

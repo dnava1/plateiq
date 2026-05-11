@@ -4,7 +4,11 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { CloudOff, Loader2 } from 'lucide-react'
 import { sanitizeNextPath } from '@/lib/auth/auth-state'
-import { getSessionUserIdWithTimeout, getStoredAuthScopeHint } from '@/lib/auth/session-user'
+import {
+  getSessionUserIdWithTimeout,
+  getStoredAuthScopeHint,
+  probeSameOriginNetworkReachability,
+} from '@/lib/auth/session-user'
 import { PlateIqMark } from '@/components/brand/PlateIqMark'
 import { getActiveWorkoutSnapshot, getOfflineWorkoutPack } from '@/lib/offline-workout-store'
 import { getPersistedQueryCacheMetadata, isPersistedQueryCacheMetadataFresh } from '@/lib/query-persistence'
@@ -66,17 +70,22 @@ export function PwaLaunchShell() {
     const requestId = ++launchRequestIdRef.current
 
     void (async () => {
-      const isOfflineLaunch = !navigator.onLine
-      const offlineScopeHint = isOfflineLaunch ? getStoredAuthScopeHint() : null
-      const sessionUserId = offlineScopeHint ? null : await getSessionUserIdWithTimeout()
-      const resolvedUserId = sessionUserId ?? offlineScopeHint
+      const localScopeHint = getStoredAuthScopeHint()
+      const [sessionUserId, networkReachability] = await Promise.all([
+        getSessionUserIdWithTimeout(),
+        probeSameOriginNetworkReachability(),
+      ])
+      const isNetworkReachable = networkReachability === 'reachable'
+      const isNetworkUnreachable = networkReachability === 'unreachable'
+      const hasConfirmedOnlineAuth = Boolean(sessionUserId && isNetworkReachable)
+      const resolvedUserId = sessionUserId ?? (isNetworkUnreachable ? localScopeHint : null)
 
       if (!isActive) {
         return
       }
 
       if (!resolvedUserId) {
-        if (navigator.onLine) {
+        if (isNetworkReachable) {
           setPendingNavigation({
             nextPath: '/continue',
             requestId,
@@ -92,7 +101,7 @@ export function PwaLaunchShell() {
         return
       }
 
-      if (!isOfflineLaunch && sessionUserId) {
+      if (hasConfirmedOnlineAuth) {
         setState({
           detail: null,
           status: 'launching',
@@ -118,7 +127,7 @@ export function PwaLaunchShell() {
       const hasFreshWarmSnapshot = isPersistedQueryCacheMetadataFresh(cacheMetadata)
       const hasOfflineWorkoutState = Boolean(activeWorkout || offlineWorkoutPack)
 
-      if (isOfflineLaunch && !hasFreshWarmSnapshot && !hasOfflineWorkoutState) {
+      if (!isNetworkReachable && !hasFreshWarmSnapshot && !hasOfflineWorkoutState) {
         setState({
           detail: 'Open PlateIQ online once so this device can refresh your cached shell, or save a workout pack before going offline.',
           status: 'offline-unavailable',
@@ -127,7 +136,7 @@ export function PwaLaunchShell() {
         return
       }
 
-      const nextPath = isOfflineLaunch && hasOfflineWorkoutState && (!hasFreshWarmSnapshot || requestedPath === '/workouts')
+      const nextPath = !isNetworkReachable && hasOfflineWorkoutState && (!hasFreshWarmSnapshot || requestedPath === '/workouts')
         ? '/gym'
         : requestedPath
 

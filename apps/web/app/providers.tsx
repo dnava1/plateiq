@@ -4,8 +4,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { usePathname } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { getAuthScope, isLaunchRoutePath, isPublicAuthRoute } from '@/lib/auth/auth-state'
-import { getStoredAuthScopeHint } from '@/lib/auth/session-user'
+import { getAuthScope, isOfflineCapableBootRoutePath, isPublicAuthRoute } from '@/lib/auth/auth-state'
+import {
+  getStoredAuthScopeHint,
+  probeSameOriginNetworkReachability,
+  type NetworkReachability,
+} from '@/lib/auth/session-user'
 import { APP_NAV_ITEMS, isActiveNavPath, type AppNavHref } from '@/components/layout/navigation'
 import { useUiStore } from '@/store/uiStore'
 import { createClient } from '@/lib/supabase/client'
@@ -81,22 +85,59 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [authScope, setAuthScope] = useState<string | null>(null)
   const [pendingNavHref, setPendingNavHref] = useState<AppNavHref | null>(null)
   const [isAuthReady, setIsAuthReady] = useState(false)
+  const [bootNetworkReachability, setBootNetworkReachability] = useState<NetworkReachability | null>(null)
   const [restoredCacheScope, setRestoredCacheScope] = useState<string | null>(null)
   const initialCacheScopeHintRef = useRef(cacheScopeHint)
   const previousAuthScopeRef = useRef<string | null>(null)
   const hydratedMutationScopeRef = useRef<string | null>(null)
   const isAuthenticatedAppPath = APP_NAV_ITEMS.some((item) => isActiveNavPath(pathname, item.href))
-  const shouldDeferHintRestore = !isAuthReady
-    && (isLaunchRoutePath(pathname) || !isPublicAuthRoute(pathname))
-    && typeof navigator !== 'undefined'
-    && navigator.onLine
-  const cacheScope = isAuthReady ? authScope : shouldDeferHintRestore ? null : cacheScopeHint
+  const isOfflineCapableBootPath = isOfflineCapableBootRoutePath(pathname)
+  const cacheScope = (() => {
+    if (isAuthReady) {
+      return authScope
+    }
+
+    if (isOfflineCapableBootPath) {
+      return bootNetworkReachability === 'unreachable' ? cacheScopeHint : null
+    }
+
+    if (!isPublicAuthRoute(pathname)) {
+      return null
+    }
+
+    return cacheScopeHint
+  })()
   const queryClientScope = cacheScope ?? 'signed-out'
   const queryClient = useMemo(() => makeQueryClient(queryClientScope), [queryClientScope])
   const persister = useMemo(() => {
     return cacheScope ? createIdbPersister(cacheScope) : null
   }, [cacheScope])
   const isWarmDataReady = !cacheScope || restoredCacheScope === cacheScope
+
+  useEffect(() => {
+    if (!cacheScopeHint || !isOfflineCapableBootPath || isAuthReady) {
+      setBootNetworkReachability(null)
+      return
+    }
+
+    let isActive = true
+
+    void probeSameOriginNetworkReachability()
+      .then((reachable) => {
+        if (isActive) {
+          setBootNetworkReachability(reachable)
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setBootNetworkReachability('unknown')
+        }
+      })
+
+    return () => {
+      isActive = false
+    }
+  }, [cacheScopeHint, isAuthReady, isOfflineCapableBootPath])
 
   useEffect(() => {
     if (!pendingNavHref) {

@@ -38,7 +38,7 @@ export function getQueryPersistenceBuster(userId: string) {
 export function buildPersistedQueryCacheMetadata(userId: string): PersistedQueryCacheMetadata {
   return {
     schemaVersion: QUERY_CACHE_SCHEMA_VERSION,
-    stale: typeof navigator !== 'undefined' ? !navigator.onLine : false,
+    stale: false,
     updatedAt: new Date().toISOString(),
     userId,
   }

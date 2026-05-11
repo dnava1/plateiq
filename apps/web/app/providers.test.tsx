@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
     },
   })),
   pathname: '/legal',
+  probeSameOriginNetworkReachability: vi.fn().mockResolvedValue('reachable'),
 }))
 
 vi.mock('next/navigation', () => ({
@@ -60,6 +61,7 @@ vi.mock('@tanstack/react-query-persist-client', () => ({
 
 vi.mock('@/lib/auth/session-user', () => ({
   getStoredAuthScopeHint: () => mocks.cacheScopeHint,
+  probeSameOriginNetworkReachability: () => mocks.probeSameOriginNetworkReachability(),
 }))
 
 vi.mock('@/store/uiStore', () => ({
@@ -96,6 +98,8 @@ describe('Providers', () => {
     mocks.createIdbPersister.mockClear()
     mocks.getSession.mockImplementation(() => new Promise(() => {}))
     mocks.pathname = '/legal'
+    mocks.probeSameOriginNetworkReachability.mockReset()
+    mocks.probeSameOriginNetworkReachability.mockResolvedValue('reachable')
     setOnline(true)
   })
 
@@ -113,9 +117,10 @@ describe('Providers', () => {
     expect(screen.queryByText('Restoring saved data')).not.toBeInTheDocument()
   })
 
-  it('defers hinted persisted restore on online launch boots until auth resolves', () => {
+  it('defers hinted persisted restore on online launch boots until offline fallback is confirmed', () => {
     mocks.cacheScopeHint = 'user-123'
     mocks.pathname = '/launch'
+    mocks.probeSameOriginNetworkReachability.mockReturnValue(new Promise(() => undefined))
 
     render(
       <Providers>
@@ -126,6 +131,61 @@ describe('Providers', () => {
     expect(screen.getByTestId('query-provider')).toBeInTheDocument()
     expect(screen.queryByTestId('persist-provider')).not.toBeInTheDocument()
     expect(mocks.createIdbPersister).not.toHaveBeenCalled()
+  })
+
+  it('restores the hinted cache on launch once the same-origin reachability probe fails', async () => {
+    mocks.cacheScopeHint = 'user-123'
+    mocks.pathname = '/launch'
+    mocks.probeSameOriginNetworkReachability.mockResolvedValue('unreachable')
+
+    render(
+      <Providers>
+        <div>child content</div>
+      </Providers>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('persist-provider')).toBeInTheDocument()
+    })
+
+    expect(mocks.createIdbPersister).toHaveBeenCalledWith('user-123')
+  })
+
+  it('restores the hinted cache on gym boots once the same-origin reachability probe fails', async () => {
+    mocks.cacheScopeHint = 'user-123'
+    mocks.pathname = '/gym'
+    mocks.probeSameOriginNetworkReachability.mockResolvedValue('unreachable')
+
+    render(
+      <Providers>
+        <div>child content</div>
+      </Providers>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('persist-provider')).toBeInTheDocument()
+    })
+
+    expect(mocks.createIdbPersister).toHaveBeenCalledWith('user-123')
+  })
+
+  it('keeps hinted restore disabled while launch reachability is indeterminate', async () => {
+    mocks.cacheScopeHint = 'user-123'
+    mocks.pathname = '/launch'
+    mocks.probeSameOriginNetworkReachability.mockResolvedValue('unknown')
+
+    render(
+      <Providers>
+        <div>child content</div>
+      </Providers>,
+    )
+
+    await waitFor(() => {
+      expect(mocks.probeSameOriginNetworkReachability).toHaveBeenCalledTimes(1)
+    })
+
+    expect(screen.getByTestId('query-provider')).toBeInTheDocument()
+    expect(screen.queryByTestId('persist-provider')).not.toBeInTheDocument()
   })
 
   it('defers hinted persisted restore on direct authenticated route boots until auth resolves', () => {

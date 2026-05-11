@@ -5,7 +5,11 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { Activity, CloudOff, Dumbbell, Play, RefreshCw } from 'lucide-react'
 import { useOfflineWorkoutSync } from '@/hooks/useOfflineWorkoutSync'
-import { getSessionUserIdWithTimeout, getStoredAuthScopeHint } from '@/lib/auth/session-user'
+import {
+  getSessionUserIdWithTimeout,
+  getStoredAuthScopeHint,
+  probeSameOriginNetworkReachability,
+} from '@/lib/auth/session-user'
 import {
   createOfflineWorkoutSnapshotFromPackWorkout,
   getActiveWorkoutSnapshot,
@@ -81,14 +85,19 @@ export function OfflineGymResumePage() {
     let isActive = true
 
     const loadSnapshot = async () => {
-      const offlineUserId = navigator.onLine ? null : getStoredAuthScopeHint()
-      const sessionUserId = offlineUserId ? null : await getSessionUserIdWithTimeout()
-      const resolvedUserId = sessionUserId ?? offlineUserId
+      const localScopeHint = getStoredAuthScopeHint()
+      const [sessionUserId, networkReachability] = await Promise.all([
+        getSessionUserIdWithTimeout(),
+        probeSameOriginNetworkReachability(),
+      ])
+      const isNetworkReachable = networkReachability === 'reachable'
+      const resolvedUserId = sessionUserId ?? (networkReachability === 'unreachable' ? localScopeHint : null)
 
       if (!isActive) {
         return
       }
 
+      setIsOnline(isNetworkReachable)
       setUserId(resolvedUserId)
 
       if (!resolvedUserId) {
@@ -122,10 +131,6 @@ export function OfflineGymResumePage() {
   }, [])
 
   useEffect(() => {
-    const initialStatusId = window.setTimeout(() => {
-      setIsOnline(navigator.onLine)
-    }, 0)
-
     const handleOnline = () => setIsOnline(true)
     const handleOffline = () => setIsOnline(false)
 
@@ -133,7 +138,6 @@ export function OfflineGymResumePage() {
     window.addEventListener('offline', handleOffline)
 
     return () => {
-      window.clearTimeout(initialStatusId)
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
@@ -148,7 +152,7 @@ export function OfflineGymResumePage() {
   }, [])
 
   useEffect(() => {
-    if (isLoading || !isOnline || snapshot || pack || !navigator.onLine) {
+    if (isLoading || !isOnline || snapshot || pack) {
       return
     }
 

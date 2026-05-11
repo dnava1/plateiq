@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isLaunchRoutePath, isPublicAuthRoute, sanitizeNextPath } from './auth-state'
+import { isLaunchRoutePath, isOfflineCapableBootRoutePath, isPublicAuthRoute, sanitizeNextPath } from './auth-state'
 
 describe('isPublicAuthRoute', () => {
   it('allows the shared public auth routes and callback path', () => {
@@ -23,6 +23,14 @@ describe('isLaunchRoutePath', () => {
   it('normalizes launch shell paths with a trailing slash', () => {
     expect(isLaunchRoutePath('/launch/')).toBe(true)
     expect(isLaunchRoutePath('/dashboard')).toBe(false)
+  })
+})
+
+describe('isOfflineCapableBootRoutePath', () => {
+  it('marks launch and gym as provisional offline boot routes', () => {
+    expect(isOfflineCapableBootRoutePath('/launch/')).toBe(true)
+    expect(isOfflineCapableBootRoutePath('/gym')).toBe(true)
+    expect(isOfflineCapableBootRoutePath('/continue')).toBe(false)
   })
 })
 

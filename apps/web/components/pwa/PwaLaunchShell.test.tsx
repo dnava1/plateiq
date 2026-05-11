@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   getActiveWorkoutSnapshot: vi.fn(),
   getOfflineWorkoutPack: vi.fn(),
   getPersistedQueryCacheMetadata: vi.fn(),
+  probeSameOriginNetworkReachability: vi.fn(),
   getSessionUserIdWithTimeout: vi.fn(),
   getStoredAuthScopeHint: vi.fn(),
   replace: vi.fn(),
@@ -30,6 +31,7 @@ vi.mock('@/components/layout/AppShellClientState', () => ({
 vi.mock('@/lib/auth/session-user', () => ({
   getSessionUserIdWithTimeout: () => mocks.getSessionUserIdWithTimeout(),
   getStoredAuthScopeHint: () => mocks.getStoredAuthScopeHint(),
+  probeSameOriginNetworkReachability: () => mocks.probeSameOriginNetworkReachability(),
 }))
 
 vi.mock('@/lib/offline-workout-store', () => ({
@@ -57,6 +59,7 @@ describe('PwaLaunchShell', () => {
     mocks.getActiveWorkoutSnapshot.mockReset()
     mocks.getOfflineWorkoutPack.mockReset()
     mocks.getPersistedQueryCacheMetadata.mockReset()
+    mocks.probeSameOriginNetworkReachability.mockReset()
     mocks.getSessionUserIdWithTimeout.mockReset()
     mocks.getStoredAuthScopeHint.mockReset()
     mocks.replace.mockReset()
@@ -65,6 +68,7 @@ describe('PwaLaunchShell', () => {
     mocks.shellState = {
       isWarmDataReady: true,
     }
+    mocks.probeSameOriginNetworkReachability.mockResolvedValue('reachable')
     setOnline(true)
     vi.useRealTimers()
     window.history.replaceState(null, '', '/launch')
@@ -140,9 +144,10 @@ describe('PwaLaunchShell', () => {
   })
 
   it('routes offline boots with a saved workout pack into gym mode even without a warm query snapshot', async () => {
-    setOnline(false)
+    mocks.probeSameOriginNetworkReachability.mockResolvedValue('unreachable')
     mocks.searchParams = new URLSearchParams('next=%2Fdashboard')
     mocks.getStoredAuthScopeHint.mockReturnValue('user-123')
+    mocks.getSessionUserIdWithTimeout.mockResolvedValue(null)
     mocks.getPersistedQueryCacheMetadata.mockResolvedValue(null)
     mocks.getActiveWorkoutSnapshot.mockResolvedValue(null)
     mocks.getOfflineWorkoutPack.mockResolvedValue({
@@ -173,14 +178,15 @@ describe('PwaLaunchShell', () => {
     })
   })
 
-  it('uses the current location as the launch destination when the cached launch shell is served directly on an authenticated route', async () => {
-    setOnline(false)
+  it('falls back to gym mode when an unresolved launch is served directly on an authenticated route', async () => {
+    mocks.probeSameOriginNetworkReachability.mockResolvedValue('unreachable')
     window.history.replaceState(null, '', '/workouts')
     mocks.getStoredAuthScopeHint.mockReturnValue('user-123')
+    mocks.getSessionUserIdWithTimeout.mockResolvedValue(null)
     mocks.getPersistedQueryCacheMetadata.mockResolvedValue({
       schemaVersion: 4,
       stale: false,
-      updatedAt: '2026-05-09T08:00:00.000Z',
+      updatedAt: new Date().toISOString(),
       userId: 'user-123',
     })
     mocks.getActiveWorkoutSnapshot.mockResolvedValue(null)
@@ -239,10 +245,12 @@ describe('PwaLaunchShell', () => {
     })
   })
 
-  it('shows the offline unavailable state when the cached query shell is too old and no workout state exists', async () => {
-    setOnline(false)
+  it('shows offline unavailable instead of continuing when the browser reports online but the network probe fails', async () => {
+    setOnline(true)
+    mocks.probeSameOriginNetworkReachability.mockResolvedValue('unreachable')
     mocks.searchParams = new URLSearchParams('next=%2Fdashboard')
     mocks.getStoredAuthScopeHint.mockReturnValue('user-123')
+    mocks.getSessionUserIdWithTimeout.mockResolvedValue(null)
     mocks.getPersistedQueryCacheMetadata.mockResolvedValue({
       schemaVersion: 4,
       stale: true,
@@ -251,6 +259,44 @@ describe('PwaLaunchShell', () => {
     })
     mocks.getActiveWorkoutSnapshot.mockResolvedValue(null)
     mocks.getOfflineWorkoutPack.mockResolvedValue(null)
+
+    render(<PwaLaunchShell />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Offline access is not ready yet')).toBeInTheDocument()
+    })
+
+    expect(mocks.replace).not.toHaveBeenCalled()
+  })
+
+  it('keeps cached dashboard launches working when the browser reports online but the network probe fails', async () => {
+    setOnline(true)
+    mocks.probeSameOriginNetworkReachability.mockResolvedValue('unreachable')
+    mocks.searchParams = new URLSearchParams('next=%2Fdashboard')
+    mocks.getStoredAuthScopeHint.mockReturnValue('user-123')
+    mocks.getSessionUserIdWithTimeout.mockResolvedValue(null)
+    mocks.getPersistedQueryCacheMetadata.mockResolvedValue({
+      schemaVersion: 4,
+      stale: false,
+      updatedAt: new Date().toISOString(),
+      userId: 'user-123',
+    })
+    mocks.getActiveWorkoutSnapshot.mockResolvedValue(null)
+    mocks.getOfflineWorkoutPack.mockResolvedValue(null)
+
+    render(<PwaLaunchShell />)
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/dashboard')
+    })
+  })
+
+  it('does not trust the cached scope hint when the reachability probe is indeterminate', async () => {
+    setOnline(true)
+    mocks.probeSameOriginNetworkReachability.mockResolvedValue('unknown')
+    mocks.searchParams = new URLSearchParams('next=%2Fdashboard')
+    mocks.getStoredAuthScopeHint.mockReturnValue('user-123')
+    mocks.getSessionUserIdWithTimeout.mockResolvedValue(null)
 
     render(<PwaLaunchShell />)
 
