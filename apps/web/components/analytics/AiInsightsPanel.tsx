@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { RefreshCw, Sparkles } from 'lucide-react'
 import { useInsights } from '@/hooks/useInsights'
 import { Button } from '@/components/ui/button'
@@ -13,7 +12,7 @@ import {
 } from '@/components/ui/card'
 import type { AnalyticsDateRange } from '@/hooks/useAnalytics'
 import type { AnalyticsCoverage } from '@/types/analytics'
-import type { ProgressionGuidanceAction, ProgressionGuidanceMethodContext, TrainingInsight } from '@/types/insights'
+import type { ProgressionGuidanceAction, ProgressionGuidanceMethodContext, TrainingInsightResult } from '@/types/insights'
 import { formatDateAsLocalIso } from '@/lib/utils'
 
 interface AiInsightsPanelProps {
@@ -64,6 +63,17 @@ function formatGuidanceMethodContextLabel(methodContext: ProgressionGuidanceMeth
   }
 }
 
+function formatInsightGeneratedAt(generatedAt: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(generatedAt))
+}
+
+function getInsightStatusLabel(insight: TrainingInsightResult) {
+  return insight.source === 'cached' ? 'Latest saved insight' : 'Fresh insight'
+}
+
 export function AiInsightsPanel({
   dateRange,
   dateRangeLabel,
@@ -72,29 +82,17 @@ export function AiInsightsPanel({
   selectedExerciseId,
   selectedExerciseName,
 }: AiInsightsPanelProps) {
-  const insightMutation = useInsights()
-  const [insight, setInsight] = useState<TrainingInsight | null>(null)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const insightInput = {
+    dateFrom: formatDateAsLocalIso(dateRange.from),
+    dateTo: formatDateAsLocalIso(dateRange.to),
+    exerciseId: selectedExerciseId,
+  }
+  const insights = useInsights(insightInput)
+  const insight = insights.insight
+  const errorMessage = insights.error instanceof Error ? insights.error.message : null
 
   const handleGenerate = () => {
-    setInsight(null)
-    setErrorMessage(null)
-    insightMutation.reset()
-    insightMutation.mutate(
-      {
-        dateFrom: formatDateAsLocalIso(dateRange.from),
-        dateTo: formatDateAsLocalIso(dateRange.to),
-        exerciseId: selectedExerciseId,
-      },
-      {
-        onError: (error) => {
-          setErrorMessage(error.message)
-        },
-        onSuccess: (nextInsight) => {
-          setInsight(nextInsight)
-        },
-      },
-    )
+    insights.generate()
   }
 
   const generateLabel = selectedExerciseName
@@ -123,13 +121,13 @@ export function AiInsightsPanel({
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <Button onClick={handleGenerate} disabled={!isInsightEligible || insightMutation.isPending} aria-label={generateLabel}>
-                {insightMutation.isPending ? (
+              <Button onClick={handleGenerate} disabled={!isInsightEligible || insights.isPending} aria-label={generateLabel}>
+                {insights.isPending ? (
                   <RefreshCw className="animate-spin" data-icon="inline-start" />
                 ) : (
                   <Sparkles data-icon="inline-start" />
                 )}
-                {insightMutation.isPending ? 'Generating insight...' : 'Generate insight'}
+                {insights.isPending ? 'Generating insight...' : 'Generate insight'}
               </Button>
               <p className="text-sm text-muted-foreground">
                 Scope: {selectedExerciseName ?? 'All exercises'}
@@ -147,6 +145,13 @@ export function AiInsightsPanel({
 
       {insight && (
         <div className="grid gap-4" aria-live="polite">
+          <div className="flex flex-wrap items-center gap-3 rounded-[20px] border border-border/70 bg-background/45 px-4 py-3">
+            <Badge variant="outline">{getInsightStatusLabel(insight)}</Badge>
+            <p className="text-sm text-muted-foreground">
+              Generated {formatInsightGeneratedAt(insight.generatedAt)}
+            </p>
+          </div>
+
           <div className="grid gap-4 xl:grid-cols-2">
             {insight.progressionGuidance.disposition === 'actionable' ? (
               <Card className="surface-panel xl:col-span-2">
@@ -169,43 +174,43 @@ export function AiInsightsPanel({
               </Card>
             ) : null}
 
-          <Card className="surface-panel xl:col-span-2">
-            <CardHeader className="gap-2">
-              <h3 className="font-heading text-base font-medium text-foreground">Summary</h3>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="rounded-[20px] border border-border/70 bg-background/45 p-4 text-sm leading-7 text-foreground">
-                {insight.summary}
-              </div>
-            </CardContent>
-          </Card>
+            <Card className="surface-panel xl:col-span-2">
+              <CardHeader className="gap-2">
+                <h3 className="font-heading text-base font-medium text-foreground">Summary</h3>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="rounded-[20px] border border-border/70 bg-background/45 p-4 text-sm leading-7 text-foreground">
+                  {insight.summary}
+                </div>
+              </CardContent>
+            </Card>
 
-          <Card className="surface-panel">
-            <CardHeader className="gap-2">
-              <h3 className="font-heading text-base font-medium text-foreground">Strengths</h3>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <InsightList items={insight.strengths} />
-            </CardContent>
-          </Card>
+            <Card className="surface-panel">
+              <CardHeader className="gap-2">
+                <h3 className="font-heading text-base font-medium text-foreground">Strengths</h3>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <InsightList items={insight.strengths} />
+              </CardContent>
+            </Card>
 
-          <Card className="surface-panel">
-            <CardHeader className="gap-2">
-              <h3 className="font-heading text-base font-medium text-foreground">Concerns</h3>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <InsightList items={insight.concerns} />
-            </CardContent>
-          </Card>
+            <Card className="surface-panel">
+              <CardHeader className="gap-2">
+                <h3 className="font-heading text-base font-medium text-foreground">Concerns</h3>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <InsightList items={insight.concerns} />
+              </CardContent>
+            </Card>
 
-          <Card className="surface-panel xl:col-span-2">
-            <CardHeader className="gap-2">
-              <h3 className="font-heading text-base font-medium text-foreground">Recommendations</h3>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <InsightList items={insight.recommendations} />
-            </CardContent>
-          </Card>
+            <Card className="surface-panel xl:col-span-2">
+              <CardHeader className="gap-2">
+                <h3 className="font-heading text-base font-medium text-foreground">Recommendations</h3>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <InsightList items={insight.recommendations} />
+              </CardContent>
+            </Card>
           </div>
         </div>
       )}

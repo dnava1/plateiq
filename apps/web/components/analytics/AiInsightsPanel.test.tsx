@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createEmptyAnalyticsCoverage } from '@/lib/analytics'
+import type { TrainingInsightResult } from '@/types/insights'
 import { AiInsightsPanel } from './AiInsightsPanel'
 
 const mocks = vi.hoisted(() => ({
@@ -28,6 +29,44 @@ describe('AiInsightsPanel', () => {
     mocks.useInsights.mockReset()
   })
 
+  function createInsight(overrides: Partial<TrainingInsightResult> = {}): TrainingInsightResult {
+    return {
+      summary: 'Bench press is trending well while squat needs more attention.',
+      strengths: ['Bench press estimated 1RM is climbing.'],
+      concerns: ['Squat PR pace has cooled off.'],
+      recommendations: ['Keep bench volume steady and add one squat top set next week.'],
+      progressionGuidance: {
+        disposition: 'actionable',
+        action: 'increase',
+        exerciseName: 'Bench Press',
+        methodContext: 'loaded_strength',
+        rationale: 'You have enough comparable signal to nudge Bench Press forward without changing the rest of the block.',
+      },
+      generatedAt: '2026-04-01T12:00:00.000Z',
+      source: 'generated',
+      ...overrides,
+    }
+  }
+
+  function createUseInsightsResult(overrides: Partial<ReturnType<typeof mocks.useInsights>> = {}) {
+    return {
+      error: null,
+      generate: vi.fn(),
+      insight: null,
+      isLoading: false,
+      isPending: false,
+      reset: vi.fn(),
+      ...overrides,
+    }
+  }
+
+  function formatGeneratedAt(value: string) {
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date(value))
+  }
+
   function createCoverage() {
     const coverage = createEmptyAnalyticsCoverage()
     coverage.metrics.consistency = {
@@ -39,30 +78,12 @@ describe('AiInsightsPanel', () => {
     return coverage
   }
 
-  it('submits the current filter and renders structured insight sections', async () => {
-    const user = userEvent.setup()
-    const reset = vi.fn()
-    const mutate = vi.fn((_input, options) => {
-      options?.onSuccess?.({
-        summary: 'Bench press is trending well while squat needs more attention.',
-        strengths: ['Bench press estimated 1RM is climbing.'],
-        concerns: ['Squat PR pace has cooled off.'],
-        recommendations: ['Keep bench volume steady and add one squat top set next week.'],
-        progressionGuidance: {
-          disposition: 'actionable',
-          action: 'increase',
-          exerciseName: 'Bench Press',
-          methodContext: 'loaded_strength',
-          rationale: 'You have enough comparable signal to nudge Bench Press forward without changing the rest of the block.',
-        },
-      })
-    })
+  it('uses the current filter and renders structured insight sections', () => {
+    const insight = createInsight()
 
-    mocks.useInsights.mockReturnValue({
-      isPending: false,
-      mutate,
-      reset,
-    })
+    mocks.useInsights.mockReturnValue(createUseInsightsResult({
+      insight,
+    }))
 
     render(
       <AiInsightsPanel
@@ -82,18 +103,11 @@ describe('AiInsightsPanel', () => {
     expect(screen.queryByText('Signals worth preserving.')).not.toBeInTheDocument()
     expect(screen.queryByText('Areas to watch before they become problems.')).not.toBeInTheDocument()
     expect(screen.queryByText('Practical next actions for the current training block.')).not.toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: 'Generate insight for Bench Press' }))
-
-    expect(reset).toHaveBeenCalled()
-    expect(mutate).toHaveBeenCalledWith(
-      {
-        dateFrom: '2026-02-01',
-        dateTo: '2026-04-01',
-        exerciseId: 1,
-      },
-      expect.any(Object),
-    )
+    expect(mocks.useInsights).toHaveBeenCalledWith({
+      dateFrom: '2026-02-01',
+      dateTo: '2026-04-01',
+      exerciseId: 1,
+    })
     expect(screen.getByRole('heading', { name: 'Summary' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Progression Guidance' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Strengths' })).toBeInTheDocument()
@@ -102,28 +116,25 @@ describe('AiInsightsPanel', () => {
     expect(screen.getByText('Increase')).toBeInTheDocument()
     expect(screen.getByText('Loaded strength')).toBeInTheDocument()
     expect(screen.getByText('Bench press is trending well while squat needs more attention.')).toBeInTheDocument()
+    expect(screen.getByText('Fresh insight')).toBeInTheDocument()
+    expect(screen.getByText(`Generated ${formatGeneratedAt(insight.generatedAt)}`)).toBeInTheDocument()
   })
 
   it('renders a bounded progression note when the current scope should stay retrospective', async () => {
-    const user = userEvent.setup()
-
-    mocks.useInsights.mockReturnValue({
-      isPending: false,
-      mutate: vi.fn((_input, options) => {
-        options?.onSuccess?.({
-          summary: 'The current filter is useful for review, but it is still broader than one supported lift call.',
-          strengths: ['Consistency is holding together.'],
-          concerns: ['The current filter mixes multiple priorities.'],
-          recommendations: ['Use a single-lift filter before making a progression call.'],
-          progressionGuidance: {
-            disposition: 'bounded',
-            note: 'Generate this insight for one selected exercise to unlock bounded progression guidance. Broader scopes stay retrospective so the next-step decision remains yours.',
-            reason: 'broader_scope',
-          },
-        })
+    mocks.useInsights.mockReturnValue(createUseInsightsResult({
+      insight: createInsight({
+        progressionGuidance: {
+          disposition: 'bounded',
+          note: 'Generate this insight for one selected exercise to unlock bounded progression guidance. Broader scopes stay retrospective so the next-step decision remains yours.',
+          reason: 'broader_scope',
+        },
+        source: 'cached',
+        summary: 'The current filter is useful for review, but it is still broader than one supported lift call.',
+        strengths: ['Consistency is holding together.'],
+        concerns: ['The current filter mixes multiple priorities.'],
+        recommendations: ['Use a single-lift filter before making a progression call.'],
       }),
-      reset: vi.fn(),
-    })
+    }))
 
     render(
       <AiInsightsPanel
@@ -137,23 +148,39 @@ describe('AiInsightsPanel', () => {
       />,
     )
 
-    await user.click(screen.getByRole('button', { name: 'Generate insight for current analytics filter' }))
-
     expect(screen.queryByText(/broader scopes stay retrospective/i)).not.toBeInTheDocument()
     expect(screen.queryByText('Progression guidance bounded')).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Progression Guidance' })).not.toBeInTheDocument()
+    expect(screen.getByText('Latest saved insight')).toBeInTheDocument()
   })
 
-  it('shows inline errors when generation fails', async () => {
-    const user = userEvent.setup()
+  it('shows inline errors when loading or generation fails', () => {
+    mocks.useInsights.mockReturnValue(createUseInsightsResult({
+      error: new Error('Provider quota exceeded'),
+    }))
 
-    mocks.useInsights.mockReturnValue({
-      isPending: false,
-      mutate: vi.fn((_input, options) => {
-        options?.onError?.(new Error('Provider quota exceeded'))
-      }),
-      reset: vi.fn(),
-    })
+    render(
+      <AiInsightsPanel
+        coverage={createCoverage()}
+        dateRange={{ from: createMockDate('2026-02-01', '2026-01-31'), to: createMockDate('2026-04-01', '2026-03-31') }}
+        dateRangeLabel="Last 3 months"
+        hasAnalyticsData
+        isInsightEligible
+        selectedExerciseId={1}
+        selectedExerciseName="Bench Press"
+      />,
+    )
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Provider quota exceeded')
+  })
+
+  it('requests a fresh insight when the button is clicked', async () => {
+    const user = userEvent.setup()
+    const generate = vi.fn()
+
+    mocks.useInsights.mockReturnValue(createUseInsightsResult({
+      generate,
+    }))
 
     render(
       <AiInsightsPanel
@@ -169,33 +196,23 @@ describe('AiInsightsPanel', () => {
 
     await user.click(screen.getByRole('button', { name: 'Generate insight for Bench Press' }))
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Provider quota exceeded')
+    expect(generate).toHaveBeenCalledTimes(1)
   })
 
   it('clears the previous insight when the active filter changes', async () => {
-    const user = userEvent.setup()
-    const reset = vi.fn()
-    const mutate = vi.fn((_input, options) => {
-      options?.onSuccess?.({
-        summary: 'Bench press is trending well while squat needs more attention.',
-        strengths: ['Bench press estimated 1RM is climbing.'],
-        concerns: ['Squat PR pace has cooled off.'],
-        recommendations: ['Keep bench volume steady and add one squat top set next week.'],
-        progressionGuidance: {
-          disposition: 'actionable',
-          action: 'hold',
-          exerciseName: 'Bench Press',
-          methodContext: 'loaded_strength',
-          rationale: 'You have enough comparable signal to keep this lift moving without forcing a bigger change yet.',
-        },
-      })
-    })
-
-    mocks.useInsights.mockReturnValue({
-      isPending: false,
-      mutate,
-      reset,
-    })
+    mocks.useInsights
+      .mockReturnValueOnce(createUseInsightsResult({
+        insight: createInsight({
+          progressionGuidance: {
+            disposition: 'actionable',
+            action: 'hold',
+            exerciseName: 'Bench Press',
+            methodContext: 'loaded_strength',
+            rationale: 'You have enough comparable signal to keep this lift moving without forcing a bigger change yet.',
+          },
+        }),
+      }))
+      .mockReturnValueOnce(createUseInsightsResult())
 
     const { rerender } = render(
       <AiInsightsPanel
@@ -210,7 +227,6 @@ describe('AiInsightsPanel', () => {
       />,
     )
 
-    await user.click(screen.getByRole('button', { name: 'Generate insight for Bench Press' }))
     expect(screen.getByRole('heading', { name: 'Summary' })).toBeInTheDocument()
 
     rerender(
@@ -230,14 +246,15 @@ describe('AiInsightsPanel', () => {
       expect(screen.queryByRole('heading', { name: 'Summary' })).not.toBeInTheDocument()
     })
     expect(screen.getByRole('button', { name: 'Generate insight for Squat' })).toBeInTheDocument()
+    expect(mocks.useInsights).toHaveBeenLastCalledWith({
+      dateFrom: '2026-02-01',
+      dateTo: '2026-04-01',
+      exerciseId: 2,
+    })
   })
 
   it('disables generation when analytics data is not ready', () => {
-    mocks.useInsights.mockReturnValue({
-      isPending: false,
-      mutate: vi.fn(),
-      reset: vi.fn(),
-    })
+    mocks.useInsights.mockReturnValue(createUseInsightsResult())
 
     render(
       <AiInsightsPanel

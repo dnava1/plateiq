@@ -2,8 +2,11 @@ import { NextResponse } from 'next/server'
 import { hasInsightEligibleAnalyticsData, parseAnalyticsData } from '@/lib/analytics'
 import { buildAnalyticsInsightSnapshot, generateTrainingInsight } from '@/lib/insights'
 import { isSameOriginRequest, PRIVATE_NO_STORE_HEADERS } from '@/lib/security/request'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { generateInsightRequestSchema } from '@/lib/validations/insights'
+import type { Json } from '@/types/database'
+import type { TrainingInsight } from '@/types/insights'
 
 const INSIGHT_DAILY_LIMIT = 3
 
@@ -13,6 +16,25 @@ function createResponseHeaders(extra: Record<string, string> = {}) {
   return {
     ...PRIVATE_NO_STORE_HEADERS,
     ...extra,
+  }
+}
+
+function buildInsightCommitRpcParams(
+  userId: string,
+  reservationId: string,
+  request: { dateFrom: string; dateTo: string; exerciseId: number | null },
+  insight: TrainingInsight,
+  generatedAt: string,
+) {
+  return {
+    ...(request.exerciseId ? { p_exercise_id: request.exerciseId } : {}),
+    p_daily_limit: INSIGHT_DAILY_LIMIT,
+    p_date_from: request.dateFrom,
+    p_date_to: request.dateTo,
+    p_generated_at: generatedAt,
+    p_insight: insight as unknown as Json,
+    p_reservation_id: reservationId,
+    p_user_id: userId,
   }
 }
 
@@ -89,6 +111,23 @@ function toErrorResponse(error: unknown) {
   }
 }
 
+async function releaseInsightReservation(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  reservationId: string,
+) {
+  const { data, error } = await admin.rpc('release_ai_insight_generation_slot', {
+    p_daily_limit: INSIGHT_DAILY_LIMIT,
+    p_reservation_id: reservationId,
+    p_user_id: userId,
+  })
+
+  return {
+    error,
+    quota: parseInsightQuota(data),
+  }
+}
+
 export async function POST(request: Request) {
   if (!isSameOriginRequest(request)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403, headers: createResponseHeaders() })
@@ -154,13 +193,17 @@ export async function POST(request: Request) {
     )
   }
 
-  const { data: quotaData, error: quotaError } = await supabase.rpc('consume_ai_insight_daily_quota', {
+  const admin = createAdminClient()
+  const reservationId = crypto.randomUUID()
+  const { data: quotaData, error: quotaError } = await admin.rpc('reserve_ai_insight_generation_slot', {
     p_daily_limit: INSIGHT_DAILY_LIMIT,
+    p_reservation_id: reservationId,
+    p_user_id: user.id,
   })
 
   if (quotaError) {
     console.error('analytics insight quota check failed', {
-      operation: 'consume_ai_insight_daily_quota',
+      operation: 'reserve_ai_insight_generation_slot',
       dateFrom: parsedRequest.data.dateFrom,
       dateTo: parsedRequest.data.dateTo,
       exerciseId: parsedRequest.data.exerciseId,
@@ -177,7 +220,7 @@ export async function POST(request: Request) {
 
   if (!quota) {
     console.error('analytics insight quota returned an unexpected payload', {
-      operation: 'consume_ai_insight_daily_quota',
+      operation: 'reserve_ai_insight_generation_slot',
       dateFrom: parsedRequest.data.dateFrom,
       dateTo: parsedRequest.data.dateTo,
       exerciseId: parsedRequest.data.exerciseId,
@@ -202,9 +245,129 @@ export async function POST(request: Request) {
   try {
     const snapshot = buildAnalyticsInsightSnapshot(analytics, parsedRequest.data)
     const insight = await generateTrainingInsight(snapshot)
+    const generatedAt = new Date().toISOString()
+    const { data: committedData, error: commitError } = await admin.rpc(
+      'commit_ai_insight_generation',
+      buildInsightCommitRpcParams(user.id, reservationId, parsedRequest.data, insight, generatedAt),
+    )
 
-    return NextResponse.json(insight, { status: 200, headers: createResponseHeaders(rateLimitHeaders) })
+    if (commitError) {
+      const releasedReservation = await releaseInsightReservation(admin, user.id, reservationId)
+
+      if (releasedReservation.error) {
+        console.error('analytics insight reservation release failed', {
+          operation: 'release_ai_insight_generation_slot',
+          dateFrom: parsedRequest.data.dateFrom,
+          dateTo: parsedRequest.data.dateTo,
+          exerciseId: parsedRequest.data.exerciseId,
+          message: releasedReservation.error.message,
+        })
+      } else if (!releasedReservation.quota) {
+        console.error('analytics insight reservation release returned an unexpected payload', {
+          operation: 'release_ai_insight_generation_slot',
+          dateFrom: parsedRequest.data.dateFrom,
+          dateTo: parsedRequest.data.dateTo,
+          exerciseId: parsedRequest.data.exerciseId,
+        })
+      }
+
+      console.error('analytics insight commit failed', {
+        operation: 'commit_ai_insight_generation',
+        dateFrom: parsedRequest.data.dateFrom,
+        dateTo: parsedRequest.data.dateTo,
+        exerciseId: parsedRequest.data.exerciseId,
+        message: commitError.message,
+      })
+
+      return NextResponse.json(
+        { error: 'Unable to save the generated insight right now. Please try again.' },
+        {
+          status: 500,
+          headers: createResponseHeaders(
+            releasedReservation.quota
+              ? buildRateLimitHeaders(releasedReservation.quota)
+              : rateLimitHeaders,
+          ),
+        },
+      )
+    }
+
+    const committedQuota = parseInsightQuota(committedData)
+
+    if (!committedQuota) {
+      const releasedReservation = await releaseInsightReservation(admin, user.id, reservationId)
+
+      if (releasedReservation.error) {
+        console.error('analytics insight reservation release failed', {
+          operation: 'release_ai_insight_generation_slot',
+          dateFrom: parsedRequest.data.dateFrom,
+          dateTo: parsedRequest.data.dateTo,
+          exerciseId: parsedRequest.data.exerciseId,
+          message: releasedReservation.error.message,
+        })
+      }
+
+      console.error('analytics insight commit returned an unexpected payload', {
+        operation: 'commit_ai_insight_generation',
+        dateFrom: parsedRequest.data.dateFrom,
+        dateTo: parsedRequest.data.dateTo,
+        exerciseId: parsedRequest.data.exerciseId,
+        quotaData: committedData,
+      })
+
+      return NextResponse.json(
+        { error: 'Unable to save the generated insight right now. Please try again.' },
+        {
+          status: 500,
+          headers: createResponseHeaders(
+            releasedReservation.quota
+              ? buildRateLimitHeaders(releasedReservation.quota)
+              : rateLimitHeaders,
+          ),
+        },
+      )
+    }
+
+    const committedRateLimitHeaders = buildRateLimitHeaders(committedQuota)
+
+    if (!committedQuota.allowed) {
+      return NextResponse.json(
+        { error: `Daily AI insight limit reached. You can generate up to ${INSIGHT_DAILY_LIMIT} insights per UTC day.` },
+        {
+          status: 429,
+          headers: createResponseHeaders(committedRateLimitHeaders),
+        },
+      )
+    }
+
+    return NextResponse.json(
+      {
+        ...insight,
+        generatedAt,
+        source: 'generated',
+      },
+      { status: 200, headers: createResponseHeaders(committedRateLimitHeaders) },
+    )
   } catch (error) {
+    const releasedReservation = await releaseInsightReservation(admin, user.id, reservationId)
+
+    if (releasedReservation.error) {
+      console.error('analytics insight reservation release failed', {
+        operation: 'release_ai_insight_generation_slot',
+        dateFrom: parsedRequest.data.dateFrom,
+        dateTo: parsedRequest.data.dateTo,
+        exerciseId: parsedRequest.data.exerciseId,
+        message: releasedReservation.error.message,
+      })
+    } else if (!releasedReservation.quota) {
+      console.error('analytics insight reservation release returned an unexpected payload', {
+        operation: 'release_ai_insight_generation_slot',
+        dateFrom: parsedRequest.data.dateFrom,
+        dateTo: parsedRequest.data.dateTo,
+        exerciseId: parsedRequest.data.exerciseId,
+      })
+    }
+
     const response = toErrorResponse(error)
     const loggedMessage = error instanceof Error
       ? error.message
@@ -223,7 +386,14 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       { error: response.message },
-      { status: response.status, headers: createResponseHeaders(rateLimitHeaders) },
+      {
+        status: response.status,
+        headers: createResponseHeaders(
+          releasedReservation.quota
+            ? buildRateLimitHeaders(releasedReservation.quota)
+            : rateLimitHeaders,
+        ),
+      },
     )
   }
 }

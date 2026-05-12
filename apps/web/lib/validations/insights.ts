@@ -72,3 +72,20 @@ export const progressionGuidanceSchema = z.discriminatedUnion('disposition', [
 export const trainingInsightSchema = trainingInsightSectionsSchema.extend({
   progressionGuidance: progressionGuidanceSchema,
 })
+
+export const insightTimestampSchema = z.string().refine(
+  (value) => !Number.isNaN(Date.parse(value)),
+  'generatedAt must be a valid timestamp.',
+)
+
+export const trainingInsightSourceSchema = z.enum(['cached', 'generated'])
+
+export const trainingInsightResultSchema = trainingInsightSchema.extend({
+  generatedAt: insightTimestampSchema,
+  source: trainingInsightSourceSchema,
+})
+
+export const aiInsightCacheRecordSchema = z.object({
+  generated_at: insightTimestampSchema,
+  insight: trainingInsightSchema,
+})

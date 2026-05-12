@@ -29,12 +29,19 @@ export interface BoundedProgressionGuidance {
 
 export type ProgressionGuidance = ActionableProgressionGuidance | BoundedProgressionGuidance
 
+export type TrainingInsightSource = 'cached' | 'generated'
+
 export interface TrainingInsight {
   summary: string
   strengths: string[]
   concerns: string[]
   recommendations: string[]
   progressionGuidance: ProgressionGuidance
+}
+
+export interface TrainingInsightResult extends TrainingInsight {
+  generatedAt: string
+  source: TrainingInsightSource
 }
 
 export interface InsightProgressionGuidanceContext {

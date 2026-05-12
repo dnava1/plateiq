@@ -464,10 +464,61 @@ export type Database = {
         }
         Returns: Json
       }
+      get_ai_insight_cache: {
+        Args: {
+          p_date_from: string
+          p_date_to: string
+          p_exercise_id?: number
+        }
+        Returns: Json
+      }
+      get_ai_insight_daily_quota: {
+        Args: { p_daily_limit?: number; p_user_id: string }
+        Returns: Json
+      }
       get_dashboard: { Args: never; Returns: Json }
+      reserve_ai_insight_generation_slot: {
+        Args: {
+          p_daily_limit?: number
+          p_reservation_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      release_ai_insight_generation_slot: {
+        Args: {
+          p_daily_limit?: number
+          p_reservation_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      commit_ai_insight_generation: {
+        Args: {
+          p_daily_limit?: number
+          p_date_from: string
+          p_date_to: string
+          p_exercise_id?: number
+          p_generated_at?: string
+          p_insight?: Json
+          p_reservation_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       set_active_program: {
         Args: {
           p_program_id: number
+        }
+        Returns: Json
+      }
+      upsert_ai_insight_cache: {
+        Args: {
+          p_date_from: string
+          p_date_to: string
+          p_exercise_id?: number
+          p_generated_at?: string
+          p_insight?: Json
         }
         Returns: Json
       }

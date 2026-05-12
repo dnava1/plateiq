@@ -218,10 +218,34 @@ test.describe('authenticated dashboard and analytics flows', () => {
 
   test('supports analytics filter changes and AI insight generation', async ({ page }) => {
     let insightRequestBody: Record<string, unknown> | null = null
+    let lastInsightRequestCount = 0
+    let latestInsight: Record<string, unknown> | null = null
     let selectedExerciseName: string | null = null
+
+    await page.route('**/api/insights/last**', async (route) => {
+      lastInsightRequestCount += 1
+
+      if (!latestInsight) {
+        await route.fulfill({
+          status: 204,
+          body: '',
+        })
+        return
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ...latestInsight,
+          source: 'cached',
+        }),
+      })
+    })
 
     await page.route('**/api/insights/generate', async (route) => {
       insightRequestBody = route.request().postDataJSON() as Record<string, unknown>
+      const generatedAt = '2026-04-02T15:30:00.000Z'
       const scopedResponse = selectedExerciseName
         ? {
             summary: `${selectedExerciseName} momentum is positive, but the rest of the block needs closer monitoring.`,
@@ -248,10 +272,18 @@ test.describe('authenticated dashboard and analytics flows', () => {
             },
           }
 
+      latestInsight = {
+        ...scopedResponse,
+        generatedAt,
+      }
+
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(scopedResponse),
+        body: JSON.stringify({
+          ...latestInsight,
+          source: 'generated',
+        }),
       })
     })
 
@@ -309,12 +341,30 @@ test.describe('authenticated dashboard and analytics flows', () => {
     await expect(page.getByRole('heading', { name: 'Strengths' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Concerns' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Recommendations' })).toBeVisible()
+    await expect(page.getByText('Fresh insight', { exact: true })).toBeVisible()
+    await expect(page.getByText(/^Generated /)).toBeVisible()
 
     if (selectedExerciseName) {
       await expect(page.getByRole('heading', { name: 'Progression Guidance' })).toBeVisible()
       await expect(page.getByText(`${selectedExerciseName} momentum is positive, but the rest of the block needs closer monitoring.`)).toBeVisible()
     } else {
       await expect(page.getByRole('heading', { name: 'Progression Guidance' })).toHaveCount(0)
+      await expect(page.getByText('The current analytics filter shows positive momentum, but some lifts still need closer monitoring.')).toBeVisible()
+    }
+
+    await page.getByRole('tab', { name: 'Strength' }).click()
+    const lastInsightRequestsBeforeReload = lastInsightRequestCount
+    await page.reload()
+    await expect(page.getByRole('heading', { name: 'Analytics' })).toBeVisible()
+    await page.getByRole('tab', { name: 'AI Insights' }).click()
+
+    await expect.poll(() => lastInsightRequestCount).toBeGreaterThan(lastInsightRequestsBeforeReload)
+    await expect(page.getByText('Latest saved insight', { exact: true })).toBeVisible()
+    await expect(page.getByText(/^Generated /)).toBeVisible()
+
+    if (selectedExerciseName) {
+      await expect(page.getByText(`${selectedExerciseName} momentum is positive, but the rest of the block needs closer monitoring.`)).toBeVisible()
+    } else {
       await expect(page.getByText('The current analytics filter shows positive momentum, but some lifts still need closer monitoring.')).toBeVisible()
     }
   })
