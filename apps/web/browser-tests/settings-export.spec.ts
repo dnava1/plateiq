@@ -14,7 +14,7 @@ test.describe('settings export', () => {
     await expect(page.getByText('Export Data', { exact: true })).toBeVisible()
 
     const downloadPromise = page.waitForEvent('download')
-    await page.getByRole('button', { name: 'Download Export' }).click()
+    await page.getByRole('button', { name: 'Export Data' }).click()
 
     const download = await downloadPromise
     const archivePath = join(tmpdir(), `plateiq-settings-export-${Date.now()}.zip`)

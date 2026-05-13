@@ -77,13 +77,10 @@ export function ExportDataCard() {
       <CardHeader>
         <CardTitle>Export Data</CardTitle>
         <CardDescription>
-          Download your programs, cycles, workouts, logged sets, and referenced exercises in a ZIP archive.
+          Download your programs, cycles, workouts, logged sets, and referenced exercises.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <p className="text-sm text-muted-foreground">
-          This export includes your server-backed training history only. Device-local and temporary guest data are not part of this download.
-        </p>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Button
@@ -97,7 +94,7 @@ export function ExportDataCard() {
             }}
           >
             <Download data-icon="inline-start" />
-            {exportAccountData.isPending ? 'Preparing Export…' : 'Download Export'}
+            {exportAccountData.isPending ? 'Preparing Export…' : 'Export Data'}
           </Button>
         </div>
 

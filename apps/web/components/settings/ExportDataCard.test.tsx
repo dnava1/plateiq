@@ -42,7 +42,7 @@ describe('ExportDataCard', () => {
 
     expect(screen.getByText('Export Data')).toBeInTheDocument()
     expect(screen.getByText(/programs, cycles, workouts, logged sets, and referenced exercises/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Download Export' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Export Data' })).toBeInTheDocument()
   })
 
   it('reports success after the download starts', async () => {
@@ -54,7 +54,7 @@ describe('ExportDataCard', () => {
 
     renderExportDataCard()
 
-    await user.click(screen.getByRole('button', { name: 'Download Export' }))
+    await user.click(screen.getByRole('button', { name: 'Export Data' }))
 
     await waitFor(() => {
       expect(mocks.downloadAccountExport).toHaveBeenCalledTimes(1)
@@ -70,12 +70,12 @@ describe('ExportDataCard', () => {
 
     renderExportDataCard()
 
-    await user.click(screen.getByRole('button', { name: 'Download Export' }))
+    await user.click(screen.getByRole('button', { name: 'Export Data' }))
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('Unable to prepare your export right now.')
     })
 
-    expect(screen.getByRole('button', { name: 'Download Export' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Export Data' })).toBeEnabled()
   })
 })
