@@ -39,6 +39,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { LegalLinks } from '@/components/layout/LegalLinks'
 import { ProfileAvatar } from '@/components/layout/ProfileAvatar'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
+import { ExportDataCard } from '@/components/settings/ExportDataCard'
 import { FeedbackCard } from '@/components/settings/FeedbackCard'
 import type { PreferredUnit, StrengthProfileSex } from '@/types/domain'
 import type { ProfilePreferences } from '@/hooks/useProfile'
@@ -656,6 +657,8 @@ export default function SettingsPage() {
           isPending={updateStrengthProfile.isPending}
           onSave={handleStrengthProfileSave}
         />
+
+        {!isGuest && <ExportDataCard />}
 
         <FeedbackCard />
 

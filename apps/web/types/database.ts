@@ -456,6 +456,10 @@ export type Database = {
         Args: { p_reps: number; p_weight_lbs: number }
         Returns: number
       }
+      export_my_training_graph_v1: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       get_analytics_data: {
         Args: {
           p_date_from?: string
@@ -477,6 +481,14 @@ export type Database = {
         Returns: Json
       }
       get_dashboard: { Args: never; Returns: Json }
+      commit_account_export: {
+        Args: {
+          p_hourly_limit?: number
+          p_reservation_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       reserve_ai_insight_generation_slot: {
         Args: {
           p_daily_limit?: number
@@ -485,9 +497,25 @@ export type Database = {
         }
         Returns: Json
       }
+      reserve_account_export_slot: {
+        Args: {
+          p_hourly_limit?: number
+          p_reservation_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       release_ai_insight_generation_slot: {
         Args: {
           p_daily_limit?: number
+          p_reservation_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      release_account_export_slot: {
+        Args: {
+          p_hourly_limit?: number
           p_reservation_id: string
           p_user_id: string
         }

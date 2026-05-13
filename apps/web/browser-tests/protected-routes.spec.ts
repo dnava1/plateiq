@@ -76,6 +76,7 @@ test('supports guest access and returns guests to continue after sign-out', asyn
   await page.goto('/settings')
   await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Guest account' })).toBeVisible()
+  await expect(page.getByText('Export Data', { exact: true })).toHaveCount(0)
   await expect(page.getByRole('link', { name: 'Sign In with Google' }).first()).toBeVisible()
   await expect(page.getByRole('button', { name: 'Sign Out' })).toBeVisible()
 

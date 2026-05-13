@@ -505,8 +505,18 @@ describe('SettingsPage', () => {
   it('shows the feedback and policy links in settings', () => {
     render(<SettingsPage />, { wrapper: createWrapper() })
 
+    expect(screen.getByText('Export Data')).toBeInTheDocument()
     expect(screen.getByText('Feedback')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Terms & Privacy' })).toHaveAttribute('href', '/legal')
+  })
+
+  it('renders the export card before feedback for permanent users', () => {
+    const { container } = render(<SettingsPage />, { wrapper: createWrapper() })
+    const pageText = container.textContent ?? ''
+
+    expect(pageText.indexOf('Export Data')).toBeGreaterThan(-1)
+    expect(pageText.indexOf('Feedback')).toBeGreaterThan(-1)
+    expect(pageText.indexOf('Export Data')).toBeLessThan(pageText.indexOf('Feedback'))
   })
 
   it('shows a clear empty state when sex is not set', () => {
@@ -533,6 +543,7 @@ describe('SettingsPage', () => {
       data: {
         email: null,
         id: 'guest-user',
+        is_anonymous: true,
         user_metadata: {},
       },
     })
@@ -540,7 +551,8 @@ describe('SettingsPage', () => {
     render(<SettingsPage />, { wrapper: createWrapper() })
 
     expect(screen.getByText('This guest account is temporary and can be lost. Sign in with Google to keep your data.')).toBeInTheDocument()
-  expect(screen.queryByText('This guest session is now a permanent account.')).not.toBeInTheDocument()
+    expect(screen.queryByText('This guest session is now a permanent account.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Export Data')).not.toBeInTheDocument()
     expect(screen.queryByText('GA')).not.toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: 'Sign In with Google' })).toHaveLength(1)
     expect(screen.getByRole('button', { name: 'Sign Out' })).toBeInTheDocument()
@@ -554,6 +566,7 @@ describe('SettingsPage', () => {
       data: {
         email: null,
         id: 'guest-user',
+        is_anonymous: true,
         user_metadata: {},
       },
     })
