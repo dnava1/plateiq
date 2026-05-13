@@ -353,6 +353,29 @@ describe('insights', () => {
     })
   })
 
+  it('generateTrainingInsight maps retryable provider 5xx messages to a public 502 error', async () => {
+    const snapshot = buildAnalyticsInsightSnapshot(analyticsFixture, {
+      dateFrom: '2026-02-20',
+      dateTo: '2026-03-20',
+      exerciseId: null,
+    })
+
+    await expect(
+      generateTrainingInsight(snapshot, {
+        ai: {
+          models: {
+            generateContent: async () => {
+              throw new Error('Retryable HTTP Error: Internal Server Error')
+            },
+          },
+        } as never,
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 502,
+      publicMessage: 'AI insights are temporarily unavailable. Try again later.',
+    })
+  })
+
   it('downgrades malformed progression guidance to a bounded note instead of failing the full insight', async () => {
     const snapshot = buildAnalyticsInsightSnapshot(analyticsFixture, {
       dateFrom: '2026-02-20',

@@ -901,9 +901,51 @@ export function buildAnalyticsInsightSnapshot(
 }
 
 function resolveProviderStatus(error: unknown) {
-  if (typeof error === 'object' && error !== null && 'status' in error) {
-    const status = (error as { status?: unknown }).status
-    return typeof status === 'number' ? status : null
+  if (typeof error === 'object' && error !== null) {
+    const status = 'status' in error ? (error as { status?: unknown }).status : undefined
+    if (typeof status === 'number') {
+      return status
+    }
+
+    const statusCode = 'statusCode' in error ? (error as { statusCode?: unknown }).statusCode : undefined
+    if (typeof statusCode === 'number') {
+      return statusCode
+    }
+
+    const code = 'code' in error ? (error as { code?: unknown }).code : undefined
+    if (typeof code === 'number') {
+      return code
+    }
+
+    const cause = 'cause' in error ? (error as { cause?: unknown }).cause : undefined
+    if (typeof cause === 'object' && cause !== null) {
+      const causeStatus = 'status' in cause ? (cause as { status?: unknown }).status : undefined
+      if (typeof causeStatus === 'number') {
+        return causeStatus
+      }
+
+      const causeStatusCode = 'statusCode' in cause ? (cause as { statusCode?: unknown }).statusCode : undefined
+      if (typeof causeStatusCode === 'number') {
+        return causeStatusCode
+      }
+    }
+  }
+
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase()
+
+    if (message.includes('too many requests')) {
+      return 429
+    }
+
+    if (
+      message.includes('internal server error')
+      || message.includes('bad gateway')
+      || message.includes('service unavailable')
+      || message.includes('gateway timeout')
+    ) {
+      return 500
+    }
   }
 
   return null
@@ -939,6 +981,7 @@ function createAiClient(apiKey: string) {
 
   return new GoogleGenAI({
     apiKey,
+    apiVersion: 'v1beta',
     httpOptions: {
       timeout: timeoutMs,
       retryOptions: {
